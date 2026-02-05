@@ -7,19 +7,33 @@ import { StaffDashboard } from './pages/StaffDashboard';
 import { SuperAdminDashboard } from './pages/SuperAdminDashboard';
 import './styles/global.css';
 
-type AuthStep = 'login' | 'confirmation' | 'authenticated';
+type AuthStep = 'login' | 'confirmation' | 'authenticated' | 'checking';
 
 function App() {
-  const [authStep, setAuthStep] = useState<AuthStep>('login');
+  const [authStep, setAuthStep] = useState<AuthStep>('checking');
   const [userEmail, setUserEmail] = useState('');
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout, checkAuth, isLoading } = useAuth();
 
   useEffect(() => {
-    // Check if user is already authenticated (session exists)
-    if (isAuthenticated && user) {
+    // Check if user is already authenticated on mount
+    const verifyAuth = async () => {
+      const isAuth = await checkAuth();
+      if (isAuth) {
+        setAuthStep('authenticated');
+      } else {
+        setAuthStep('login');
+      }
+    };
+
+    verifyAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    // Update auth step if user becomes authenticated
+    if (isAuthenticated && user && authStep !== 'authenticated') {
       setAuthStep('authenticated');
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, authStep]);
 
   const handleLoginSuccess = (email: string) => {
     setUserEmail(email);
@@ -40,6 +54,25 @@ function App() {
     setAuthStep('login');
     setUserEmail('');
   };
+
+  // Checking authentication
+  if (authStep === 'checking' || isLoading) {
+    return (
+      <div style={{
+        width: '100%',
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        background: 'linear-gradient(135deg, #1e3a5f 0%, #152d47 100%)',
+      }}>
+        <div style={{ textAlign: 'center', color: 'white' }}>
+          <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Login Step 1
   if (authStep === 'login') {

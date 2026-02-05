@@ -8,6 +8,7 @@ export const API_ENDPOINTS = {
     CONFIRM: `${API_BASE_URL}/users/confirm/`,
     LOGOUT: `${API_BASE_URL}/users/logout/`,
     RESEND_CODE: `${API_BASE_URL}/users/resend-code-create-user/`,
+    ME: `${API_BASE_URL}/users/me/`,
   },
   
   // Users

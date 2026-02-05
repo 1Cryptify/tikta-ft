@@ -26,6 +26,34 @@ export const useAuth = () => {
     error: null,
   });
 
+  // Check if user is already authenticated
+  const checkAuth = useCallback(async () => {
+    setState(prev => ({ ...prev, isLoading: true }));
+    try {
+      const response = await apiCall(API_ENDPOINTS.AUTH.ME, {
+        method: 'GET',
+      });
+
+      if (response.status === 'success' && response.user) {
+        setState({
+          user: response.user as User,
+          isAuthenticated: true,
+          isLoading: false,
+          error: null,
+        });
+        return true;
+      }
+      return false;
+    } catch (error) {
+      setState(prev => ({
+        ...prev,
+        isLoading: false,
+        isAuthenticated: false,
+      }));
+      return false;
+    }
+  }, []);
+
   // Login step 1: Send email and password
   const login = useCallback(async (email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
@@ -138,5 +166,6 @@ export const useAuth = () => {
     confirmLogin,
     logout,
     resendCode,
+    checkAuth,
   };
 };
