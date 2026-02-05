@@ -3,6 +3,13 @@ import styled from 'styled-components';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
+import {
+  FiLayout,
+  FiBriefcase,
+  FiUsers,
+  FiCheckCircle,
+  FiFileText,
+} from 'react-icons/fi';
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -171,35 +178,35 @@ export const StaffDashboard: React.FC<StaffDashboardProps> = ({ user, onLogout }
     {
       id: 'overview',
       label: 'Overview',
-      icon: '📊',
+      icon: <FiLayout size={20} />,
       active: activeNav === 'overview',
       onClick: () => setActiveNav('overview'),
     },
     {
       id: 'companies',
       label: 'Companies',
-      icon: '🏢',
+      icon: <FiBriefcase size={20} />,
       active: activeNav === 'companies',
       onClick: () => setActiveNav('companies'),
     },
     {
       id: 'users',
       label: 'Users',
-      icon: '👥',
+      icon: <FiUsers size={20} />,
       active: activeNav === 'users',
       onClick: () => setActiveNav('users'),
     },
     {
       id: 'verifications',
       label: 'Verifications',
-      icon: '✓',
+      icon: <FiCheckCircle size={20} />,
       active: activeNav === 'verifications',
       onClick: () => setActiveNav('verifications'),
     },
     {
       id: 'reports',
       label: 'Reports',
-      icon: '📋',
+      icon: <FiFileText size={20} />,
       active: activeNav === 'reports',
       onClick: () => setActiveNav('reports'),
     },

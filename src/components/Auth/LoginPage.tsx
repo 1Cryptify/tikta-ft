@@ -171,8 +171,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
                 cursor: 'pointer',
                 padding: 0,
               }}
+              title={showPassword ? 'Hide password' : 'Show password'}
             >
-              {showPassword ? '👁️' : '👁️‍🗨️'}
+              {showPassword ? '[–]' : '[o]'}
             </button>
           </div>
 

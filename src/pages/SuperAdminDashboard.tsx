@@ -3,6 +3,15 @@ import styled from 'styled-components';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
+import {
+  FiLayout,
+  FiUsers,
+  FiBriefcase,
+  FiUserCheck,
+  FiDollarSign,
+  FiLock,
+  FiSettings,
+} from 'react-icons/fi';
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -181,49 +190,49 @@ export const SuperAdminDashboard: React.FC<SuperAdminDashboardProps> = ({
     {
       id: 'overview',
       label: 'Overview',
-      icon: '📊',
+      icon: <FiLayout size={20} />,
       active: activeNav === 'overview',
       onClick: () => setActiveNav('overview'),
     },
     {
       id: 'users',
       label: 'Users Management',
-      icon: '👤',
+      icon: <FiUsers size={20} />,
       active: activeNav === 'users',
       onClick: () => setActiveNav('users'),
     },
     {
       id: 'companies',
       label: 'Companies',
-      icon: '🏢',
+      icon: <FiBriefcase size={20} />,
       active: activeNav === 'companies',
       onClick: () => setActiveNav('companies'),
     },
     {
       id: 'staff',
       label: 'Staff Management',
-      icon: '👨‍💼',
+      icon: <FiUserCheck size={20} />,
       active: activeNav === 'staff',
       onClick: () => setActiveNav('staff'),
     },
     {
       id: 'payments',
       label: 'Payments System',
-      icon: '💳',
+      icon: <FiDollarSign size={20} />,
       active: activeNav === 'payments',
       onClick: () => setActiveNav('payments'),
     },
     {
       id: 'security',
       label: 'Security & Logs',
-      icon: '🔒',
+      icon: <FiLock size={20} />,
       active: activeNav === 'security',
       onClick: () => setActiveNav('security'),
     },
     {
       id: 'system',
       label: 'System Settings',
-      icon: '⚙️',
+      icon: <FiSettings size={20} />,
       active: activeNav === 'system',
       onClick: () => setActiveNav('system'),
     },

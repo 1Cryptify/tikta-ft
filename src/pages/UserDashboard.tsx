@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
+import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings } from 'react-icons/fi';
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -150,28 +151,28 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
     {
       id: 'overview',
       label: 'Overview',
-      icon: '📊',
+      icon: <FiBarChart2 size={20} />,
       active: activeNav === 'overview',
       onClick: () => setActiveNav('overview'),
     },
     {
       id: 'payments',
       label: 'Payments',
-      icon: '💳',
+      icon: <FiCreditCard size={20} />,
       active: activeNav === 'payments',
       onClick: () => setActiveNav('payments'),
     },
     {
       id: 'transactions',
       label: 'Transactions',
-      icon: '📈',
+      icon: <FiTrendingUp size={20} />,
       active: activeNav === 'transactions',
       onClick: () => setActiveNav('transactions'),
     },
     {
       id: 'settings',
       label: 'Settings',
-      icon: '⚙️',
+      icon: <FiSettings size={20} />,
       active: activeNav === 'settings',
       onClick: () => setActiveNav('settings'),
     },

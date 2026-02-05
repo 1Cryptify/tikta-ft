@@ -5,7 +5,7 @@ import { colors, spacing, borderRadius, transitions } from '../../config/theme';
 interface NavItem {
   id: string;
   label: string;
-  icon: string;
+  icon: React.ReactNode;
   active?: boolean;
   onClick?: () => void;
 }
@@ -71,10 +71,10 @@ const NavItemButton = styled.button<{ active?: boolean }>`
   }
 
   span:first-child {
-    font-size: 1.25rem;
     display: flex;
     align-items: center;
     justify-content: center;
+    color: currentColor;
   }
 `;
 
