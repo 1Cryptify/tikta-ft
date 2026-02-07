@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
-import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings } from 'react-icons/fi';
+import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiGift, FiTag } from 'react-icons/fi';
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -41,13 +41,12 @@ const Card = styled.div`
   padding: ${spacing.xl};
 
   h3 {
-    color: ${colors.textPrimary};
+    color: ${colors.textSecondary};
     font-size: 0.875rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     margin-bottom: ${spacing.md};
-    color: ${colors.textSecondary};
   }
 
   .value {
@@ -156,11 +155,39 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
       onClick: () => setActiveNav('overview'),
     },
     {
+      id: 'offres_produits',
+      label: 'Offres et produits',
+      icon: <FiGift size={20} />,
+      active: activeNav === 'offres_produits',
+      onClick: () => setActiveNav('offres_produits'),
+    },
+    {
+      id: 'entreprise',
+      label: 'Entreprise',
+      icon: <FiBarChart2 size={20} />,
+      active: activeNav === 'entreprise',
+      onClick: () => setActiveNav('entreprise'),
+    },
+    {
+      id: 'payment_api',
+      label: 'Payment API',
+      icon: <FiCreditCard size={20} />,
+      active: activeNav === 'payment_api',
+      onClick: () => setActiveNav('payment_api'),
+    },
+    {
       id: 'payments',
       label: 'Payments',
       icon: <FiCreditCard size={20} />,
       active: activeNav === 'payments',
       onClick: () => setActiveNav('payments'),
+    },
+    {
+      id: 'tickets',
+      label: 'Tickets',
+      icon: <FiTag size={20} />,
+      active: activeNav === 'tickets',
+      onClick: () => setActiveNav('tickets'),
     },
     {
       id: 'transactions',
@@ -252,24 +279,40 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
           </>
         )}
 
+        {activeNav === 'offres_produits' && (
+          <PageHeader>
+            <h1>Offres et produits</h1>
+            <p>Gérez vos offres et produits</p>
+          </PageHeader>
+        )}
+        {activeNav === 'entreprise' && (
+          <PageHeader>
+            <h1>Entreprise</h1>
+            <p>Informations et paramètres de l'entreprise</p>
+          </PageHeader>
+        )}
+        {activeNav === 'payment_api' && (
+          <PageHeader>
+            <h1>Payment API</h1>
+            <p>Gestion des API de paiement</p>
+          </PageHeader>
+        )}
         {activeNav === 'payments' && (
           <PageHeader>
             <h1>Payments</h1>
-            <p>Manage your payment methods and transactions</p>
+            <p>Manage your payments</p>
           </PageHeader>
         )}
-
+        {activeNav === 'tickets' && (
+          <PageHeader>
+            <h1>Tickets</h1>
+            <p>View and manage your tickets and coupons</p>
+          </PageHeader>
+        )}
         {activeNav === 'transactions' && (
           <PageHeader>
             <h1>Transactions</h1>
-            <p>View all your transaction history</p>
-          </PageHeader>
-        )}
-
-        {activeNav === 'settings' && (
-          <PageHeader>
-            <h1>Settings</h1>
-            <p>Manage your account settings</p>
+            <p>View your transaction history</p>
           </PageHeader>
         )}
       </ContentSection>
