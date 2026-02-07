@@ -260,27 +260,30 @@ export const endpoints = {
   },
   offer: {
     // Roles: client, staff, su admin
-    list: (companyId: string) => `/payments/offer-list/${companyId}/`,
+    list: (companyId: string) => `/payments/offers/${companyId}/`,
     // Roles: client, staff, su admin
-    detail: (id: string) => `/payments/offer-detail/${id}/`,
+    detail: (id: string) => `/payments/offers/${id}/`,
     // Roles: client, staff, su admin
-    create: '/payments/offer-create/',
+    create: '/payments/offers/create/', 
     // Roles: client, staff, su admin
-    update: (id: string) => `/payments/offer-update/${id}/`,
+    update: (id: string) => `/payments/offers/${id}/update/`,
     // Roles: su admin, staff
-    delete: (id: string) => `/payments/offer-delete/${id}/`,
+    delete: (id: string) => `/payments/offers/${id}/delete/`,
+
+    activate : (id: string) => `/payments/offers/${id}/activate/`,
+    deactivate : (id: string) => `/payments/offers/${id}/deactivate/`,
   },
   offerGroup: {
     // Roles: client, staff, su admin
-    list: (companyId: string) => `/payments/offer-group-list/${companyId}/`,
+    list: (companyId: string) => `/payments/offer-groups/${companyId}/`,
     // Roles: client, staff, su admin
-    detail: (id: string) => `/payments/offer-group-detail/${id}/`,
+    detail: (id: string) => `/payments/offer-groups/${id}/`,
     // Roles: client, staff, su admin
-    create: '/payments/offer-group-create/',
+    create: '/payments/offer-groups/create/',
     // Roles: client, staff, su admin
-    update: (id: string) => `/payments/offer-group-update/${id}/`,
+    update: (id: string) => `/payments/offer-groups/${id}/update/`,
     // Roles: su admin, staff
-    delete: (id: string) => `/payments/offer-group-delete/${id}/`,
+    delete: (id: string) => `/payments/offer-groups/${id}/delete/`,
   },
   product: {
     // Roles: client, staff, su admin

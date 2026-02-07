@@ -4,6 +4,7 @@ import { MainLayout } from '../components/Layout/MainLayout';
 import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
 import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiGift, FiTag } from 'react-icons/fi';
+import { OffersProductsPage } from './UserDashboard/OffersProducts/OffersProductsPage';
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -280,10 +281,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
         )}
 
         {activeNav === 'offres_produits' && (
-          <PageHeader>
-            <h1>Offres et produits</h1>
-            <p>Gérez vos offres et produits</p>
-          </PageHeader>
+          <OffersProductsPage companyId={user.company_id} />
         )}
         {activeNav === 'entreprise' && (
           <PageHeader>
