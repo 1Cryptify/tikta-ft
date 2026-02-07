@@ -157,14 +157,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
     },
     {
       id: 'entreprise',
-      label: 'Entreprise',
+      label: 'Business',
       icon: <FiBarChart2 size={20} />,
       active: activeNav === 'entreprise',
       onClick: () => setActiveNav('entreprise'),
     },
     {
       id: 'offres_produits',
-      label: 'Offres et produits',
+      label: 'Offers & Products',
       icon: <FiGift size={20} />,
       active: activeNav === 'offres_produits',
       onClick: () => setActiveNav('offres_produits'),
@@ -285,14 +285,14 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
         )}
         {activeNav === 'entreprise' && (
           <PageHeader>
-            <h1>Entreprise</h1>
-            <p>Informations et paramètres de l'entreprise</p>
+            <h1>Business</h1>
+            <p>Business information and settings</p>
           </PageHeader>
         )}
         {activeNav === 'payment_api' && (
           <PageHeader>
             <h1>Payment API</h1>
-            <p>Gestion des API de paiement</p>
+            <p>Payment API Management</p>
           </PageHeader>
         )}
         {activeNav === 'payments' && (
