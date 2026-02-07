@@ -243,10 +243,10 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({ companyId = '' }) 
   };
 
   const handleDeleteClick = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
-      await deleteProduct(id);
-    }
-  };
+     if (window.confirm('Are you sure you want to delete this product?')) {
+       await deleteProduct(id);
+     }
+   };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
@@ -257,10 +257,10 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({ companyId = '' }) 
     <>
       <Panel>
         <PanelHeader>
-          <h2>Produits</h2>
+          <h2>Products</h2>
           <AddButton onClick={handleAddClick}>
             <FiPlus />
-            Ajouter
+            Add
           </AddButton>
         </PanelHeader>
 
@@ -272,15 +272,15 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({ companyId = '' }) 
 
         {error && (
           <EmptyState>
-            <p>Erreur: {error}</p>
+            <p>Error: {error}</p>
           </EmptyState>
         )}
 
         {!isLoading && !error && products.length === 0 && (
           <EmptyState>
-            <p>Aucun produit créé</p>
+            <p>No products created</p>
             <p style={{ marginTop: spacing.sm, fontSize: '0.75rem' }}>
-              Cliquez sur "Ajouter" pour créer votre premier produit
+              Click "Add" to create your first product
             </p>
           </EmptyState>
         )}
@@ -300,7 +300,7 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({ companyId = '' }) 
                   {product.price.toLocaleString()} {product.currency || 'XAF'}
                 </div>
                 <span className="status">
-                  {product.is_active ? 'Actif' : 'Inactif'}
+                  {product.is_active ? 'Active' : 'Inactive'}
                 </span>
                 <ItemActions>
                   <IconButton
@@ -310,7 +310,7 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({ companyId = '' }) 
                       handleEditClick(product);
                     }}
                   >
-                    <FiEdit2 /> Éditer
+                    <FiEdit2 /> Edit
                   </IconButton>
                   <IconButton
                     variant="delete"
@@ -319,7 +319,7 @@ export const ProductsPanel: React.FC<ProductsPanelProps> = ({ companyId = '' }) 
                       handleDeleteClick(product.id);
                     }}
                   >
-                    <FiTrash2 /> Supprimer
+                    <FiTrash2 /> Delete
                   </IconButton>
                 </ItemActions>
               </ProductItem>

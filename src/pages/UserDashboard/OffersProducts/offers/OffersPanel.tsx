@@ -232,10 +232,10 @@ export const OffersPanel: React.FC<OffersPanelProps> = ({ companyId = '' }) => {
   };
 
   const handleDeleteClick = async (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette offre ?')) {
-      await deleteOffer(id);
-    }
-  };
+     if (window.confirm('Are you sure you want to delete this offer?')) {
+       await deleteOffer(id);
+     }
+   };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
@@ -246,10 +246,10 @@ export const OffersPanel: React.FC<OffersPanelProps> = ({ companyId = '' }) => {
     <>
       <Panel>
         <PanelHeader>
-          <h2>Offres</h2>
+          <h2>Offers</h2>
           <AddButton onClick={handleAddClick}>
             <FiPlus />
-            Ajouter
+            Add
           </AddButton>
         </PanelHeader>
 
@@ -261,15 +261,15 @@ export const OffersPanel: React.FC<OffersPanelProps> = ({ companyId = '' }) => {
 
         {error && (
           <EmptyState>
-            <p>Erreur: {error}</p>
+            <p>Error: {error}</p>
           </EmptyState>
         )}
 
         {!isLoading && !error && offers.length === 0 && (
           <EmptyState>
-            <p>Aucune offre créée</p>
+            <p>No offers created</p>
             <p style={{ marginTop: spacing.sm, fontSize: '0.75rem' }}>
-              Cliquez sur "Ajouter" pour créer votre première offre
+              Click "Add" to create your first offer
             </p>
           </EmptyState>
         )}
@@ -288,7 +288,7 @@ export const OffersPanel: React.FC<OffersPanelProps> = ({ companyId = '' }) => {
                   {offer.price.toLocaleString()} {offer.currency || 'XAF'}
                 </div>
                 <span className="status">
-                  {offer.is_active ? 'Actif' : 'Inactif'}
+                  {offer.is_active ? 'Active' : 'Inactive'}
                 </span>
                 <ItemActions>
                   <IconButton
@@ -298,7 +298,7 @@ export const OffersPanel: React.FC<OffersPanelProps> = ({ companyId = '' }) => {
                       handleEditClick(offer);
                     }}
                   >
-                    <FiEdit2 /> Éditer
+                    <FiEdit2 /> Edit
                   </IconButton>
                   <IconButton
                     variant="delete"
@@ -307,7 +307,7 @@ export const OffersPanel: React.FC<OffersPanelProps> = ({ companyId = '' }) => {
                       handleDeleteClick(offer.id);
                     }}
                   >
-                    <FiTrash2 /> Supprimer
+                    <FiTrash2 /> Delete
                   </IconButton>
                 </ItemActions>
               </OfferItem>

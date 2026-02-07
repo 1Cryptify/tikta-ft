@@ -44,9 +44,9 @@ export const OffersProductsPage: React.FC<OffersProductsPageProps> = ({ companyI
   return (
     <Container>
       <PageHeader>
-        <h1>Offres et Produits</h1>
-        <p>Gérez vos offres et produits depuis un seul endroit</p>
-      </PageHeader>
+         <h1>Offers and Products</h1>
+         <p>Manage your offers and products from one place</p>
+       </PageHeader>
 
       <PanelsGrid>
         <OffersPanel companyId={companyId} />
