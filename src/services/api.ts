@@ -171,7 +171,7 @@ export const endpoints = {
     // Roles: all
     confirmLogin: '/users/confirm-login/',
     // Roles: all
-    getCurrentUser: '/users/get-current-user/',
+    getCurrentUser: '/users/me/',
     // Roles: all
     createUser: '/users/create-user/',
     // Roles: all

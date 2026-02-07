@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { API_ENDPOINTS, apiCall } from '../config/api';
+import { endpoints, apiRequest } from '../services/api'; 
 
 export interface User {
   id: string;
@@ -30,7 +30,7 @@ export const useAuth = () => {
   const checkAuth = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
-      const response = await apiCall(API_ENDPOINTS.AUTH.ME, {
+      const response = await apiRequest(endpoints.auth.getCurrentUser, {
         method: 'GET',
       });
 
@@ -58,7 +58,7 @@ export const useAuth = () => {
   const login = useCallback(async (email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await apiCall(API_ENDPOINTS.AUTH.LOGIN, {
+      const response = await apiRequest(endpoints.auth.login, {
         method: 'POST',
         body: JSON.stringify({ email, password }),
       });
@@ -81,7 +81,7 @@ export const useAuth = () => {
   const confirmLogin = useCallback(async (email: string, code: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await apiCall(API_ENDPOINTS.AUTH.CONFIRM, {
+      const response = await apiRequest(endpoints.auth.confirmLogin, {
         method: 'POST',
         body: JSON.stringify({ email, code }),
       });
@@ -120,7 +120,8 @@ export const useAuth = () => {
   const logout = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      await apiCall(API_ENDPOINTS.AUTH.LOGOUT, { method: 'POST' });
+      // TODO: Add logout endpoint to api.ts endpoints
+      // await apiRequest(endpoints.auth.logout, { method: 'POST' });
       setState({
         user: null,
         isAuthenticated: false,
@@ -141,7 +142,7 @@ export const useAuth = () => {
   const resendCode = useCallback(async (email: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await apiCall(API_ENDPOINTS.AUTH.RESEND_CODE, {
+      const response = await apiRequest(endpoints.auth.resendConfirmationCode, {
         method: 'POST',
         body: JSON.stringify({ email }),
       });
