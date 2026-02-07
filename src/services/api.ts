@@ -164,7 +164,105 @@ export async function apiPostFormData<T = any>(
  * Type-safe API endpoint builder
  */
 export const endpoints = {
-
+  // Users
+  auth: {
+    login: '/users/login/',
+    confirmLogin: '/users/confirm-login/',
+    getCurrentUser: '/users/get-current-user/',
+    createUser: '/users/create-user/',
+    confirmUserCreation: '/users/confirm-user-creation/',
+    activateUser: '/users/activate-user/',
+    resendConfirmationCode: '/users/resend-confirmation-code/',
+    setActiveCompany: '/users/set-active-company/',
+  },
+  company: {
+    list: '/users/list-companies/',
+    create: '/users/create-company/',
+    detail: (id: string) => `/users/company-detail/${id}/`,
+    update: (id: string) => `/users/update-company/${id}/`,
+    delete: (id: string) => `/users/delete-company/${id}/`,
+    uploadDocuments: '/users/upload-company-documents/',
+    verify: '/users/verify-company/',
+    ownerCreate: '/users/owner-create/',
+    ownerList: (companyId: string) => `/users/owner-list/${companyId}/`,
+  },
+  // Payments
+  payment: {
+    initiate: '/payments/initiate-payment/',
+    list: '/payments/payment-list/',
+    detail: (id: string) => `/payments/payment-detail/${id}/`,
+    complete: (id: string) => `/payments/payment-complete/${id}/`,
+    cancel: (id: string) => `/payments/payment-cancel/${id}/`,
+    processPayment: (id: string) => `/payments/process-payment/${id}/`,
+  },
+  transaction: {
+    list: '/payments/transaction-list/',
+    detail: (id: string) => `/payments/transaction-detail/${id}/`,
+    create: '/payments/transaction-create/',
+    update: (id: string) => `/payments/transaction-update/${id}/`,
+    delete: (id: string) => `/payments/transaction-delete/${id}/`,
+  },
+  balance: {
+    list: '/payments/balance-list/',
+    detail: (companyId: string) => `/payments/balance-detail/${companyId}/`,
+  },
+  currency: {
+    list: '/payments/currency-list/',
+    detail: (id: string) => `/payments/currency-detail/${id}/`,
+    create: '/payments/currency-create/',
+    update: (id: string) => `/payments/currency-update/${id}/`,
+  },
+  paymentMethod: {
+    list: '/payments/payment-method-list/',
+    detail: (id: string) => `/payments/payment-method-detail/${id}/`,
+    create: '/payments/payment-method-create/',
+    update: (id: string) => `/payments/payment-method-update/${id}/`,
+    delete: (id: string) => `/payments/payment-method-delete/${id}/`,
+  },
+  offer: {
+    list: (companyId: string) => `/payments/offer-list/${companyId}/`,
+    detail: (id: string) => `/payments/offer-detail/${id}/`,
+    create: '/payments/offer-create/',
+    update: (id: string) => `/payments/offer-update/${id}/`,
+    delete: (id: string) => `/payments/offer-delete/${id}/`,
+  },
+  offerGroup: {
+    list: (companyId: string) => `/payments/offer-group-list/${companyId}/`,
+    detail: (id: string) => `/payments/offer-group-detail/${id}/`,
+    create: '/payments/offer-group-create/',
+    update: (id: string) => `/payments/offer-group-update/${id}/`,
+    delete: (id: string) => `/payments/offer-group-delete/${id}/`,
+  },
+  product: {
+    list: (companyId: string) => `/payments/product-list/${companyId}/`,
+    detail: (id: string) => `/payments/product-detail/${id}/`,
+    create: '/payments/product-create/',
+    update: (id: string) => `/payments/product-update/${id}/`,
+    delete: (id: string) => `/payments/product-delete/${id}/`,
+  },
+  ticket: {
+    list: (companyId: string) => `/payments/ticket-list/${companyId}/`,
+    detail: (id: string) => `/payments/ticket-detail/${id}/`,
+    create: '/payments/ticket-create/',
+    verify: (id: string) => `/payments/ticket-verify/${id}/`,
+  },
+  withdrawalAccount: {
+    list: (companyId: string) => `/payments/withdrawal-account-list/${companyId}/`,
+    detail: (id: string) => `/payments/withdrawal-account-detail/${id}/`,
+    create: '/payments/withdrawal-account-create/',
+    update: (id: string) => `/payments/withdrawal-account-update/${id}/`,
+    delete: (id: string) => `/payments/withdrawal-account-delete/${id}/`,
+  },
+  paymentAPI: {
+    list: (companyId: string) => `/payments/payment-api-list/${companyId}/`,
+    detail: (id: string) => `/payments/payment-api-detail/${id}/`,
+    create: '/payments/payment-api-create/',
+    update: (id: string) => `/payments/payment-api-update/${id}/`,
+    revoke: (id: string) => `/payments/payment-api-revoke/${id}/`,
+  },
+  paymentLog: {
+    list: (companyId: string) => `/payments/payment-log-list/${companyId}/`,
+  },
 };
 
 /**
