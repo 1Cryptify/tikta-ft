@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
-import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiGift, FiTag } from 'react-icons/fi';
+import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiAward, FiBriefcase, FiCode,FiTag } from 'react-icons/fi';
 import { OffersProductsPage } from './UserDashboard/OffersProducts/OffersProductsPage';
 
 const ContentSection = styled.div`
@@ -158,21 +158,21 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
     {
       id: 'entreprise',
       label: 'Business',
-      icon: <FiBarChart2 size={20} />,
+      icon: <FiBriefcase size={20} />,
       active: activeNav === 'entreprise',
       onClick: () => setActiveNav('entreprise'),
     },
     {
       id: 'offres_produits',
       label: 'Offers & Products',
-      icon: <FiGift size={20} />,
+      icon: <FiShoppingBag size={20} />,
       active: activeNav === 'offres_produits',
       onClick: () => setActiveNav('offres_produits'),
     },
     {
       id: 'payment_api',
       label: 'Payment API',
-      icon: <FiCreditCard size={20} />,
+      icon: <FiCode size={20} />,
       active: activeNav === 'payment_api',
       onClick: () => setActiveNav('payment_api'),
     },
