@@ -166,101 +166,170 @@ export async function apiPostFormData<T = any>(
 export const endpoints = {
   // Users
   auth: {
+    // Roles: all
     login: '/users/login/',
+    // Roles: all
     confirmLogin: '/users/confirm-login/',
+    // Roles: all
     getCurrentUser: '/users/get-current-user/',
+    // Roles: all
     createUser: '/users/create-user/',
+    // Roles: all
     confirmUserCreation: '/users/confirm-user-creation/',
+    // Roles: su admin, staff
     activateUser: '/users/activate-user/',
+    // Roles: all
     resendConfirmationCode: '/users/resend-confirmation-code/',
+    // Roles: client, staff, su admin
     setActiveCompany: '/users/set-active-company/',
   },
   company: {
+    // Roles: client, staff, su admin
     list: '/users/list-companies/',
+    // Roles: client, staff, su admin
     create: '/users/create-company/',
+    // Roles: client, staff, su admin
     detail: (id: string) => `/users/company-detail/${id}/`,
+    // Roles: client, staff, su admin
     update: (id: string) => `/users/update-company/${id}/`,
+    // Roles: su admin, staff
     delete: (id: string) => `/users/delete-company/${id}/`,
+    // Roles: client, staff, su admin
     uploadDocuments: '/users/upload-company-documents/',
+    // Roles: su admin, staff
     verify: '/users/verify-company/',
+    // Roles: client, staff, su admin
     ownerCreate: '/users/owner-create/',
+    // Roles: client, staff, su admin
     ownerList: (companyId: string) => `/users/owner-list/${companyId}/`,
   },
   // Payments
   payment: {
+    // Roles: client, staff, su admin
     initiate: '/payments/initiate-payment/',
+    // Roles: client, staff, su admin
     list: '/payments/payment-list/',
+    // Roles: client, staff, su admin
     detail: (id: string) => `/payments/payment-detail/${id}/`,
+    // Roles: client, staff, su admin
     complete: (id: string) => `/payments/payment-complete/${id}/`,
+    // Roles: client, staff, su admin
     cancel: (id: string) => `/payments/payment-cancel/${id}/`,
+    // Roles: client, staff, su admin
     processPayment: (id: string) => `/payments/process-payment/${id}/`,
   },
   transaction: {
+    // Roles: client, staff, su admin
     list: '/payments/transaction-list/',
+    // Roles: client, staff, su admin
     detail: (id: string) => `/payments/transaction-detail/${id}/`,
+    // Roles: client, staff, su admin
     create: '/payments/transaction-create/',
+    // Roles: client, staff, su admin
     update: (id: string) => `/payments/transaction-update/${id}/`,
+    // Roles: su admin, staff
     delete: (id: string) => `/payments/transaction-delete/${id}/`,
   },
   balance: {
+    // Roles: client, staff, su admin
     list: '/payments/balance-list/',
+    // Roles: client, staff, su admin
     detail: (companyId: string) => `/payments/balance-detail/${companyId}/`,
   },
   currency: {
+    // Roles: all
     list: '/payments/currency-list/',
+    // Roles: all
     detail: (id: string) => `/payments/currency-detail/${id}/`,
+    // Roles: su admin, staff
     create: '/payments/currency-create/',
+    // Roles: su admin, staff
     update: (id: string) => `/payments/currency-update/${id}/`,
   },
   paymentMethod: {
+    // Roles: client, staff, su admin
     list: '/payments/payment-method-list/',
+    // Roles: client, staff, su admin
     detail: (id: string) => `/payments/payment-method-detail/${id}/`,
+    // Roles: client, staff, su admin
     create: '/payments/payment-method-create/',
+    // Roles: client, staff, su admin
     update: (id: string) => `/payments/payment-method-update/${id}/`,
+    // Roles: su admin, staff
     delete: (id: string) => `/payments/payment-method-delete/${id}/`,
   },
   offer: {
+    // Roles: client, staff, su admin
     list: (companyId: string) => `/payments/offer-list/${companyId}/`,
+    // Roles: client, staff, su admin
     detail: (id: string) => `/payments/offer-detail/${id}/`,
+    // Roles: client, staff, su admin
     create: '/payments/offer-create/',
+    // Roles: client, staff, su admin
     update: (id: string) => `/payments/offer-update/${id}/`,
+    // Roles: su admin, staff
     delete: (id: string) => `/payments/offer-delete/${id}/`,
   },
   offerGroup: {
+    // Roles: client, staff, su admin
     list: (companyId: string) => `/payments/offer-group-list/${companyId}/`,
+    // Roles: client, staff, su admin
     detail: (id: string) => `/payments/offer-group-detail/${id}/`,
+    // Roles: client, staff, su admin
     create: '/payments/offer-group-create/',
+    // Roles: client, staff, su admin
     update: (id: string) => `/payments/offer-group-update/${id}/`,
+    // Roles: su admin, staff
     delete: (id: string) => `/payments/offer-group-delete/${id}/`,
   },
   product: {
+    // Roles: client, staff, su admin
     list: (companyId: string) => `/payments/product-list/${companyId}/`,
+    // Roles: client, staff, su admin
     detail: (id: string) => `/payments/product-detail/${id}/`,
+    // Roles: client, staff, su admin
     create: '/payments/product-create/',
+    // Roles: client, staff, su admin
     update: (id: string) => `/payments/product-update/${id}/`,
+    // Roles: su admin, staff
     delete: (id: string) => `/payments/product-delete/${id}/`,
   },
   ticket: {
+    // Roles: client, staff, su admin
     list: (companyId: string) => `/payments/ticket-list/${companyId}/`,
+    // Roles: client, staff, su admin
     detail: (id: string) => `/payments/ticket-detail/${id}/`,
+    // Roles: client, staff, su admin
     create: '/payments/ticket-create/',
+    // Roles: client, staff, su admin
     verify: (id: string) => `/payments/ticket-verify/${id}/`,
   },
   withdrawalAccount: {
+    // Roles: client, staff, su admin
     list: (companyId: string) => `/payments/withdrawal-account-list/${companyId}/`,
+    // Roles: client, staff, su admin
     detail: (id: string) => `/payments/withdrawal-account-detail/${id}/`,
+    // Roles: client, staff, su admin
     create: '/payments/withdrawal-account-create/',
+    // Roles: client, staff, su admin
     update: (id: string) => `/payments/withdrawal-account-update/${id}/`,
+    // Roles: su admin, staff
     delete: (id: string) => `/payments/withdrawal-account-delete/${id}/`,
   },
   paymentAPI: {
+    // Roles: client, staff, su admin
     list: (companyId: string) => `/payments/payment-api-list/${companyId}/`,
+    // Roles: client, staff, su admin
     detail: (id: string) => `/payments/payment-api-detail/${id}/`,
+    // Roles: client, staff, su admin
     create: '/payments/payment-api-create/',
+    // Roles: client, staff, su admin
     update: (id: string) => `/payments/payment-api-update/${id}/`,
+    // Roles: su admin, staff
     revoke: (id: string) => `/payments/payment-api-revoke/${id}/`,
   },
   paymentLog: {
+    // Roles: client, staff, su admin
     list: (companyId: string) => `/payments/payment-log-list/${companyId}/`,
   },
 };
