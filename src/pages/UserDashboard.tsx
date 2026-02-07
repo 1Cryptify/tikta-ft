@@ -155,18 +155,18 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
       onClick: () => setActiveNav('overview'),
     },
     {
-      id: 'offres_produits',
-      label: 'Offres et produits',
-      icon: <FiGift size={20} />,
-      active: activeNav === 'offres_produits',
-      onClick: () => setActiveNav('offres_produits'),
-    },
-    {
       id: 'entreprise',
       label: 'Entreprise',
       icon: <FiBarChart2 size={20} />,
       active: activeNav === 'entreprise',
       onClick: () => setActiveNav('entreprise'),
+    },
+    {
+      id: 'offres_produits',
+      label: 'Offres et produits',
+      icon: <FiGift size={20} />,
+      active: activeNav === 'offres_produits',
+      onClick: () => setActiveNav('offres_produits'),
     },
     {
       id: 'payment_api',
