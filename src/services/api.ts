@@ -3,7 +3,7 @@
  * Centralized API client for all HTTP requests
  */
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api';
+export const API_BASE_URL = (import.meta.env.VITE_API_URL as string) || 'http://localhost:8000/api';
 
 export interface ApiResponse<T = any> {
   status: 'success' | 'error';
