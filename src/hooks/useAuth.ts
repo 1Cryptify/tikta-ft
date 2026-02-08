@@ -147,11 +147,6 @@ export const useAuth = (): UseAuthReturn => {
             if (response.data.status === 'success') {
                 // After confirmation, fetch current user
                 await getCurrentUser();
-                setState(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    error: null,
-                }));
                 return { success: true };
             }
             return { success: false, error: 'Unknown response' };

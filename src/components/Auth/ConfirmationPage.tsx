@@ -160,15 +160,24 @@ export const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
     const [resendTimer, setResendTimer] = useState(0);
     const [codeError2, setCodeError2] = useState('');
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-    const { isLoading, error, confirmLogin, resendCode } = useAuth();
+    const { isLoading, error, confirmLogin, resendCode, isAuthenticated } = useAuth();
 
     // Get email from location state or props
     const email = (location.state?.email as string) || propEmail;
 
+    // Redirect if already authenticated
     useEffect(() => {
-        if (inputRefs.current[0]) {
-            inputRefs.current[0].focus();
-        }
+      if (isAuthenticated) {
+        console.log('ConfirmationPage: User already authenticated, redirecting to dashboard');
+        navigate('/dashboard/overview', { replace: true });
+      }
+    }, [isAuthenticated, navigate]);
+
+    useEffect(() => {
+      console.log('ConfirmationPage mount:', { email, propEmail, locationState: location.state });
+      if (inputRefs.current[0]) {
+        inputRefs.current[0].focus();
+      }
     }, []);
 
     useEffect(() => {
@@ -202,22 +211,25 @@ export const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+      e.preventDefault();
 
-        const codeString = code.join('');
-        if (codeString.length !== 6) {
-            setCodeError('Please enter all 6 digits');
-            return;
-        }
+      const codeString = code.join('');
+      if (codeString.length !== 6) {
+        setCodeError('Please enter all 6 digits');
+        return;
+      }
 
-        const result = await confirmLogin(email, codeString);
+      console.log('ConfirmationPage handleSubmit:', { email, code: codeString });
+      const result = await confirmLogin(email, codeString);
+      console.log('ConfirmationPage confirmLogin result:', result);
 
-        if (!result.success) {
-            setCodeError2(result.error || 'Confirmation failed');
-        } else {
-            onSuccess?.();
-            navigate('/dashboard/overview');
-        }
+      if (!result.success) {
+        setCodeError2(result.error || 'Confirmation failed');
+      } else {
+        console.log('Confirmation success, navigating to /dashboard/overview');
+        onSuccess?.();
+        navigate('/dashboard/overview');
+      }
     };
 
     const handleResend = async () => {

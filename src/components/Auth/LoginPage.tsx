@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { Input } from '../Form/Input';
@@ -77,14 +77,22 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
-    const navigate = useNavigate();
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [showPassword, setShowPassword] = useState(false);
-    const [emailError, setEmailError] = useState('');
-    const [passwordError, setPasswordError] = useState('');
-    const { isLoading, error, login } = useAuth();
-    const [successMessage, setSuccessMessage] = useState('');
+  const navigate = useNavigate();
+  const { isLoading, error, login, isAuthenticated } = useAuth();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+
+  // Redirect if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      console.log('LoginPage: User already authenticated, redirecting to dashboard');
+      navigate('/dashboard/overview', { replace: true });
+    }
+  }, [isAuthenticated, navigate]);
 
     const validateForm = () => {
         setEmailError('');
@@ -111,20 +119,23 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+      e.preventDefault();
 
-        if (!validateForm()) return;
+      if (!validateForm()) return;
 
-        const result = await login(email, password);
+      console.log('LoginPage handleSubmit:', { email, password: '***' });
+      const result = await login(email, password);
+      console.log('LoginPage login result:', result);
 
-        if (result.success) {
-            setSuccessMessage('Confirmation code sent to your email. Please check your inbox.');
-            setPassword('');
-            setTimeout(() => {
-                onSuccess?.(email);
-                navigate('/confirm', { state: { email } });
-            }, 1500);
-        }
+      if (result.success) {
+        setSuccessMessage('Confirmation code sent to your email. Please check your inbox.');
+        setPassword('');
+        setTimeout(() => {
+          console.log('Navigating to /confirm with email:', email);
+          onSuccess?.(email);
+          navigate('/confirm', { state: { email } });
+        }, 1500);
+      }
     };
 
     return (

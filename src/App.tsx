@@ -1,24 +1,37 @@
 import { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './components/Auth/LoginPage';
 import { ConfirmationPage } from './components/Auth/ConfirmationPage';
 import { Dashboard } from './pages/Dashboard';
+import { DebugInfo } from './components/DebugInfo';
 import './styles/global.css';
 
 function App() {
     const { user, isAuthenticated, logout, getCurrentUser, isLoading } = useAuth();
+    const location = useLocation();
 
     // Check if user is already authenticated on mount
     useEffect(() => {
         getCurrentUser().catch(() => {
             // User is not authenticated
         });
-    }, []);
+    }, [getCurrentUser]);
+
+    useEffect(() => {
+        console.log('Route changed:', {
+            pathname: location.pathname,
+            isAuthenticated,
+            user: user?.email,
+            isLoading,
+        });
+    }, [location.pathname, isAuthenticated, user, isLoading]);
 
     return (
-        <Routes>
+        <>
+            <DebugInfo />
+            <Routes>
             {/* Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
             <Route path="/confirm" element={<ConfirmationPage email="" onSuccess={() => { }} onBack={() => { }} />} />
@@ -54,7 +67,8 @@ function App() {
                     />
                 }
             />
-        </Routes>
+            </Routes>
+        </>
     );
 }
 
