@@ -9,6 +9,7 @@ import {
     ActionType,
 } from '../config/menuPermissions';
 import { mockBusinesses, Business as BusinessType } from '../mocks/businessMocks';
+import DocumentUploadModal from '../components/DocumentUploadModal';
 import {
     FiEdit,
     FiTrash2,
@@ -18,6 +19,7 @@ import {
     FiCheck,
     FiPlus,
     FiSearch,
+    FiFileText,
 } from 'react-icons/fi';
 
 interface BusinessPageProps {
@@ -209,6 +211,14 @@ const LogoPlaceholder = styled.div`
   flex-shrink: 0;
 `;
 
+const StatusCircleWrapper = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  flex-shrink: 0;
+`;
+
 const StatusCircle = styled.button<{ isActive: boolean }>`
   width: 48px;
   height: 48px;
@@ -236,6 +246,15 @@ const StatusCircle = styled.button<{ isActive: boolean }>`
     color: white;
     font-size: 1.5rem;
   }
+`;
+
+const StatusLabel = styled.span<{ isActive: boolean }>`
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: ${(props) => (props.isActive ? '#28a745' : '#999')};
+  white-space: nowrap;
 `;
 
 const CardTitle = styled.h3`
@@ -270,6 +289,55 @@ const InfoItem = styled.div`
     font-size: 0.9rem;
     color: #495057;
     word-break: break-word;
+  }
+`;
+
+const DocumentsProgress = styled.div`
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+`;
+
+const DocumentsProgressTitle = styled.div`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #999;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.5rem;
+`;
+
+const DocumentsProgressBar = styled.div`
+  display: flex;
+  gap: 0.25rem;
+`;
+
+const DocumentIndicator = styled.div<{ completed: boolean }>`
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background-color: ${(props) => (props.completed ? '#28a745' : '#dee2e6')};
+  transition: all 0.3s ease;
+`;
+
+const DocumentsList = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+`;
+
+const DocumentItem = styled.div<{ completed: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 0.8rem;
+  color: ${(props) => (props.completed ? '#28a745' : '#999')};
+
+  svg {
+    color: ${(props) => (props.completed ? '#28a745' : '#dee2e6')};
+    flex-shrink: 0;
   }
 `;
 
@@ -377,12 +445,21 @@ const EmptyState = styled.div`
   }
 `;
 
+interface BusinessWithDocuments extends BusinessType {
+    nui_document?: string;
+    commerce_register_document?: string;
+    website_document?: string;
+    creation_document?: string;
+}
+
 export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
-    const [businesses, setBusinesses] = useState<BusinessType[]>([]);
-    const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessType[]>([]);
+    const [businesses, setBusinesses] = useState<BusinessWithDocuments[]>([]);
+    const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithDocuments[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
+    const [selectedBusinessForDocs, setSelectedBusinessForDocs] = useState<BusinessWithDocuments | null>(null);
 
     // Vérifier l'accès au menu
     const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
@@ -442,9 +519,52 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
         );
     };
 
-    const handleUploadDocuments = (id: string) => {
-        console.log('Uploader documents pour:', id);
-        // TODO: Implémenter upload de documents
+    const handleUploadDocuments = (business: BusinessWithDocuments) => {
+        setSelectedBusinessForDocs(business);
+        setIsDocumentModalOpen(true);
+    };
+
+    const handleDocumentsSubmit = (formData: FormData) => {
+        if (!selectedBusinessForDocs) return;
+
+        // Mettre à jour l'état local avec les documents
+        setBusinesses(
+            businesses.map((b) =>
+                b.id === selectedBusinessForDocs.id
+                    ? {
+                        ...b,
+                        nui_document: formData.has('nui_document')
+                            ? 'uploaded'
+                            : b.nui_document,
+                        commerce_register_document: formData.has(
+                            'commerce_register_document'
+                        )
+                            ? 'uploaded'
+                            : b.commerce_register_document,
+                        website_document: formData.has('website_document')
+                            ? 'uploaded'
+                            : b.website_document,
+                        creation_document: formData.has('creation_document')
+                            ? 'uploaded'
+                            : b.creation_document,
+                        is_verified: true, // Marquer comme vérifiée après upload
+                    }
+                    : b
+            )
+        );
+
+        console.log('Documents uploadés pour:', selectedBusinessForDocs.name);
+    };
+
+    const getDocumentsProgress = (business: BusinessWithDocuments): number => {
+        const documents = [
+            business.nui_document,
+            business.commerce_register_document,
+            business.website_document,
+            business.creation_document,
+        ];
+        const completed = documents.filter((doc) => !!doc).length;
+        return (completed / documents.length) * 100;
     };
 
     const handleMarkActive = (id: string) => {
@@ -522,18 +642,23 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
                                     )}
                                 </div>
                                 {hasPermission(
-                                    userRole,
-                                    MenuName.BUSINESS,
-                                    ActionType.BUSINESS_MARQUER_ACTIVE
+                                  userRole,
+                                  MenuName.BUSINESS,
+                                  ActionType.BUSINESS_MARQUER_ACTIVE
                                 ) && (
-                                        <StatusCircle
-                                            isActive={business.is_verified}
-                                            onClick={() => handleMarkActive(business.id)}
-                                            title={business.is_verified ? 'Désactiver' : 'Activer'}
-                                        >
-                                            {business.is_verified ? <FiCheck /> : <FiPlus />}
-                                        </StatusCircle>
-                                    )}
+                                  <StatusCircleWrapper>
+                                    <StatusCircle
+                                      isActive={business.is_verified}
+                                      onClick={() => handleMarkActive(business.id)}
+                                      title={business.is_verified ? 'Désactiver' : 'Activer'}
+                                    >
+                                      {business.is_verified ? <FiCheck /> : <FiPlus />}
+                                    </StatusCircle>
+                                    <StatusLabel isActive={business.is_verified}>
+                                      {business.is_verified ? 'Actif' : 'Inactif'}
+                                    </StatusLabel>
+                                  </StatusCircleWrapper>
+                                )}
                             </CardHeader>
 
                             <CardTitle>{business.name}</CardTitle>
@@ -558,6 +683,36 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
                                     </InfoItem>
                                 )}
                             </CardInfo>
+
+                            {hasPermission(
+                                userRole,
+                                MenuName.BUSINESS,
+                                ActionType.BUSINESS_UPLOADER_DOCUMENTS
+                            ) && (
+                                    <DocumentsProgress>
+                                        <DocumentsProgressTitle>Documents ({Math.round(getDocumentsProgress(business))}%)</DocumentsProgressTitle>
+                                        <DocumentsProgressBar>
+                                            <DocumentIndicator completed={!!business.nui_document} />
+                                            <DocumentIndicator completed={!!business.commerce_register_document} />
+                                            <DocumentIndicator completed={!!business.website_document} />
+                                            <DocumentIndicator completed={!!business.creation_document} />
+                                        </DocumentsProgressBar>
+                                        <DocumentsList style={{ marginTop: '0.75rem' }}>
+                                            <DocumentItem completed={!!business.nui_document}>
+                                                <FiCheck size={14} /> Document NUI
+                                            </DocumentItem>
+                                            <DocumentItem completed={!!business.commerce_register_document}>
+                                                <FiCheck size={14} /> Registre Commerce
+                                            </DocumentItem>
+                                            <DocumentItem completed={!!business.website_document}>
+                                                <FiCheck size={14} /> Certificat Site Web
+                                            </DocumentItem>
+                                            <DocumentItem completed={!!business.creation_document}>
+                                                <FiCheck size={14} /> Document Création
+                                            </DocumentItem>
+                                        </DocumentsList>
+                                    </DocumentsProgress>
+                                )}
 
                             <StatusBadge status={getStatus(business)}>
                                 {getStatus(business) === 'verified'
@@ -621,7 +776,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
                                 ) && (
                                         <ActionButton
                                             title="Uploader documents"
-                                            onClick={() => handleUploadDocuments(business.id)}
+                                            onClick={() => handleUploadDocuments(business)}
                                         >
                                             <FiUpload /> Documents
                                         </ActionButton>
@@ -643,6 +798,22 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
                     ))}
                 </CardsGrid>
             )}
+
+            <DocumentUploadModal
+                isOpen={isDocumentModalOpen}
+                businessName={selectedBusinessForDocs?.name || ''}
+                documents={{
+                    nui_document: selectedBusinessForDocs?.nui_document,
+                    commerce_register_document: selectedBusinessForDocs?.commerce_register_document,
+                    website_document: selectedBusinessForDocs?.website_document,
+                    creation_document: selectedBusinessForDocs?.creation_document,
+                }}
+                onClose={() => {
+                    setIsDocumentModalOpen(false);
+                    setSelectedBusinessForDocs(null);
+                }}
+                onSubmit={handleDocumentsSubmit}
+            />
         </Container>
     );
 };
