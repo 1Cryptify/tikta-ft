@@ -2,9 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from './hooks/useAuth';
 import { LoginPage } from './components/Auth/LoginPage';
 import { ConfirmationPage } from './components/Auth/ConfirmationPage';
-import { UserDashboard } from './pages/UserDashboard';
-import { StaffDashboard } from './pages/StaffDashboard';
-import { SuperAdminDashboard } from './pages/SuperAdminDashboard';
+import { Dashboard } from './pages/Dashboard';
 import './styles/global.css';
 
 type AuthStep = 'login' | 'confirmation' | 'authenticated' | 'checking';

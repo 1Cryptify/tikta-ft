@@ -139,12 +139,12 @@ const StatusBadge = styled.span<{ status: string }>`
   }};
 `;
 
-interface UserDashboardProps {
+interface DashboardProps {
   user: User;
   onLogout: () => void;
 }
 
-export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
   const [activeNav, setActiveNav] = useState('overview');
 
   const navItems = [
