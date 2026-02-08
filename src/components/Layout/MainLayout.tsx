@@ -18,6 +18,7 @@ interface MainLayoutProps {
   navItems: NavItem[];
   navTitle?: string;
   onLogout?: () => void;
+  headerTitle?: string;
 }
 
 const LayoutWrapper = styled.div`
@@ -45,10 +46,11 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
   navItems,
   navTitle = 'Menu',
   onLogout,
+  headerTitle,
 }) => {
   return (
     <LayoutWrapper>
-      <Header user={user} onLogout={onLogout} />
+      <Header user={user} onLogout={onLogout} title={headerTitle} />
       <ContentWrapper>
         <Sidebar items={navItems} title={navTitle} />
         <MainContent>{children}</MainContent>

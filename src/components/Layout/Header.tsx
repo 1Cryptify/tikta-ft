@@ -54,9 +54,10 @@ const UserRole = styled.span`
 interface HeaderProps {
   user?: User;
   onLogout?: () => void;
+  title?: string;
 }
 
-export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
+export const Header: React.FC<HeaderProps> = ({ user, onLogout, title = 'Tikta' }) => {
   const getRoleLabel = () => {
     if (user?.is_superuser) return 'Super Administrator';
     if (user?.is_staff) return 'Staff';
@@ -66,7 +67,7 @@ export const Header: React.FC<HeaderProps> = ({ user, onLogout }) => {
   return (
     <HeaderWrapper>
       <HeaderContent>
-        <Logo>Tikta</Logo>
+        <Logo>{title}</Logo>
         {user && (
           <NavContainer>
             <UserInfo>
