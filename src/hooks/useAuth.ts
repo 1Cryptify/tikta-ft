@@ -47,8 +47,9 @@ interface ConfirmationData {
 }
 
 interface UseAuthReturn extends AuthState {
-    login: (credentials: LoginCredentials) => Promise<void>;
-    confirmLogin: (data: ConfirmationData) => Promise<void>;
+    login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+    confirmLogin: (email: string, code: string) => Promise<{ success: boolean; error?: string }>;
+    resendCode: (email: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => Promise<void>;
     getCurrentUser: () => Promise<void>;
     setActiveCompany: (companyId: string) => Promise<Company>;
@@ -88,13 +89,19 @@ export const useAuth = (): UseAuthReturn => {
     }, []);
 
     // Login with email and password
-    const login = useCallback(async (credentials: LoginCredentials) => {
+    const login = useCallback(async (email: string, password: string) => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post('/login/', credentials);
+            const response = await axiosInstance.post('/login/', { email, password });
 
             if (response.data.status === 'error') {
-                throw new Error(response.data.message || 'Login failed');
+                const errorMessage = response.data.message || 'Login failed';
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: errorMessage,
+                }));
+                return { success: false, error: errorMessage };
             }
 
             if (response.data.status === 'success') {
@@ -103,7 +110,9 @@ export const useAuth = (): UseAuthReturn => {
                     isLoading: false,
                     error: null,
                 }));
+                return { success: true };
             }
+            return { success: false, error: 'Unknown response' };
         } catch (error) {
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || error.message
@@ -115,18 +124,24 @@ export const useAuth = (): UseAuthReturn => {
                 isLoading: false,
                 error: errorMessage,
             }));
-            throw error;
+            return { success: false, error: errorMessage };
         }
     }, []);
 
     // Confirm login with email and confirmation code
-    const confirmLogin = useCallback(async (data: ConfirmationData) => {
+    const confirmLogin = useCallback(async (email: string, code: string) => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post('/confirm/', data);
+            const response = await axiosInstance.post('/confirm/', { email, code });
 
             if (response.data.status === 'error') {
-                throw new Error(response.data.message || 'Confirmation failed');
+                const errorMessage = response.data.message || 'Confirmation failed';
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: errorMessage,
+                }));
+                return { success: false, error: errorMessage };
             }
 
             if (response.data.status === 'success') {
@@ -137,7 +152,9 @@ export const useAuth = (): UseAuthReturn => {
                     isLoading: false,
                     error: null,
                 }));
+                return { success: true };
             }
+            return { success: false, error: 'Unknown response' };
         } catch (error) {
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || error.message
@@ -149,7 +166,7 @@ export const useAuth = (): UseAuthReturn => {
                 isLoading: false,
                 error: errorMessage,
             }));
-            throw error;
+            return { success: false, error: errorMessage };
         }
     }, [getCurrentUser]);
 
@@ -173,6 +190,46 @@ export const useAuth = (): UseAuthReturn => {
                 isLoading: false,
                 error: errorMessage,
             }));
+        }
+    }, []);
+
+    // Resend confirmation code
+    const resendCode = useCallback(async (email: string) => {
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        try {
+            const response = await axiosInstance.post('/resend-code/', { email });
+
+            if (response.data.status === 'error') {
+                const errorMessage = response.data.message || 'Failed to resend code';
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: errorMessage,
+                }));
+                return { success: false, error: errorMessage };
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: null,
+                }));
+                return { success: true };
+            }
+            return { success: false, error: 'Unknown response' };
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || error.message
+                : error instanceof Error
+                    ? error.message
+                    : 'An error occurred';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return { success: false, error: errorMessage };
         }
     }, []);
 
@@ -222,6 +279,7 @@ export const useAuth = (): UseAuthReturn => {
         ...state,
         login,
         confirmLogin,
+        resendCode,
         logout,
         getCurrentUser,
         setActiveCompany,

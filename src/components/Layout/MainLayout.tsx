@@ -7,9 +7,9 @@ import { User } from '../../hooks/useAuth';
 interface NavItem {
     id: string;
     label: string;
-    icon: string;
+    icon: React.ReactNode;
     active?: boolean;
-    onClick?: () => void;
+    onClick?: () => void | Promise<void>;
 }
 
 interface MainLayoutProps {

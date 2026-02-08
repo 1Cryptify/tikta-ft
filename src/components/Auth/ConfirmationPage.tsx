@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
-import { Input } from '../Form/Input';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button } from '../Form/Button';
 import { colors, spacing, borderRadius, shadows } from '../../config/theme';
 import { useAuth } from '../../hooks/useAuth';
@@ -142,146 +142,151 @@ const BackButton = styled.button`
 `;
 
 interface ConfirmationPageProps {
-  email: string;
-  onSuccess?: () => void;
-  onBack?: () => void;
+    email: string;
+    onSuccess?: () => void;
+    onBack?: () => void;
 }
 
 export const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
-  email,
+  email: propEmail,
   onSuccess,
-  onBack,
 }) => {
-  const [code, setCode] = useState(['', '', '', '', '', '']);
-  const [codeError, setCodeError] = useState('');
-  const [resendTimer, setResendTimer] = useState(0);
-  const [codeError2, setCodeError2] = useState('');
-  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
-  const { isLoading, error, confirmLogin, resendCode } = useAuth();
+    const navigate = useNavigate();
+    const location = useLocation();
+    const [code, setCode] = useState(['', '', '', '', '', '']);
+    const [codeError, setCodeError] = useState('');
+    const [resendTimer, setResendTimer] = useState(0);
+    const [codeError2, setCodeError2] = useState('');
+    const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+    const { isLoading, error, confirmLogin, resendCode } = useAuth();
 
-  useEffect(() => {
-    if (inputRefs.current[0]) {
-      inputRefs.current[0].focus();
-    }
-  }, []);
+    // Get email from location state or props
+    const email = (location.state?.email as string) || propEmail;
 
-  useEffect(() => {
-    if (resendTimer > 0) {
-      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [resendTimer]);
+    useEffect(() => {
+        if (inputRefs.current[0]) {
+            inputRefs.current[0].focus();
+        }
+    }, []);
 
-  const handleCodeChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return;
+    useEffect(() => {
+        if (resendTimer > 0) {
+            const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [resendTimer]);
 
-    const newCode = [...code];
-    newCode[index] = value;
-    setCode(newCode);
-    setCodeError('');
-    setCodeError2('');
+    const handleCodeChange = (index: number, value: string) => {
+        if (!/^\d*$/.test(value)) return;
 
-    if (value && index < 5) {
-      inputRefs.current[index + 1]?.focus();
-    }
-  };
+        const newCode = [...code];
+        newCode[index] = value;
+        setCode(newCode);
+        setCodeError('');
+        setCodeError2('');
 
-  const handleKeyDown = (
-    e: React.KeyboardEvent<HTMLInputElement>,
-    index: number
-  ) => {
-    if (e.key === 'Backspace' && !code[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
+        if (value && index < 5) {
+            inputRefs.current[index + 1]?.focus();
+        }
+    };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    const handleKeyDown = (
+        e: React.KeyboardEvent<HTMLInputElement>,
+        index: number
+    ) => {
+        if (e.key === 'Backspace' && !code[index] && index > 0) {
+            inputRefs.current[index - 1]?.focus();
+        }
+    };
 
-    const codeString = code.join('');
-    if (codeString.length !== 6) {
-      setCodeError('Please enter all 6 digits');
-      return;
-    }
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
 
-    const result = await confirmLogin(email, codeString);
+        const codeString = code.join('');
+        if (codeString.length !== 6) {
+            setCodeError('Please enter all 6 digits');
+            return;
+        }
 
-    if (!result.success) {
-      setCodeError2(result.error || 'Confirmation failed');
-    } else {
-      onSuccess?.();
-    }
-  };
+        const result = await confirmLogin(email, codeString);
 
-  const handleResend = async () => {
-    const result = await resendCode(email);
-    if (result.success) {
-      setResendTimer(60);
-      setCode(['', '', '', '', '', '']);
-      setCodeError('');
-      setCodeError2('');
-    }
-  };
+        if (!result.success) {
+            setCodeError2(result.error || 'Confirmation failed');
+        } else {
+            onSuccess?.();
+            navigate('/dashboard/overview');
+        }
+    };
 
-  return (
-    <Container>
-      <Card>
-        <BackButton onClick={onBack}>← Back</BackButton>
+    const handleResend = async () => {
+        const result = await resendCode(email);
+        if (result.success) {
+            setResendTimer(60);
+            setCode(['', '', '', '', '', '']);
+            setCodeError('');
+            setCodeError2('');
+        }
+    };
 
-        <Header>
-          <h2>Verify Your Identity</h2>
-          <p>Enter the 6-digit code sent to {email}</p>
-        </Header>
+    return (
+        <Container>
+            <Card>
+                <BackButton onClick={() => navigate(-1)}>← Back</BackButton>
 
-        <form onSubmit={handleSubmit}>
-          {error && <ErrorAlert>{error}</ErrorAlert>}
-          {codeError2 && <ErrorAlert>{codeError2}</ErrorAlert>}
+                <Header>
+                    <h2>Verify Your Identity</h2>
+                    <p>Enter the 6-digit code sent to {email}</p>
+                </Header>
 
-          <CodeInputContainer>
-            {code.map((digit, index) => (
-              <CodeInput
-                key={index}
-                ref={el => (inputRefs.current[index] = el)}
-                type="text"
-                inputMode="numeric"
-                maxLength={1}
-                value={digit}
-                onChange={e => handleCodeChange(index, e.target.value)}
-                onKeyDown={e => handleKeyDown(e, index)}
-                disabled={isLoading}
-              />
-            ))}
-          </CodeInputContainer>
+                <form onSubmit={handleSubmit}>
+                    {error && <ErrorAlert>{error}</ErrorAlert>}
+                    {codeError2 && <ErrorAlert>{codeError2}</ErrorAlert>}
 
-          {codeError && <CodeError>{codeError}</CodeError>}
+                    <CodeInputContainer>
+                        {code.map((digit, index) => (
+                            <CodeInput
+                                key={index}
+                                ref={el => (inputRefs.current[index] = el)}
+                                type="text"
+                                inputMode="numeric"
+                                maxLength={1}
+                                value={digit}
+                                onChange={e => handleCodeChange(index, e.target.value)}
+                                onKeyDown={e => handleKeyDown(e, index)}
+                                disabled={isLoading}
+                            />
+                        ))}
+                    </CodeInputContainer>
 
-          <ActionButtons>
-            <Button
-              type="submit"
-              fullWidth
-              loading={isLoading}
-              size="lg"
-            >
-              Confirm
-            </Button>
-          </ActionButtons>
-        </form>
+                    {codeError && <CodeError>{codeError}</CodeError>}
 
-        <ResendContainer>
-          {resendTimer > 0 ? (
-            <Timer>Resend code in {resendTimer}s</Timer>
-          ) : (
-            <>
-              <span style={{ color: colors.textSecondary, fontSize: '0.875rem' }}>
-                Didn't receive the code?{' '}
-              </span>
-              <ResendButton onClick={handleResend} disabled={isLoading || resendTimer > 0}>
-                Resend
-              </ResendButton>
-            </>
-          )}
-        </ResendContainer>
-      </Card>
-    </Container>
-  );
+                    <ActionButtons>
+                        <Button
+                            type="submit"
+                            fullWidth
+                            loading={isLoading}
+                            size="lg"
+                        >
+                            Confirm
+                        </Button>
+                    </ActionButtons>
+                </form>
+
+                <ResendContainer>
+                    {resendTimer > 0 ? (
+                        <Timer>Resend code in {resendTimer}s</Timer>
+                    ) : (
+                        <>
+                            <span style={{ color: colors.textSecondary, fontSize: '0.875rem' }}>
+                                Didn't receive the code?{' '}
+                            </span>
+                            <ResendButton onClick={handleResend} disabled={isLoading || resendTimer > 0}>
+                                Resend
+                            </ResendButton>
+                        </>
+                    )}
+                </ResendContainer>
+            </Card>
+        </Container>
+    );
 };

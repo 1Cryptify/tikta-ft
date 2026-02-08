@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
+import { useNavigate } from 'react-router-dom';
 import { Input } from '../Form/Input';
 import { Button } from '../Form/Button';
 import { colors, spacing, borderRadius, shadows } from '../../config/theme';
@@ -72,125 +73,127 @@ const Footer = styled.p`
 `;
 
 interface LoginPageProps {
-  onSuccess?: (email: string) => void;
+    onSuccess?: (email: string) => void;
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [emailError, setEmailError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const { isLoading, error, login } = useAuth();
-  const [successMessage, setSuccessMessage] = useState('');
+    const navigate = useNavigate();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [emailError, setEmailError] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const { isLoading, error, login } = useAuth();
+    const [successMessage, setSuccessMessage] = useState('');
 
-  const validateForm = () => {
-    setEmailError('');
-    setPasswordError('');
-    let isValid = true;
+    const validateForm = () => {
+        setEmailError('');
+        setPasswordError('');
+        let isValid = true;
 
-    if (!email) {
-      setEmailError('Email is required');
-      isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      setEmailError('Please enter a valid email address');
-      isValid = false;
-    }
+        if (!email) {
+            setEmailError('Email is required');
+            isValid = false;
+        } else if (!/\S+@\S+\.\S+/.test(email)) {
+            setEmailError('Please enter a valid email address');
+            isValid = false;
+        }
 
-    if (!password) {
-      setPasswordError('Password is required');
-      isValid = false;
-    } else if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
-      isValid = false;
-    }
+        if (!password) {
+            setPasswordError('Password is required');
+            isValid = false;
+        } else if (password.length < 6) {
+            setPasswordError('Password must be at least 6 characters');
+            isValid = false;
+        }
 
-    return isValid;
-  };
+        return isValid;
+    };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
 
-    if (!validateForm()) return;
+        if (!validateForm()) return;
 
-    const result = await login(email, password);
+        const result = await login(email, password);
 
-    if (result.success) {
-      setSuccessMessage('Confirmation code sent to your email. Please check your inbox.');
-      setPassword('');
-      setTimeout(() => {
-        onSuccess?.(email);
-      }, 1500);
-    }
-  };
+        if (result.success) {
+            setSuccessMessage('Confirmation code sent to your email. Please check your inbox.');
+            setPassword('');
+            setTimeout(() => {
+                onSuccess?.(email);
+                navigate('/confirm', { state: { email } });
+            }, 1500);
+        }
+    };
 
-  return (
-    <Container>
-      <Card>
-        <Header>
-          <h1>Tikta</h1>
-          <p>Payment Management Platform</p>
-        </Header>
+    return (
+        <Container>
+            <Card>
+                <Header>
+                    <h1>Tikta</h1>
+                    <p>Payment Management Platform</p>
+                </Header>
 
-        <Form onSubmit={handleSubmit}>
-          {error && <ErrorAlert>{error}</ErrorAlert>}
-          {successMessage && <SuccessAlert>{successMessage}</SuccessAlert>}
+                <Form onSubmit={handleSubmit}>
+                    {error && <ErrorAlert>{error}</ErrorAlert>}
+                    {successMessage && <SuccessAlert>{successMessage}</SuccessAlert>}
 
-          <Input
-            id="email"
-            label="Email Address"
-            type="email"
-            placeholder="your@email.com"
-            value={email}
-            onChange={e => setEmail(e.target.value)}
-            error={emailError}
-            disabled={isLoading}
-          />
+                    <Input
+                        id="email"
+                        label="Email Address"
+                        type="email"
+                        placeholder="your@email.com"
+                        value={email}
+                        onChange={e => setEmail(e.target.value)}
+                        error={emailError}
+                        disabled={isLoading}
+                    />
 
-          <div style={{ position: 'relative' }}>
-            <Input
-              id="password"
-              label="Password"
-              type={showPassword ? 'text' : 'password'}
-              placeholder="Enter your password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              error={passwordError}
-              disabled={isLoading}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword(!showPassword)}
-              style={{
-                position: 'absolute',
-                right: '12px',
-                top: '33px',
-                background: 'none',
-                border: 'none',
-                color: colors.textSecondary,
-                cursor: 'pointer',
-                padding: 0,
-              }}
-              title={showPassword ? 'Hide password' : 'Show password'}
-            >
-              {showPassword ? '[–]' : '[o]'}
-            </button>
-          </div>
+                    <div style={{ position: 'relative' }}>
+                        <Input
+                            id="password"
+                            label="Password"
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder="Enter your password"
+                            value={password}
+                            onChange={e => setPassword(e.target.value)}
+                            error={passwordError}
+                            disabled={isLoading}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            style={{
+                                position: 'absolute',
+                                right: '12px',
+                                top: '33px',
+                                background: 'none',
+                                border: 'none',
+                                color: colors.textSecondary,
+                                cursor: 'pointer',
+                                padding: 0,
+                            }}
+                            title={showPassword ? 'Hide password' : 'Show password'}
+                        >
+                            {showPassword ? '[–]' : '[o]'}
+                        </button>
+                    </div>
 
-          <Button
-            type="submit"
-            fullWidth
-            loading={isLoading}
-            size="lg"
-          >
-            Sign In
-          </Button>
-        </Form>
+                    <Button
+                        type="submit"
+                        fullWidth
+                        loading={isLoading}
+                        size="lg"
+                    >
+                        Sign In
+                    </Button>
+                </Form>
 
-        <Footer>
-          © 2024 Tikta. All rights reserved.
-        </Footer>
-      </Card>
-    </Container>
-  );
+                <Footer>
+                    © 2024 Tikta. All rights reserved.
+                </Footer>
+            </Card>
+        </Container>
+    );
 };
