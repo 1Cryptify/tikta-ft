@@ -201,8 +201,8 @@ const LogoImage = styled.img<{ isClickable?: boolean }>`
   transition: all 0.3s ease;
 
   ${(props) =>
-    props.isClickable &&
-    `
+        props.isClickable &&
+        `
     &:hover {
       opacity: 0.8;
       transform: scale(1.05);
@@ -226,8 +226,8 @@ const LogoPlaceholder = styled.div<{ isClickable?: boolean }>`
   transition: all 0.3s ease;
 
   ${(props) =>
-    props.isClickable &&
-    `
+        props.isClickable &&
+        `
     &:hover {
       opacity: 0.8;
       transform: scale(1.05);
@@ -453,6 +453,75 @@ const LoadingContainer = styled.div`
   color: #999;
 `;
 
+const StatsBar = styled.div`
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
+`;
+
+const StatItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  span {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a1a1a;
+  }
+`;
+
+const FilterGroup = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-left: auto;
+  flex-wrap: wrap;
+
+  @media (max-width: 768px) {
+    margin-left: 0;
+    width: 100%;
+  }
+`;
+
+const FilterButton = styled.button<{ active?: boolean }>`
+  padding: 0.5rem 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  background: ${(props) => (props.active ? '#007bff' : 'white')};
+  color: ${(props) => (props.active ? 'white' : '#495057')};
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: #007bff;
+    background: ${(props) => (props.active ? '#0056b3' : '#f8f9fa')};
+  }
+
+  @media (max-width: 480px) {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.75rem;
+  }
+`;
+
 const EmptyState = styled.div`
   text-align: center;
   padding: 3rem;
@@ -486,6 +555,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const [selectedBusinessForDocs, setSelectedBusinessForDocs] = useState<BusinessWithDocuments | null>(null);
     const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
     const [selectedBusinessForLogo, setSelectedBusinessForLogo] = useState<BusinessWithDocuments | null>(null);
+    const [statusFilter, setStatusFilter] = useState<'all' | 'verified' | 'pending' | 'blocked'>('all');
 
     // Vérifier l'accès au menu
     const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
@@ -502,16 +572,26 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
 
     useEffect(() => {
         filterBusinesses();
-    }, [searchTerm, businesses]);
+    }, [searchTerm, businesses, statusFilter]);
 
     const filterBusinesses = () => {
         const term = searchTerm.toLowerCase();
-        const filtered = businesses.filter(
+        let filtered = businesses.filter(
             (b) =>
                 b.name?.toLowerCase().includes(term) ||
                 b.nui?.toLowerCase().includes(term) ||
                 b.commerce_register?.toLowerCase().includes(term)
         );
+
+        // Apply status filter
+        if (statusFilter === 'verified') {
+            filtered = filtered.filter((b) => b.is_verified && !b.is_blocked);
+        } else if (statusFilter === 'pending') {
+            filtered = filtered.filter((b) => !b.is_verified && !b.is_blocked);
+        } else if (statusFilter === 'blocked') {
+            filtered = filtered.filter((b) => b.is_blocked);
+        }
+
         setFilteredBusinesses(filtered);
     };
 
@@ -681,6 +761,52 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                 />
             </SearchContainer>
 
+            <StatsBar>
+                <StatItem>
+                    <label>Total</label>
+                    <span>{businesses.length}</span>
+                </StatItem>
+                <StatItem>
+                    <label>Verified</label>
+                    <span>{businesses.filter((b) => b.is_verified && !b.is_blocked).length}</span>
+                </StatItem>
+                <StatItem>
+                    <label>Pending</label>
+                    <span>{businesses.filter((b) => !b.is_verified && !b.is_blocked).length}</span>
+                </StatItem>
+                <StatItem>
+                    <label>Blocked</label>
+                    <span>{businesses.filter((b) => b.is_blocked).length}</span>
+                </StatItem>
+
+                <FilterGroup>
+                    <FilterButton
+                        active={statusFilter === 'all'}
+                        onClick={() => setStatusFilter('all')}
+                    >
+                        All
+                    </FilterButton>
+                    <FilterButton
+                        active={statusFilter === 'verified'}
+                        onClick={() => setStatusFilter('verified')}
+                    >
+                        Verified
+                    </FilterButton>
+                    <FilterButton
+                        active={statusFilter === 'pending'}
+                        onClick={() => setStatusFilter('pending')}
+                    >
+                        Pending
+                    </FilterButton>
+                    <FilterButton
+                        active={statusFilter === 'blocked'}
+                        onClick={() => setStatusFilter('blocked')}
+                    >
+                        Blocked
+                    </FilterButton>
+                </FilterGroup>
+            </StatsBar>
+
             {error && (
                 <div style={{ color: '#dc3545', marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8d7da', borderRadius: '4px' }}>
                     {error}
@@ -701,13 +827,13 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                             <CardHeader>
                                 <div style={{ flex: 1 }}>
                                     {business.logo ? (
-                                      <LogoImage
-                                        src={business.logo}
-                                        alt={business.name}
-                                        isClickable={true}
-                                        onClick={() => handleUploadLogo(business)}
-                                        title="Click to change logo"
-                                      />
+                                        <LogoImage
+                                            src={business.logo}
+                                            alt={business.name}
+                                            isClickable={true}
+                                            onClick={() => handleUploadLogo(business)}
+                                            title="Click to change logo"
+                                        />
                                     ) : (
                                         <LogoPlaceholder
                                             isClickable={true}
