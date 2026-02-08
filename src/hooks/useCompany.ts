@@ -45,6 +45,23 @@ export const useCompany = () => {
     }
   }, []);
 
+  const listUserCompanies = useCallback(async () => {
+    setState(prev => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const response = await apiGet(endpoints.company.userList);
+      setState(prev => ({
+        ...prev,
+        companies: response.data || response.companies || [],
+        isLoading: false,
+      }));
+      return { success: true, data: response.data || response.companies, count: response.count };
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : 'Failed to list user companies';
+      setState(prev => ({ ...prev, error: errorMsg, isLoading: false }));
+      return { success: false, error: errorMsg };
+    }
+  }, []);
+
   const getCompanyDetail = useCallback(async (id: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
@@ -165,6 +182,7 @@ export const useCompany = () => {
   return {
     ...state,
     listCompanies,
+    listUserCompanies,
     getCompanyDetail,
     createCompany,
     updateCompany,
