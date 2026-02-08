@@ -4,6 +4,8 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
+import { Business } from './Business';
+import { UserRole } from '../config/menuPermissions';
 import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiAward, FiBriefcase, FiCode, FiTag } from 'react-icons/fi';
 
 
@@ -143,9 +145,10 @@ const StatusBadge = styled.span<{ status: string }>`
 interface DashboardProps {
     user: User;
     onLogout: () => void;
+    userRole?: UserRole;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole = UserRole.CLIENT }) => {
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -302,7 +305,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout }) => {
                     <h1>offer et produits</h1>
                 )}
                 {activeNav === 'business' && (
-                    <h1>entreprise</h1>
+                    <Business userRole={userRole} />
                 )}
                 {activeNav === 'payment_api' && (
                     <PageHeader>
