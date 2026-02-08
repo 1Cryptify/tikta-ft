@@ -224,12 +224,14 @@ export const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
       console.log('ConfirmationPage confirmLogin result:', result);
 
       if (!result.success) {
-        setCodeError2(result.error || 'Confirmation failed');
-      } else {
-        console.log('Confirmation success, navigating to /dashboard/overview');
-        onSuccess?.();
-        navigate('/dashboard/overview');
-      }
+         setCodeError2(result.error || 'Confirmation failed');
+       } else {
+         console.log('Confirmation success, navigating to /dashboard/overview');
+         onSuccess?.();
+         setTimeout(() => {
+           window.location.reload();
+         }, 500);
+       }
     };
 
     const handleResend = async () => {
