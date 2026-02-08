@@ -6,9 +6,11 @@ import { colors, spacing, borderRadius, shadows, transitions } from '../../../co
 // ==================== STYLED COMPONENTS ====================
 
 const PageWrapper = styled.div`
-  min-height: 100vh;
+  height: 100%;
   background: ${colors.neutral};
   padding: ${spacing.xl};
+  overflow-y: auto;
+  overflow-x: hidden;
 
   @media (max-width: 768px) {
     padding: ${spacing.lg};

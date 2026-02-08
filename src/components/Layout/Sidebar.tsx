@@ -63,11 +63,18 @@ const NavList = styled.nav`
   gap: ${spacing.sm};
   padding: 0 ${spacing.md};
   flex: 1;
-  overflow-y: auto;
+  overflow: hidden;
+
+  @media (max-width: 768px) {
+    overflow-y: auto;
+    max-height: calc(100vh - 200px);
+  }
 
   @media (max-width: 480px) {
     padding: 0 ${spacing.sm};
     gap: ${spacing.xs};
+    overflow-y: auto;
+    max-height: calc(100vh - 180px);
   }
 `;
 

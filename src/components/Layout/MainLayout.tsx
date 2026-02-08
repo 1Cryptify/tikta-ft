@@ -49,13 +49,17 @@ const SidebarContainer = styled.div<{ isOpen?: boolean }>`
     z-index: 999;
     transform: translateX(${props => (props.isOpen ? '0' : '-100%')});
     transition: transform 0.3s ease;
-    background: rgba(0, 0, 0, 0.5);
+    pointer-events: ${props => (props.isOpen ? 'auto' : 'none')};
+    overflow: hidden;
 
     > * {
       width: 280px;
       max-width: 80vw;
       height: 100%;
       background: white;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
     }
   }
 `;
@@ -82,6 +86,7 @@ const MobileMenuBackdrop = styled.div<{ isOpen?: boolean }>`
     bottom: 0;
     background: rgba(0, 0, 0, 0.5);
     z-index: 998;
+    pointer-events: ${props => (props.isOpen ? 'auto' : 'none')};
   }
 `;
 
@@ -96,6 +101,18 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
     const closeSidebar = () => setSidebarOpen(false);
+
+    // Prevent body scroll when sidebar is open on mobile
+    React.useEffect(() => {
+        if (sidebarOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => {
+            document.body.style.overflow = 'unset';
+        };
+    }, [sidebarOpen]);
 
     return (
         <LayoutWrapper>
