@@ -54,6 +54,7 @@ interface UseBusinessReturn extends BusinessState {
     markActiveCompany: (id: string) => Promise<boolean>;
     uploadDocuments: (id: string, documents: FormData) => Promise<boolean>;
     uploadLogo: (id: string, file: File) => Promise<boolean>;
+    getUsers: () => Promise<any[]>;
 }
 
 export const useBusiness = (): UseBusinessReturn => {
@@ -319,22 +320,40 @@ export const useBusiness = (): UseBusinessReturn => {
         }
     }, []);
 
-    // Initialize - fetch businesses on mount
-    useEffect(() => {
-        getBusinesses();
-    }, [getBusinesses]);
+    // Get all users list
+    const getUsers = useCallback(async (): Promise<any[]> => {
+        try {
+            const response = await axiosInstance.get('/list-users/');
+            if (response.data.status === 'success') {
+                return response.data.users || [];
+            }
+            return [];
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || 'Failed to fetch users'
+                : 'An error occurred';
+            console.error('Error fetching users:', errorMessage);
+            return [];
+        }
+    }, []);
 
-    return {
-        ...state,
-        getBusinesses,
-        getBusinessById,
-        createBusiness,
-        updateBusiness,
-        deleteBusiness,
-        blockBusiness,
-        unblockBusiness,
-        markActiveCompany,
-        uploadDocuments,
-        uploadLogo,
+     // Initialize - fetch businesses on mount
+     useEffect(() => {
+         getBusinesses();
+     }, [getBusinesses]);
+
+     return {
+         ...state,
+         getBusinesses,
+         getBusinessById,
+         createBusiness,
+         updateBusiness,
+         deleteBusiness,
+         blockBusiness,
+         unblockBusiness,
+         markActiveCompany,
+         uploadDocuments,
+         uploadLogo,
+         getUsers,
+     };
     };
-};

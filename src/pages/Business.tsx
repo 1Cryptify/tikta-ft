@@ -542,6 +542,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         uploadDocuments,
         uploadLogo: uploadLogoAPI,
         markActiveCompany,
+        getUsers,
     } = useBusiness();
 
     const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithDocuments[]>([]);
@@ -556,6 +557,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const [selectedBusinessForEdit, setSelectedBusinessForEdit] = useState<BusinessWithDocuments | null>(null);
     const [isAssociateModalOpen, setIsAssociateModalOpen] = useState(false);
     const [selectedBusinessForAssociate, setSelectedBusinessForAssociate] = useState<BusinessWithDocuments | null>(null);
+    const [users, setUsers] = useState<any[]>([]);
 
     // Vérifier l'accès au menu
     const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
@@ -567,6 +569,17 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     useEffect(() => {
         filterBusinesses();
     }, [searchTerm, businesses, statusFilter]);
+
+    // Fetch users when associate modal opens
+    useEffect(() => {
+        if (isAssociateModalOpen) {
+            const fetchUsers = async () => {
+                const fetchedUsers = await getUsers();
+                setUsers(fetchedUsers);
+            };
+            fetchUsers();
+        }
+    }, [isAssociateModalOpen, getUsers]);
 
     const filterBusinesses = () => {
         const term = searchTerm.toLowerCase();
@@ -1058,7 +1071,10 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                     setSelectedBusinessForAssociate(null);
                 }}
                 onSubmit={handleAssociateSubmit}
-                clients={[]}
+                clients={users.map(user => ({
+                    id: user.id,
+                    name: user.email,
+                }))}
             />
         </Container>
     );
