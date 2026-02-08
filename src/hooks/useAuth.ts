@@ -1,13 +1,10 @@
 import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
-import { API_USERS_BASE_URL } from '../services/api';
+import { API_USERS_BASE_URL, AXIOS_CONFIG } from '../config/api';
 
 const axiosInstance = axios.create({
     baseURL: API_USERS_BASE_URL,
-    withCredentials: true,
-    headers: {
-        'Content-Type': 'application/json',
-    },
+    ...AXIOS_CONFIG,
 });
 
 export interface Company {

@@ -2,13 +2,12 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import {
     hasPermission,
-    getPermittedActions,
     canAccessMenu,
     UserRole,
     MenuName,
     ActionType,
 } from '../config/menuPermissions';
-import { mockBusinesses, Business as BusinessType } from '../mocks/businessMocks';
+import { useBusiness, Business as BusinessType } from '../hooks/useBusiness';
 import DocumentUploadModal from '../components/DocumentUploadModal';
 import LogoUploadModal from '../components/LogoUploadModal';
 import {
@@ -20,7 +19,6 @@ import {
     FiCheck,
     FiPlus,
     FiSearch,
-    FiFileText,
 } from 'react-icons/fi';
 
 interface BusinessPageProps {
@@ -60,16 +58,7 @@ const Title = styled.h1`
   }
 `;
 
-const Actions = styled.div`
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
 
-  @media (max-width: 768px) {
-    width: 100%;
-    justify-content: flex-start;
-  }
-`;
 
 const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' }>`
   display: flex;
@@ -538,19 +527,24 @@ const EmptyState = styled.div`
   }
 `;
 
-interface BusinessWithDocuments extends BusinessType {
-    nui_document?: string;
-    commerce_register_document?: string;
-    website_document?: string;
-    creation_document?: string;
-}
+type BusinessWithDocuments = BusinessType;
 
 export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActivated }) => {
-    const [businesses, setBusinesses] = useState<BusinessWithDocuments[]>([]);
+    const {
+        businesses,
+        isLoading: loading,
+        error: apiError,
+        blockBusiness,
+        unblockBusiness,
+        deleteBusiness,
+        uploadDocuments,
+        uploadLogo: uploadLogoAPI,
+        markActiveCompany,
+    } = useBusiness();
+
     const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithDocuments[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const [error, setError] = useState<string | null>(apiError);
     const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
     const [selectedBusinessForDocs, setSelectedBusinessForDocs] = useState<BusinessWithDocuments | null>(null);
     const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
@@ -561,14 +555,8 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
 
     useEffect(() => {
-        if (canAccess) {
-            // Simuler un délai de chargement
-            setTimeout(() => {
-                setBusinesses(mockBusinesses);
-                setLoading(false);
-            }, 500);
-        }
-    }, [canAccess, userRole]);
+        setError(apiError);
+    }, [apiError]);
 
     useEffect(() => {
         filterBusinesses();
@@ -595,7 +583,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         setFilteredBusinesses(filtered);
     };
 
-    const getStatus = (business: Business): 'verified' | 'pending' | 'blocked' => {
+    const getStatus = (business: BusinessWithDocuments): 'verified' | 'pending' | 'blocked' => {
         if (business.is_blocked) return 'blocked';
         if (business.is_verified) return 'verified';
         return 'pending';
@@ -611,18 +599,27 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         // TODO: Implémenter modal/page d'édition
     };
 
-    const handleDelete = (id: string) => {
+    const handleDelete = async (id: string) => {
         if (window.confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ?')) {
-            setBusinesses(businesses.filter((b) => b.id !== id));
+            const success = await deleteBusiness(id);
+            if (success) {
+                setError(null);
+            } else {
+                setError('Failed to delete business');
+            }
         }
     };
 
-    const handleBlock = (id: string, isBlocked: boolean) => {
-        setBusinesses(
-            businesses.map((b) =>
-                b.id === id ? { ...b, is_blocked: !isBlocked } : b
-            )
-        );
+    const handleBlock = async (id: string, isBlocked: boolean) => {
+        const success = isBlocked
+            ? await unblockBusiness(id)
+            : await blockBusiness(id);
+
+        if (!success) {
+            setError(isBlocked ? 'Failed to unblock business' : 'Failed to block business');
+        } else {
+            setError(null);
+        }
     };
 
     const handleUploadDocuments = (business: BusinessWithDocuments) => {
@@ -630,36 +627,17 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         setIsDocumentModalOpen(true);
     };
 
-    const handleDocumentsSubmit = (formData: FormData) => {
+    const handleDocumentsSubmit = async (formData: FormData) => {
         if (!selectedBusinessForDocs) return;
 
-        // Mettre à jour l'état local avec les documents
-        setBusinesses(
-            businesses.map((b) =>
-                b.id === selectedBusinessForDocs.id
-                    ? {
-                        ...b,
-                        nui_document: formData.has('nui_document')
-                            ? 'uploaded'
-                            : b.nui_document,
-                        commerce_register_document: formData.has(
-                            'commerce_register_document'
-                        )
-                            ? 'uploaded'
-                            : b.commerce_register_document,
-                        website_document: formData.has('website_document')
-                            ? 'uploaded'
-                            : b.website_document,
-                        creation_document: formData.has('creation_document')
-                            ? 'uploaded'
-                            : b.creation_document,
-                        is_verified: true, // Marquer comme vérifiée après upload
-                    }
-                    : b
-            )
-        );
-
-        console.log('Documents uploadés pour:', selectedBusinessForDocs.name);
+        const success = await uploadDocuments(selectedBusinessForDocs.id, formData);
+        if (success) {
+            setError(null);
+            setIsDocumentModalOpen(false);
+            setSelectedBusinessForDocs(null);
+        } else {
+            setError('Failed to upload documents');
+        }
     };
 
     const getDocumentsProgress = (business: BusinessWithDocuments): number => {
@@ -673,32 +651,23 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         return (completed / documents.length) * 100;
     };
 
-    const handleMarkActive = (id: string) => {
+    const handleMarkActive = async (id: string) => {
         const business = businesses.find((b) => b.id === id);
         if (!business) return;
 
-        // Si on clique sur une entreprise active, on la désactive
-        // Si on clique sur une entreprise inactive, on désactive les autres et on l'active
-        const updatedBusinesses = businesses.map((b) =>
-            b.id === id
-                ? { ...b, is_active: !b.is_active }
-                : { ...b, is_active: false }
-        );
-
-        setBusinesses(updatedBusinesses);
-
-        // Notifier le parent de l'entreprise active
-        const activeCompany = updatedBusinesses.find((b) => b.is_active);
-        if (onCompanyActivated) {
-            if (activeCompany) {
+        const success = await markActiveCompany(id);
+        if (success) {
+            setError(null);
+            // Notifier le parent de l'entreprise active
+            if (onCompanyActivated) {
                 onCompanyActivated({
-                    id: activeCompany.id,
-                    name: activeCompany.name,
-                    logo: activeCompany.logo,
+                    id: business.id,
+                    name: business.name,
+                    logo: business.logo,
                 });
-            } else {
-                onCompanyActivated(null);
             }
+        } else {
+            setError('Failed to set active company');
         }
     };
 
@@ -712,19 +681,17 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         setIsLogoModalOpen(true);
     };
 
-    const handleLogoSubmit = (file: File) => {
+    const handleLogoSubmit = async (file: File) => {
         if (!selectedBusinessForLogo) return;
 
-        // Créer une URL d'aperçu pour le fichier
-        const logoUrl = URL.createObjectURL(file);
-
-        setBusinesses(
-            businesses.map((b) =>
-                b.id === selectedBusinessForLogo.id ? { ...b, logo: logoUrl } : b
-            )
-        );
-
-        console.log('Logo uploaded for:', selectedBusinessForLogo.name);
+        const success = await uploadLogoAPI(selectedBusinessForLogo.id, file);
+        if (success) {
+            setError(null);
+            setIsLogoModalOpen(false);
+            setSelectedBusinessForLogo(null);
+        } else {
+            setError('Failed to upload logo');
+        }
     };
 
     if (!canAccess) {
