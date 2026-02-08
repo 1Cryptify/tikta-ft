@@ -4,6 +4,18 @@ import { API_USERS_BASE_URL} from '../services/api';
 
 const axiosInstance = axios.create({
     baseURL: API_USERS_BASE_URL,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+// Intercepteur pour gérer les FormData
+axiosInstance.interceptors.request.use((config) => {
+    if (config.data instanceof FormData) {
+        // Supprimer Content-Type pour FormData, axios le définira automatiquement
+        delete config.headers['Content-Type'];
+    }
+    return config;
 });
 
 export interface Business {
