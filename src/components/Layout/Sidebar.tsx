@@ -3,16 +3,17 @@ import styled from 'styled-components';
 import { colors, spacing, borderRadius, transitions } from '../../config/theme';
 
 interface NavItem {
-  id: string;
-  label: string;
-  icon: React.ReactNode;
-  active?: boolean;
-  onClick?: () => void;
+    id: string;
+    label: string;
+    icon: React.ReactNode;
+    active?: boolean;
+    onClick?: () => void;
 }
 
 interface SidebarProps {
-  items: NavItem[];
-  title?: string;
+    items: NavItem[];
+    title?: string;
+    onItemClick?: () => void;
 }
 
 const SidebarWrapper = styled.aside`
@@ -23,6 +24,12 @@ const SidebarWrapper = styled.aside`
   padding: ${spacing.xl} 0;
   display: flex;
   flex-direction: column;
+
+  @media (max-width: 768px) {
+    width: 280px;
+    border-right: none;
+    border-bottom: 1px solid ${colors.border};
+  }
 `;
 
 const SidebarTitle = styled.div`
@@ -39,6 +46,15 @@ const SidebarTitle = styled.div`
     letter-spacing: 1px;
     margin: 0;
   }
+
+  @media (max-width: 480px) {
+    padding: 0 ${spacing.lg};
+    margin-bottom: ${spacing.lg};
+
+    h3 {
+      font-size: 0.7rem;
+    }
+  }
 `;
 
 const NavList = styled.nav`
@@ -48,6 +64,11 @@ const NavList = styled.nav`
   padding: 0 ${spacing.md};
   flex: 1;
   overflow-y: auto;
+
+  @media (max-width: 480px) {
+    padding: 0 ${spacing.sm};
+    gap: ${spacing.xs};
+  }
 `;
 
 const NavItemButton = styled.button<{ active?: boolean }>`
@@ -75,27 +96,43 @@ const NavItemButton = styled.button<{ active?: boolean }>`
     align-items: center;
     justify-content: center;
     color: currentColor;
+    flex-shrink: 0;
+  }
+
+  span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  @media (max-width: 480px) {
+    padding: ${spacing.sm} ${spacing.md};
+    font-size: 0.8125rem;
+    gap: ${spacing.sm};
   }
 `;
 
-export const Sidebar: React.FC<SidebarProps> = ({ items, title = 'Menu' }) => {
-  return (
-    <SidebarWrapper>
-      <SidebarTitle>
-        <h3>{title}</h3>
-      </SidebarTitle>
-      <NavList>
-        {items.map(item => (
-          <NavItemButton
-            key={item.id}
-            active={item.active}
-            onClick={item.onClick}
-          >
-            <span>{item.icon}</span>
-            <span>{item.label}</span>
-          </NavItemButton>
-        ))}
-      </NavList>
-    </SidebarWrapper>
-  );
+export const Sidebar: React.FC<SidebarProps> = ({ items, title = 'Menu', onItemClick }) => {
+    return (
+        <SidebarWrapper>
+            <SidebarTitle>
+                <h3>{title}</h3>
+            </SidebarTitle>
+            <NavList>
+                {items.map(item => (
+                    <NavItemButton
+                        key={item.id}
+                        active={item.active}
+                        onClick={() => {
+                            item.onClick?.();
+                            onItemClick?.();
+                        }}
+                    >
+                        <span>{item.icon}</span>
+                        <span>{item.label}</span>
+                    </NavItemButton>
+                ))}
+            </NavList>
+        </SidebarWrapper>
+    );
 };

@@ -9,15 +9,28 @@ const PageWrapper = styled.div`
   min-height: 100vh;
   background: ${colors.neutral};
   padding: ${spacing.xl};
+
+  @media (max-width: 768px) {
+    padding: ${spacing.lg};
+  }
+
+  @media (max-width: 480px) {
+    padding: ${spacing.md};
+  }
 `;
 
 const Container = styled.div`
   max-width: 1200px;
   margin: 0 auto;
+  width: 100%;
 `;
 
 const PageHeader = styled.div`
   margin-bottom: ${spacing.xxl};
+
+  @media (max-width: 480px) {
+    margin-bottom: ${spacing.xl};
+  }
 `;
 
 const PageTitle = styled.h1`
@@ -29,6 +42,11 @@ const PageTitle = styled.h1`
   @media (max-width: 768px) {
     font-size: 1.5rem;
   }
+
+  @media (max-width: 480px) {
+    font-size: 1.25rem;
+    margin: 0 0 ${spacing.xs} 0;
+  }
 `;
 
 const PageSubtitle = styled.p`
@@ -39,6 +57,10 @@ const PageSubtitle = styled.p`
   @media (max-width: 768px) {
     font-size: 0.875rem;
   }
+
+  @media (max-width: 480px) {
+    font-size: 0.8125rem;
+  }
 `;
 
 const CardsGrid = styled.div`
@@ -46,14 +68,24 @@ const CardsGrid = styled.div`
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: ${spacing.xl};
   
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: ${spacing.lg};
+  }
+
   @media (max-width: 768px) {
     grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
     gap: ${spacing.lg};
   }
 
+  @media (max-width: 600px) {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: ${spacing.md};
+  }
+
   @media (max-width: 480px) {
     grid-template-columns: 1fr;
-    gap: ${spacing.lg};
+    gap: ${spacing.md};
   }
 `;
 
@@ -67,6 +99,8 @@ const BusinessCard = styled.div<{ isActive: boolean }>`
   transition: all ${transitions.base};
   box-shadow: ${props => props.isActive ? shadows.lg : shadows.sm};
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 
   &:hover {
     border-color: ${colors.primary};
@@ -85,8 +119,12 @@ const BusinessCard = styled.div<{ isActive: boolean }>`
     transition: background ${transitions.base};
   }
 
-  @media (max-width: 480px) {
+  @media (max-width: 600px) {
     padding: ${spacing.lg};
+  }
+
+  @media (max-width: 480px) {
+    padding: ${spacing.md};
   }
 `;
 
@@ -108,11 +146,19 @@ const CardLogo = styled.div<{ bgColor?: string }>`
   color: ${colors.surface};
   margin-bottom: ${spacing.lg};
   transition: all ${transitions.base};
+  flex-shrink: 0;
+
+  @media (max-width: 600px) {
+    width: 55px;
+    height: 55px;
+    font-size: 1.375rem;
+  }
 
   @media (max-width: 480px) {
     width: 50px;
     height: 50px;
     font-size: 1.25rem;
+    margin-bottom: ${spacing.md};
   }
 `;
 
@@ -122,9 +168,15 @@ const CardName = styled.h3`
   margin: 0 0 ${spacing.sm} 0;
   font-weight: 600;
   word-break: break-word;
+  line-height: 1.4;
+
+  @media (max-width: 600px) {
+    font-size: 1.125rem;
+  }
 
   @media (max-width: 480px) {
-    font-size: 1.125rem;
+    font-size: 1rem;
+    margin: 0 0 ${spacing.xs} 0;
   }
 `;
 
@@ -137,6 +189,12 @@ const CardDescription = styled.p`
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+
+  @media (max-width: 480px) {
+    font-size: 0.8125rem;
+    margin: 0 0 ${spacing.md} 0;
+    -webkit-line-clamp: 1;
+  }
 `;
 
 const CardMeta = styled.div`
@@ -145,6 +203,12 @@ const CardMeta = styled.div`
   gap: ${spacing.sm};
   padding-top: ${spacing.lg};
   border-top: 1px solid ${colors.border};
+  margin-top: auto;
+
+  @media (max-width: 480px) {
+    gap: ${spacing.xs};
+    padding-top: ${spacing.md};
+  }
 `;
 
 const MetaItem = styled.div`
@@ -153,9 +217,14 @@ const MetaItem = styled.div`
   align-items: center;
   font-size: 0.75rem;
   color: ${colors.textSecondary};
+  gap: ${spacing.sm};
+
+  @media (max-width: 600px) {
+    font-size: 0.7rem;
+  }
 
   @media (max-width: 480px) {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
   }
 `;
 
@@ -179,12 +248,20 @@ const ActiveBadge = styled.div`
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  z-index: 1;
 
-  @media (max-width: 480px) {
+  @media (max-width: 600px) {
     top: ${spacing.md};
     right: ${spacing.md};
-    padding: 3px 6px;
+    padding: 4px 8px;
     font-size: 0.6rem;
+  }
+
+  @media (max-width: 480px) {
+    top: ${spacing.sm};
+    right: ${spacing.sm};
+    padding: 3px 6px;
+    font-size: 0.55rem;
   }
 `;
 
@@ -211,6 +288,23 @@ const EmptyState = styled.div`
   p {
     margin: 0;
   }
+
+  @media (max-width: 768px) {
+    padding: ${spacing.xl};
+  }
+
+  @media (max-width: 480px) {
+    padding: ${spacing.lg};
+
+    h3 {
+      font-size: 1rem;
+      margin-bottom: ${spacing.md};
+    }
+
+    p {
+      font-size: 0.875rem;
+    }
+  }
 `;
 
 const ErrorMessage = styled.div`
@@ -221,159 +315,164 @@ const ErrorMessage = styled.div`
   color: ${colors.error};
   margin-bottom: ${spacing.xl};
 
+  @media (max-width: 768px) {
+    padding: ${spacing.md};
+    margin-bottom: ${spacing.lg};
+  }
+
   @media (max-width: 480px) {
     padding: ${spacing.md};
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
   }
 `;
 
 // ==================== COMPONENT ====================
 
 interface BusinessPageProps {
-  onCompanySelect?: (company: Company) => void;
-  onHeaderTitleChange?: (title: string) => void;
+    onCompanySelect?: (company: Company) => void;
+    onHeaderTitleChange?: (title: string) => void;
 }
 
 export const BusinessPage: React.FC<BusinessPageProps> = ({
-  onCompanySelect,
-  onHeaderTitleChange,
+    onCompanySelect,
+    onHeaderTitleChange,
 }) => {
-  const { companies, currentCompany, isLoading, error, listCompanies, getCompanyDetail } = useCompany();
-  const [selectedCompany, setSelectedCompany] = useState<Company | null>(currentCompany || null);
+    const { companies, currentCompany, isLoading, error, listCompanies, getCompanyDetail } = useCompany();
+    const [selectedCompany, setSelectedCompany] = useState<Company | null>(currentCompany || null);
 
-  // Load companies on mount
-  useEffect(() => {
-    listCompanies();
-  }, [listCompanies]);
+    // Load companies on mount
+    useEffect(() => {
+        listCompanies();
+    }, [listCompanies]);
 
-  // Update header title when selected company changes
-  useEffect(() => {
-    if (selectedCompany && onHeaderTitleChange) {
-      onHeaderTitleChange(selectedCompany.name);
-    } else if (!selectedCompany && onHeaderTitleChange) {
-      onHeaderTitleChange('Tikta');
-    }
-  }, [selectedCompany, onHeaderTitleChange]);
+    // Update header title when selected company changes
+    useEffect(() => {
+        if (selectedCompany && onHeaderTitleChange) {
+            onHeaderTitleChange(selectedCompany.name);
+        } else if (!selectedCompany && onHeaderTitleChange) {
+            onHeaderTitleChange('Tikta');
+        }
+    }, [selectedCompany, onHeaderTitleChange]);
 
-  const handleCompanySelect = async (company: Company) => {
-    setSelectedCompany(company);
-    
-    // Fetch company details
-    await getCompanyDetail(company.id);
-    
-    // Call parent callback if provided
-    if (onCompanySelect) {
-      onCompanySelect(company);
-    }
-  };
+    const handleCompanySelect = async (company: Company) => {
+        setSelectedCompany(company);
 
-  const getCompanyInitials = (name: string): string => {
-    return name
-      .split(' ')
-      .map(word => word[0])
-      .join('')
-      .toUpperCase()
-      .slice(0, 2);
-  };
+        // Fetch company details
+        await getCompanyDetail(company.id);
 
-  const getColorForCompany = (index: number): string => {
-    const colors_array = [
-      colors.primary,
-      colors.primaryLight,
-      colors.info,
-      colors.success,
-      colors.warning,
-    ];
-    return colors_array[index % colors_array.length];
-  };
+        // Call parent callback if provided
+        if (onCompanySelect) {
+            onCompanySelect(company);
+        }
+    };
 
-  const formatDate = (dateString?: string): string => {
-    if (!dateString) return '-';
-    return new Date(dateString).toLocaleDateString('fr-FR', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
+    const getCompanyInitials = (name: string): string => {
+        return name
+            .split(' ')
+            .map(word => word[0])
+            .join('')
+            .toUpperCase()
+            .slice(0, 2);
+    };
 
-  return (
-    <PageWrapper>
-      <Container>
-        <PageHeader>
-          <PageTitle>Mes Entreprises</PageTitle>
-          <PageSubtitle>
-            Sélectionnez une entreprise pour gérer ses opérations
-          </PageSubtitle>
-        </PageHeader>
+    const getColorForCompany = (index: number): string => {
+        const colors_array = [
+            colors.primary,
+            colors.primaryLight,
+            colors.info,
+            colors.success,
+            colors.warning,
+        ];
+        return colors_array[index % colors_array.length];
+    };
 
-        {error && <ErrorMessage>{error}</ErrorMessage>}
+    const formatDate = (dateString?: string): string => {
+        if (!dateString) return '-';
+        return new Date(dateString).toLocaleDateString('fr-FR', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+        });
+    };
 
-        {isLoading ? (
-          <LoadingContainer>
-            <span>Chargement de vos entreprises...</span>
-          </LoadingContainer>
-        ) : companies.length === 0 ? (
-          <EmptyState>
-            <h3>Aucune entreprise trouvée</h3>
-            <p>Vous n'avez pas encore créé d'entreprise.</p>
-          </EmptyState>
-        ) : (
-          <CardsGrid>
-            {companies.map((company, index) => (
-              <BusinessCard
-                key={company.id}
-                isActive={selectedCompany?.id === company.id}
-                onClick={() => handleCompanySelect(company)}
-              >
-                {selectedCompany?.id === company.id && (
-                  <ActiveBadge>Actif</ActiveBadge>
+    return (
+        <PageWrapper>
+            <Container>
+                <PageHeader>
+                    <PageTitle>Mes Entreprises</PageTitle>
+                    <PageSubtitle>
+                        Sélectionnez une entreprise pour gérer ses opérations
+                    </PageSubtitle>
+                </PageHeader>
+
+                {error && <ErrorMessage>{error}</ErrorMessage>}
+
+                {isLoading ? (
+                    <LoadingContainer>
+                        <span>Chargement de vos entreprises...</span>
+                    </LoadingContainer>
+                ) : companies.length === 0 ? (
+                    <EmptyState>
+                        <h3>Aucune entreprise trouvée</h3>
+                        <p>Vous n'avez pas encore créé d'entreprise.</p>
+                    </EmptyState>
+                ) : (
+                    <CardsGrid>
+                        {companies.map((company, index) => (
+                            <BusinessCard
+                                key={company.id}
+                                isActive={selectedCompany?.id === company.id}
+                                onClick={() => handleCompanySelect(company)}
+                            >
+                                {selectedCompany?.id === company.id && (
+                                    <ActiveBadge>Actif</ActiveBadge>
+                                )}
+
+                                <CardContent>
+                                    <CardLogo bgColor={getColorForCompany(index)}>
+                                        {getCompanyInitials(company.name)}
+                                    </CardLogo>
+
+                                    <CardName>{company.name}</CardName>
+
+                                    {company.description && (
+                                        <CardDescription>{company.description}</CardDescription>
+                                    )}
+
+                                    <CardMeta>
+                                        {company.is_verified !== undefined && (
+                                            <MetaItem>
+                                                <MetaLabel>Statut</MetaLabel>
+                                                <MetaValue>
+                                                    {company.is_verified ? '✓ Vérifiée' : 'En attente'}
+                                                </MetaValue>
+                                            </MetaItem>
+                                        )}
+
+                                        {company.is_active !== undefined && (
+                                            <MetaItem>
+                                                <MetaLabel>Activité</MetaLabel>
+                                                <MetaValue>
+                                                    {company.is_active ? 'Active' : 'Inactive'}
+                                                </MetaValue>
+                                            </MetaItem>
+                                        )}
+
+                                        {company.created_at && (
+                                            <MetaItem>
+                                                <MetaLabel>Créée le</MetaLabel>
+                                                <MetaValue>{formatDate(company.created_at)}</MetaValue>
+                                            </MetaItem>
+                                        )}
+                                    </CardMeta>
+                                </CardContent>
+                            </BusinessCard>
+                        ))}
+                    </CardsGrid>
                 )}
-
-                <CardContent>
-                  <CardLogo bgColor={getColorForCompany(index)}>
-                    {getCompanyInitials(company.name)}
-                  </CardLogo>
-
-                  <CardName>{company.name}</CardName>
-
-                  {company.description && (
-                    <CardDescription>{company.description}</CardDescription>
-                  )}
-
-                  <CardMeta>
-                    {company.is_verified !== undefined && (
-                      <MetaItem>
-                        <MetaLabel>Statut</MetaLabel>
-                        <MetaValue>
-                          {company.is_verified ? '✓ Vérifiée' : 'En attente'}
-                        </MetaValue>
-                      </MetaItem>
-                    )}
-
-                    {company.is_active !== undefined && (
-                      <MetaItem>
-                        <MetaLabel>Activité</MetaLabel>
-                        <MetaValue>
-                          {company.is_active ? 'Active' : 'Inactive'}
-                        </MetaValue>
-                      </MetaItem>
-                    )}
-
-                    {company.created_at && (
-                      <MetaItem>
-                        <MetaLabel>Créée le</MetaLabel>
-                        <MetaValue>{formatDate(company.created_at)}</MetaValue>
-                      </MetaItem>
-                    )}
-                  </CardMeta>
-                </CardContent>
-              </BusinessCard>
-            ))}
-          </CardsGrid>
-        )}
-      </Container>
-    </PageWrapper>
-  );
+            </Container>
+        </PageWrapper>
+    );
 };
 
 export default BusinessPage;
