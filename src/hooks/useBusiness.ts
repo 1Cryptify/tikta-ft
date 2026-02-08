@@ -195,26 +195,19 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Block business
     const blockBusiness = useCallback(async (id: string, reason?: string): Promise<boolean> => {
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        setState(prev => ({
+            ...prev,
+            businesses: prev.businesses.map(b => b.id === id ? { ...b, is_blocked: true } : b),
+        }));
         try {
-            const response = await axiosInstance.post('/block-company/', { company_id: id, is_blocked: true, reason });
-            if (response.data.status === 'success') {
-                const updatedBusiness = response.data.company;
-                setState(prev => ({
-                    ...prev,
-                    businesses: prev.businesses.map(b => b.id === id ? updatedBusiness : b),
-                    isLoading: false,
-                }));
-                return true;
-            }
-            return false;
+            await axiosInstance.post('/block-company/', { company_id: id, is_blocked: true, reason });
+            return true;
         } catch (error) {
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to block business'
                 : 'An error occurred';
             setState(prev => ({
                 ...prev,
-                isLoading: false,
                 error: errorMessage,
             }));
             return false;
@@ -223,26 +216,19 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Unblock business
     const unblockBusiness = useCallback(async (id: string): Promise<boolean> => {
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        setState(prev => ({
+            ...prev,
+            businesses: prev.businesses.map(b => b.id === id ? { ...b, is_blocked: false } : b),
+        }));
         try {
-            const response = await axiosInstance.post('/block-company/', { company_id: id, is_blocked: false });
-            if (response.data.status === 'success') {
-                const updatedBusiness = response.data.company;
-                setState(prev => ({
-                    ...prev,
-                    businesses: prev.businesses.map(b => b.id === id ? updatedBusiness : b),
-                    isLoading: false,
-                }));
-                return true;
-            }
-            return false;
+            await axiosInstance.post('/block-company/', { company_id: id, is_blocked: false });
+            return true;
         } catch (error) {
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to unblock business'
                 : 'An error occurred';
             setState(prev => ({
                 ...prev,
-                isLoading: false,
                 error: errorMessage,
             }));
             return false;
