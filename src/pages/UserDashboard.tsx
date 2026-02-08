@@ -5,6 +5,7 @@ import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
 import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiAward, FiBriefcase, FiCode,FiTag } from 'react-icons/fi';
 import { OffersProductsPage } from './UserDashboard/OffersProducts/OffersProductsPage';
+import { BusinessPage } from './UserDashboard/business/BusinessPage';
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -284,10 +285,7 @@ export const UserDashboard: React.FC<UserDashboardProps> = ({ user, onLogout }) 
           <OffersProductsPage companyId={user.company_id} />
         )}
         {activeNav === 'entreprise' && (
-          <PageHeader>
-            <h1>Business</h1>
-            <p>Business information and settings</p>
-          </PageHeader>
+          <BusinessPage />
         )}
         {activeNav === 'payment_api' && (
           <PageHeader>
