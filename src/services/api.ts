@@ -187,6 +187,8 @@ export const endpoints = {
     // Roles: client, staff, su admin
     list: '/users/list-companies/',
     // Roles: client, staff, su admin
+    userList: '/users/list-companies/',
+    // Roles: client, staff, su admin
     create: '/users/create-company/',
     // Roles: client, staff, su admin
     detail: (id: string) => `/users/company-detail/${id}/`,
