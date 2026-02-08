@@ -1,12 +1,24 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from './hooks/useAuth';
+import { useAuth, User } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './components/Auth/LoginPage';
 import { ConfirmationPage } from './components/Auth/ConfirmationPage';
 import { Dashboard } from './pages/Dashboard';
 import { DebugInfo } from './components/DebugInfo';
+import { UserRole } from './config/menuPermissions';
 import './styles/global.css';
+
+// Helper function to map user to UserRole
+const getUserRole = (user: User): UserRole => {
+    if (user.is_superuser) {
+        return UserRole.SUPER_ADMIN;
+    }
+    if (user.is_staff) {
+        return UserRole.STAFF;
+    }
+    return UserRole.CLIENT;
+};
 
 function App() {
     const { user, isAuthenticated, logout, getCurrentUser, isLoading } = useAuth();
@@ -41,7 +53,7 @@ function App() {
                 path="/dashboard/*"
                 element={
                     <ProtectedRoute isAuthenticated={isAuthenticated} isLoading={isLoading}>
-                        {user ? <Dashboard user={user} onLogout={logout} /> : null}
+                        {user ? <Dashboard user={user} onLogout={logout} userRole={getUserRole(user)} /> : null}
                     </ProtectedRoute>
                 }
             />

@@ -148,7 +148,7 @@ interface DashboardProps {
     userRole?: UserRole;
 }
 
-export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole = UserRole.CLIENT }) => {
+export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole = UserRole.SUPER_ADMIN }) => {
     const navigate = useNavigate();
     const location = useLocation();
     const [activeCompany, setActiveCompany] = React.useState<{ id: string; name: string; logo?: string } | null>(null);
