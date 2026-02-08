@@ -4,7 +4,6 @@ import { API_USERS_BASE_URL} from '../services/api';
 
 const axiosInstance = axios.create({
     baseURL: API_USERS_BASE_URL,
-    ...AXIOS_CONFIG,
 });
 
 export interface Business {
