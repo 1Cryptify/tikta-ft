@@ -224,7 +224,7 @@ const StatusCircle = styled.button<{ isActive: boolean }>`
   height: 48px;
   border-radius: 50%;
   border: none;
-  background-color: ${(props) => (props.isActive ? '#28a745' : '#999')};
+  background-color: ${(props) => (props.isActive ? '#28a745' : '#f5f5f5')};
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -243,7 +243,7 @@ const StatusCircle = styled.button<{ isActive: boolean }>`
   }
 
   svg {
-    color: white;
+    color: ${(props) => (props.isActive ? 'white' : '#333')};
     font-size: 1.5rem;
   }
 `;
@@ -253,7 +253,7 @@ const StatusLabel = styled.span<{ isActive: boolean }>`
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  color: ${(props) => (props.isActive ? '#28a745' : '#999')};
+  color: ${(props) => (props.isActive ? '#28a745' : '#333')};
   white-space: nowrap;
 `;
 
@@ -568,11 +568,18 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
     };
 
     const handleMarkActive = (id: string) => {
-        setBusinesses(
-            businesses.map((b) =>
-                b.id === id ? { ...b, is_verified: true } : b
-            )
-        );
+      const business = businesses.find((b) => b.id === id);
+      if (!business) return;
+
+      // Si on clique sur une entreprise active, on la désactive
+      // Si on clique sur une entreprise inactive, on désactive les autres et on l'active
+      setBusinesses(
+        businesses.map((b) =>
+          b.id === id
+            ? { ...b, is_verified: !b.is_verified }
+            : { ...b, is_verified: false }
+        )
+      );
     };
 
     const handleAssociate = (id: string) => {
@@ -652,7 +659,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
                                       onClick={() => handleMarkActive(business.id)}
                                       title={business.is_verified ? 'Désactiver' : 'Activer'}
                                     >
-                                      {business.is_verified ? <FiCheck /> : <FiPlus />}
+                                      <FiCheck />
                                     </StatusCircle>
                                     <StatusLabel isActive={business.is_verified}>
                                       {business.is_verified ? 'Actif' : 'Inactif'}
