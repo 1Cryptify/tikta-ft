@@ -151,6 +151,7 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole = UserRole.CLIENT }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const [activeCompany, setActiveCompany] = React.useState<{ id: string; name: string; logo?: string } | null>(null);
 
     // Get active section from URL path
     const getActiveSection = () => {
@@ -240,6 +241,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
             navItems={navItems}
             navTitle="USER MENU"
             onLogout={onLogout}
+            activeCompany={activeCompany}
         >
             <ContentSection>
                 {activeNav === 'overview' && (
@@ -305,7 +307,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                     <h1>offer et produits</h1>
                 )}
                 {activeNav === 'business' && (
-                    <Business userRole={userRole} />
+                    <Business userRole={userRole} onCompanyActivated={setActiveCompany} />
                 )}
                 {activeNav === 'payment_api' && (
                     <PageHeader>

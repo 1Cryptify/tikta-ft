@@ -7,6 +7,7 @@ export interface Business {
   is_verified: boolean;
   is_blocked: boolean;
   is_deleted: boolean;
+  is_active: boolean;
   created_at: string;
   logo?: string;
 }
@@ -21,6 +22,7 @@ export const mockBusinesses: Business[] = [
     is_verified: true,
     is_blocked: false,
     is_deleted: false,
+    is_active: false,
     created_at: '2023-01-15T10:30:00Z',
     logo: 'https://via.placeholder.com/40?text=TS',
   },
@@ -33,6 +35,7 @@ export const mockBusinesses: Business[] = [
     is_verified: true,
     is_blocked: false,
     is_deleted: false,
+    is_active: true,
     created_at: '2023-02-20T14:45:00Z',
     logo: 'https://via.placeholder.com/40?text=WA',
   },
@@ -45,6 +48,7 @@ export const mockBusinesses: Business[] = [
     is_verified: false,
     is_blocked: false,
     is_deleted: false,
+    is_active: false,
     created_at: '2023-03-10T09:15:00Z',
   },
   {
@@ -56,6 +60,7 @@ export const mockBusinesses: Business[] = [
     is_verified: true,
     is_blocked: true,
     is_deleted: false,
+    is_active: false,
     created_at: '2023-04-05T16:20:00Z',
   },
   {
@@ -67,6 +72,7 @@ export const mockBusinesses: Business[] = [
     is_verified: true,
     is_blocked: false,
     is_deleted: false,
+    is_active: false,
     created_at: '2023-05-12T11:00:00Z',
     logo: 'https://via.placeholder.com/40?text=LTS',
   },
@@ -79,6 +85,7 @@ export const mockBusinesses: Business[] = [
     is_verified: false,
     is_blocked: false,
     is_deleted: false,
+    is_active: false,
     created_at: '2023-06-08T13:30:00Z',
   },
   {
@@ -90,6 +97,7 @@ export const mockBusinesses: Business[] = [
     is_verified: true,
     is_blocked: false,
     is_deleted: false,
+    is_active: false,
     created_at: '2023-07-22T10:45:00Z',
     logo: 'https://via.placeholder.com/40?text=PP',
   },
@@ -102,6 +110,7 @@ export const mockBusinesses: Business[] = [
     is_verified: false,
     is_blocked: true,
     is_deleted: false,
+    is_active: false,
     created_at: '2023-08-14T15:20:00Z',
   },
 ];

@@ -23,7 +23,8 @@ import {
 } from 'react-icons/fi';
 
 interface BusinessPageProps {
-    userRole: UserRole;
+  userRole: UserRole;
+  onCompanyActivated?: (company: { id: string; name: string; logo?: string } | null) => void;
 }
 
 const Container = styled.div`
@@ -452,7 +453,7 @@ interface BusinessWithDocuments extends BusinessType {
     creation_document?: string;
 }
 
-export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
+export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActivated }) => {
     const [businesses, setBusinesses] = useState<BusinessWithDocuments[]>([]);
     const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithDocuments[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -573,13 +574,27 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
 
       // Si on clique sur une entreprise active, on la désactive
       // Si on clique sur une entreprise inactive, on désactive les autres et on l'active
-      setBusinesses(
-        businesses.map((b) =>
-          b.id === id
-            ? { ...b, is_verified: !b.is_verified }
-            : { ...b, is_verified: false }
-        )
+      const updatedBusinesses = businesses.map((b) =>
+        b.id === id
+          ? { ...b, is_active: !b.is_active }
+          : { ...b, is_active: false }
       );
+
+      setBusinesses(updatedBusinesses);
+
+      // Notifier le parent de l'entreprise active
+      const activeCompany = updatedBusinesses.find((b) => b.is_active);
+      if (onCompanyActivated) {
+        if (activeCompany) {
+          onCompanyActivated({
+            id: activeCompany.id,
+            name: activeCompany.name,
+            logo: activeCompany.logo,
+          });
+        } else {
+          onCompanyActivated(null);
+        }
+      }
     };
 
     const handleAssociate = (id: string) => {
@@ -655,14 +670,14 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
                                 ) && (
                                   <StatusCircleWrapper>
                                     <StatusCircle
-                                      isActive={business.is_verified}
+                                      isActive={business.is_active}
                                       onClick={() => handleMarkActive(business.id)}
-                                      title={business.is_verified ? 'Désactiver' : 'Activer'}
+                                      title={business.is_active ? 'Désactiver' : 'Activer'}
                                     >
                                       <FiCheck />
                                     </StatusCircle>
-                                    <StatusLabel isActive={business.is_verified}>
-                                      {business.is_verified ? 'Actif' : 'Inactif'}
+                                    <StatusLabel isActive={business.is_active}>
+                                      {business.is_active ? 'Actif' : 'Inactif'}
                                     </StatusLabel>
                                   </StatusCircleWrapper>
                                 )}

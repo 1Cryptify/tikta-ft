@@ -19,6 +19,7 @@ interface MainLayoutProps {
     navTitle?: string;
     onLogout?: () => void;
     headerTitle?: string;
+    activeCompany?: { id: string; name: string; logo?: string } | null;
 }
 
 const LayoutWrapper = styled.div`
@@ -97,6 +98,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
     navTitle = 'Menu',
     onLogout,
     headerTitle,
+    activeCompany,
 }) => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
 
@@ -121,6 +123,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 onLogout={onLogout}
                 title={headerTitle}
                 onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
+                activeCompany={activeCompany}
             />
             <ContentWrapper sidebarOpen={sidebarOpen}>
                 <SidebarContainer isOpen={sidebarOpen}>
