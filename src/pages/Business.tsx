@@ -10,6 +10,8 @@ import {
 import { useBusiness, Business as BusinessType } from '../hooks/useBusiness';
 import DocumentUploadModal from '../components/DocumentUploadModal';
 import LogoUploadModal from '../components/LogoUploadModal';
+import BusinessEditModal from '../components/BusinessEditModal';
+import BusinessAssociateModal from '../components/BusinessAssociateModal';
 import {
     FiEdit,
     FiTrash2,
@@ -550,6 +552,10 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
     const [selectedBusinessForLogo, setSelectedBusinessForLogo] = useState<BusinessWithDocuments | null>(null);
     const [statusFilter, setStatusFilter] = useState<'all' | 'verified' | 'pending' | 'blocked'>('all');
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [selectedBusinessForEdit, setSelectedBusinessForEdit] = useState<BusinessWithDocuments | null>(null);
+    const [isAssociateModalOpen, setIsAssociateModalOpen] = useState(false);
+    const [selectedBusinessForAssociate, setSelectedBusinessForAssociate] = useState<BusinessWithDocuments | null>(null);
 
     // Vérifier l'accès au menu
     const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
@@ -595,8 +601,11 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     };
 
     const handleEdit = (id: string) => {
-        console.log('Éditer entreprise:', id);
-        // TODO: Implémenter modal/page d'édition
+        const business = businesses.find((b) => b.id === id);
+        if (business) {
+            setSelectedBusinessForEdit(business);
+            setIsEditModalOpen(true);
+        }
     };
 
     const handleDelete = async (id: string) => {
@@ -672,8 +681,11 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     };
 
     const handleAssociate = (id: string) => {
-        console.log('Associer à client:', id);
-        // TODO: Implémenter association
+        const business = businesses.find((b) => b.id === id);
+        if (business) {
+            setSelectedBusinessForAssociate(business);
+            setIsAssociateModalOpen(true);
+        }
     };
 
     const handleUploadLogo = (business: BusinessWithDocuments) => {
@@ -691,6 +703,38 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
             setSelectedBusinessForLogo(null);
         } else {
             setError('Failed to upload logo');
+        }
+    };
+
+    const handleEditSubmit = async (data: Partial<BusinessType>) => {
+        if (!selectedBusinessForEdit) return;
+
+        const success = await updateBusiness(selectedBusinessForEdit.id, data);
+        if (success) {
+            setError(null);
+            setIsEditModalOpen(false);
+            setSelectedBusinessForEdit(null);
+        } else {
+            setError('Failed to update business');
+            throw new Error('Failed to update business');
+        }
+    };
+
+    const handleAssociateSubmit = async (clientId: string) => {
+        if (!selectedBusinessForAssociate) return;
+
+        // TODO: Implement the actual association API call
+        // For now, just show a success message and close the modal
+        try {
+            // await associateBusinessToClient(selectedBusinessForAssociate.id, clientId);
+            setError(null);
+            setIsAssociateModalOpen(false);
+            setSelectedBusinessForAssociate(null);
+            // Show success message
+            console.log('Business associated successfully:', selectedBusinessForAssociate.id, clientId);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to associate business');
+            throw err;
         }
     };
 
@@ -994,6 +1038,27 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                     setSelectedBusinessForLogo(null);
                 }}
                 onSubmit={handleLogoSubmit}
+            />
+
+            <BusinessEditModal
+                isOpen={isEditModalOpen}
+                business={selectedBusinessForEdit}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setSelectedBusinessForEdit(null);
+                }}
+                onSubmit={handleEditSubmit}
+            />
+
+            <BusinessAssociateModal
+                isOpen={isAssociateModalOpen}
+                business={selectedBusinessForAssociate}
+                onClose={() => {
+                    setIsAssociateModalOpen(false);
+                    setSelectedBusinessForAssociate(null);
+                }}
+                onSubmit={handleAssociateSubmit}
+                clients={[]}
             />
         </Container>
     );
