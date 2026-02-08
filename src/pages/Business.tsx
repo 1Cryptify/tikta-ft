@@ -1,27 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import {
-  hasPermission,
-  getPermittedActions,
-  canAccessMenu,
-  UserRole,
-  MenuName,
-  ActionType,
+    hasPermission,
+    getPermittedActions,
+    canAccessMenu,
+    UserRole,
+    MenuName,
+    ActionType,
 } from '../config/menuPermissions';
 import { mockBusinesses, Business as BusinessType } from '../mocks/businessMocks';
 import {
-  FiEdit,
-  FiTrash2,
-  FiLock,
-  FiUnlock,
-  FiUpload,
-  FiCheck,
-  FiPlus,
-  FiSearch,
+    FiEdit,
+    FiTrash2,
+    FiLock,
+    FiUnlock,
+    FiUpload,
+    FiCheck,
+    FiPlus,
+    FiSearch,
 } from 'react-icons/fi';
 
 interface BusinessPageProps {
-  userRole: UserRole;
+    userRole: UserRole;
 }
 
 const Container = styled.div`
@@ -80,15 +80,15 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' }>`
   font-weight: 500;
 
   background-color: ${(props) => {
-    switch (props.variant) {
-      case 'primary':
-        return '#007bff';
-      case 'danger':
-        return '#dc3545';
-      default:
-        return '#6c757d';
-    }
-  }};
+        switch (props.variant) {
+            case 'primary':
+                return '#007bff';
+            case 'danger':
+                return '#dc3545';
+            default:
+                return '#6c757d';
+        }
+    }};
   color: white;
 
   &:hover {
@@ -143,162 +143,201 @@ const SearchIcon = styled.div`
   pointer-events: none;
 `;
 
-const TableContainer = styled.div`
-  overflow-x: auto;
-  border-radius: 8px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+const CardsGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 2rem;
   margin-bottom: 2rem;
 
+  @media (max-width: 1024px) {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
   @media (max-width: 768px) {
-    border-radius: 6px;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1rem;
+  }
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr;
   }
 `;
 
-const Table = styled.table`
-  width: 100%;
-  border-collapse: collapse;
+const BusinessCard = styled.div`
   background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  position: relative;
+  overflow: hidden;
 
-  thead {
-    background-color: #f8f9fa;
-    border-bottom: 2px solid #dee2e6;
-  }
-
-  th {
-    padding: 1rem;
-    text-align: left;
-    font-weight: 600;
-    color: #495057;
-    font-size: 0.95rem;
-    white-space: nowrap;
-
-    @media (max-width: 768px) {
-      padding: 0.75rem;
-      font-size: 0.85rem;
-    }
-  }
-
-  td {
-    padding: 1rem;
-    border-bottom: 1px solid #dee2e6;
-    color: #495057;
-    font-size: 0.95rem;
-
-    @media (max-width: 768px) {
-      padding: 0.75rem;
-      font-size: 0.85rem;
-    }
-  }
-
-  tbody tr {
-    transition: background-color 0.2s ease;
-
-    &:hover {
-      background-color: #f8f9fa;
-    }
+  &:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+    border-color: #007bff;
   }
 `;
 
-const LogoCell = styled.div`
+const CardHeader = styled.div`
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
 `;
 
 const Logo = styled.img`
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
   background: #f0f0f0;
   object-fit: cover;
-
-  @media (max-width: 768px) {
-    width: 32px;
-    height: 32px;
-  }
 `;
 
 const LogoPlaceholder = styled.div`
-  width: 40px;
-  height: 40px;
-  border-radius: 4px;
-  background: #e9ecef;
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
-  font-size: 0.8rem;
+  color: white;
+  font-size: 1.2rem;
   font-weight: bold;
+  flex-shrink: 0;
+`;
 
-  @media (max-width: 768px) {
-    width: 32px;
-    height: 32px;
+const StatusCircle = styled.button<{ isActive: boolean }>`
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: none;
+  background-color: ${(props) => (props.isActive ? '#28a745' : '#999')};
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  flex-shrink: 0;
+
+  &:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+
+  &:active {
+    transform: scale(0.95);
+  }
+
+  svg {
+    color: white;
+    font-size: 1.5rem;
   }
 `;
 
-const Status = styled.span<{ status: 'verified' | 'pending' | 'blocked' }>`
-  display: inline-block;
-  padding: 0.35rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  white-space: nowrap;
-
-  ${(props) => {
-    switch (props.status) {
-      case 'verified':
-        return 'background-color: #d4edda; color: #155724;';
-      case 'blocked':
-        return 'background-color: #f8d7da; color: #721c24;';
-      default:
-        return 'background-color: #fff3cd; color: #856404;';
-    }
-  }}
+const CardTitle = styled.h3`
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0 0 0.5rem 0;
+  word-break: break-word;
 `;
 
-const ActionsCell = styled.div`
+const CardInfo = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+`;
+
+const InfoItem = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+
+  label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #999;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  span {
+    font-size: 0.9rem;
+    color: #495057;
+    word-break: break-word;
+  }
+`;
+
+const StatusBadge = styled.span<{ status: 'verified' | 'pending' | 'blocked' }>`
+  display: inline-block;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  width: fit-content;
+
+  ${(props) => {
+        switch (props.status) {
+            case 'verified':
+                return 'background-color: #d4edda; color: #155724;';
+            case 'blocked':
+                return 'background-color: #f8d7da; color: #721c24;';
+            default:
+                return 'background-color: #fff3cd; color: #856404;';
+        }
+    }}
+`;
+
+const CardActions = styled.div`
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
-
-  @media (max-width: 768px) {
-    flex-direction: column;
-  }
+  padding-top: 1rem;
+  border-top: 1px solid #f0f0f0;
 `;
 
-const IconButton = styled.button<{ variant?: 'default' | 'danger' | 'success' }>`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  padding: 0;
+const ActionButton = styled.button<{ variant?: 'default' | 'danger' | 'success' | 'secondary' }>`
+  flex: 1;
+  min-width: 60px;
+  padding: 0.6rem 0.8rem;
   border: 1px solid #ddd;
-  border-radius: 4px;
+  border-radius: 6px;
   background: white;
   cursor: pointer;
   transition: all 0.3s ease;
+  font-size: 0.8rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   color: ${(props) => {
-    switch (props.variant) {
-      case 'danger':
-        return '#dc3545';
-      case 'success':
-        return '#28a745';
-      default:
-        return '#495057';
-    }
-  }};
+        switch (props.variant) {
+            case 'danger':
+                return '#dc3545';
+            case 'success':
+                return '#28a745';
+            default:
+                return '#495057';
+        }
+    }};
 
   &:hover {
     background-color: ${(props) => {
-      switch (props.variant) {
-        case 'danger':
-          return '#f8d7da';
-        case 'success':
-          return '#d4edda';
-        default:
-          return '#f8f9fa';
-      }
+        switch (props.variant) {
+            case 'danger':
+                return '#f8d7da';
+            case 'success':
+                return '#d4edda';
+            default:
+                return '#f8f9fa';
+        }
     }};
     border-color: currentColor;
   }
@@ -308,10 +347,9 @@ const IconButton = styled.button<{ variant?: 'default' | 'danger' | 'success' }>
     cursor: not-allowed;
   }
 
-  @media (max-width: 768px) {
-    width: 32px;
-    height: 32px;
-    font-size: 0.85rem;
+  @media (max-width: 480px) {
+    padding: 0.5rem;
+    font-size: 0.75rem;
   }
 `;
 
@@ -340,273 +378,273 @@ const EmptyState = styled.div`
 `;
 
 export const Business: React.FC<BusinessPageProps> = ({ userRole }) => {
-  const [businesses, setBusinesses] = useState<BusinessType[]>([]);
-  const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessType[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+    const [businesses, setBusinesses] = useState<BusinessType[]>([]);
+    const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessType[]>([]);
+    const [searchTerm, setSearchTerm] = useState('');
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
-  // Vérifier l'accès au menu
-  const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
+    // Vérifier l'accès au menu
+    const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
 
-  useEffect(() => {
-    if (canAccess) {
-      // Simuler un délai de chargement
-      setTimeout(() => {
-        setBusinesses(mockBusinesses);
-        setLoading(false);
-      }, 500);
+    useEffect(() => {
+        if (canAccess) {
+            // Simuler un délai de chargement
+            setTimeout(() => {
+                setBusinesses(mockBusinesses);
+                setLoading(false);
+            }, 500);
+        }
+    }, [canAccess, userRole]);
+
+    useEffect(() => {
+        filterBusinesses();
+    }, [searchTerm, businesses]);
+
+    const filterBusinesses = () => {
+        const term = searchTerm.toLowerCase();
+        const filtered = businesses.filter(
+            (b) =>
+                b.name?.toLowerCase().includes(term) ||
+                b.nui?.toLowerCase().includes(term) ||
+                b.commerce_register?.toLowerCase().includes(term)
+        );
+        setFilteredBusinesses(filtered);
+    };
+
+    const getStatus = (business: Business): 'verified' | 'pending' | 'blocked' => {
+        if (business.is_blocked) return 'blocked';
+        if (business.is_verified) return 'verified';
+        return 'pending';
+    };
+
+    const handleCreate = () => {
+        console.log('Créer nouvelle entreprise');
+        // TODO: Implémenter modal/page de création
+    };
+
+    const handleEdit = (id: string) => {
+        console.log('Éditer entreprise:', id);
+        // TODO: Implémenter modal/page d'édition
+    };
+
+    const handleDelete = (id: string) => {
+        if (window.confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ?')) {
+            setBusinesses(businesses.filter((b) => b.id !== id));
+        }
+    };
+
+    const handleBlock = (id: string, isBlocked: boolean) => {
+        setBusinesses(
+            businesses.map((b) =>
+                b.id === id ? { ...b, is_blocked: !isBlocked } : b
+            )
+        );
+    };
+
+    const handleUploadDocuments = (id: string) => {
+        console.log('Uploader documents pour:', id);
+        // TODO: Implémenter upload de documents
+    };
+
+    const handleMarkActive = (id: string) => {
+        setBusinesses(
+            businesses.map((b) =>
+                b.id === id ? { ...b, is_verified: true } : b
+            )
+        );
+    };
+
+    const handleAssociate = (id: string) => {
+        console.log('Associer à client:', id);
+        // TODO: Implémenter association
+    };
+
+    if (!canAccess) {
+        return (
+            <Container>
+                <EmptyState>
+                    <h3>Accès refusé</h3>
+                    <p>Vous n'avez pas les permissions nécessaires pour accéder à cette page.</p>
+                </EmptyState>
+            </Container>
+        );
     }
-  }, [canAccess, userRole]);
 
-  useEffect(() => {
-    filterBusinesses();
-  }, [searchTerm, businesses]);
-
-  const filterBusinesses = () => {
-    const term = searchTerm.toLowerCase();
-    const filtered = businesses.filter(
-      (b) =>
-        b.name?.toLowerCase().includes(term) ||
-        b.nui?.toLowerCase().includes(term) ||
-        b.commerce_register?.toLowerCase().includes(term)
-    );
-    setFilteredBusinesses(filtered);
-  };
-
-  const getStatus = (business: Business): 'verified' | 'pending' | 'blocked' => {
-    if (business.is_blocked) return 'blocked';
-    if (business.is_verified) return 'verified';
-    return 'pending';
-  };
-
-  const handleCreate = () => {
-    console.log('Créer nouvelle entreprise');
-    // TODO: Implémenter modal/page de création
-  };
-
-  const handleEdit = (id: string) => {
-    console.log('Éditer entreprise:', id);
-    // TODO: Implémenter modal/page d'édition
-  };
-
-  const handleDelete = (id: string) => {
-    if (window.confirm('Êtes-vous sûr de vouloir supprimer cette entreprise ?')) {
-      setBusinesses(businesses.filter((b) => b.id !== id));
-    }
-  };
-
-  const handleBlock = (id: string, isBlocked: boolean) => {
-    setBusinesses(
-      businesses.map((b) =>
-        b.id === id ? { ...b, is_blocked: !isBlocked } : b
-      )
-    );
-  };
-
-  const handleUploadDocuments = (id: string) => {
-    console.log('Uploader documents pour:', id);
-    // TODO: Implémenter upload de documents
-  };
-
-  const handleMarkActive = (id: string) => {
-    setBusinesses(
-      businesses.map((b) =>
-        b.id === id ? { ...b, is_verified: true } : b
-      )
-    );
-  };
-
-  const handleAssociate = (id: string) => {
-    console.log('Associer à client:', id);
-    // TODO: Implémenter association
-  };
-
-  if (!canAccess) {
     return (
-      <Container>
-        <EmptyState>
-          <h3>Accès refusé</h3>
-          <p>Vous n'avez pas les permissions nécessaires pour accéder à cette page.</p>
-        </EmptyState>
-      </Container>
+        <Container>
+            <Header>
+                <Title>Entreprises</Title>
+                {hasPermission(userRole, MenuName.BUSINESS, ActionType.BUSINESS_CREATE) && (
+                    <Button variant="primary" onClick={handleCreate}>
+                        <FiPlus /> Créer
+                    </Button>
+                )}
+            </Header>
+
+            <SearchContainer>
+                <SearchIcon>
+                    <FiSearch />
+                </SearchIcon>
+                <SearchInput
+                    type="text"
+                    placeholder="Rechercher par nom, NUI ou registre..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </SearchContainer>
+
+            {error && (
+                <div style={{ color: '#dc3545', marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8d7da', borderRadius: '4px' }}>
+                    {error}
+                </div>
+            )}
+
+            {loading ? (
+                <LoadingContainer>Chargement en cours...</LoadingContainer>
+            ) : filteredBusinesses.length === 0 ? (
+                <EmptyState>
+                    <h3>Aucune entreprise trouvée</h3>
+                    <p>{searchTerm ? 'Aucun résultat pour votre recherche' : 'Commencez par créer une nouvelle entreprise'}</p>
+                </EmptyState>
+            ) : (
+                <CardsGrid>
+                    {filteredBusinesses.map((business) => (
+                        <BusinessCard key={business.id}>
+                            <CardHeader>
+                                <div style={{ flex: 1 }}>
+                                    {business.logo ? (
+                                        <Logo src={business.logo} alt={business.name} />
+                                    ) : (
+                                        <LogoPlaceholder>
+                                            {business.name?.charAt(0).toUpperCase()}
+                                        </LogoPlaceholder>
+                                    )}
+                                </div>
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_MARQUER_ACTIVE
+                                ) && (
+                                        <StatusCircle
+                                            isActive={business.is_verified}
+                                            onClick={() => handleMarkActive(business.id)}
+                                            title={business.is_verified ? 'Désactiver' : 'Activer'}
+                                        >
+                                            {business.is_verified ? <FiCheck /> : <FiPlus />}
+                                        </StatusCircle>
+                                    )}
+                            </CardHeader>
+
+                            <CardTitle>{business.name}</CardTitle>
+
+                            <CardInfo>
+                                {business.nui && (
+                                    <InfoItem>
+                                        <label>NUI</label>
+                                        <span>{business.nui}</span>
+                                    </InfoItem>
+                                )}
+                                {business.commerce_register && (
+                                    <InfoItem>
+                                        <label>Registre de Commerce</label>
+                                        <span>{business.commerce_register}</span>
+                                    </InfoItem>
+                                )}
+                                {business.website && (
+                                    <InfoItem>
+                                        <label>Site Web</label>
+                                        <span style={{ color: '#007bff' }}>{business.website}</span>
+                                    </InfoItem>
+                                )}
+                            </CardInfo>
+
+                            <StatusBadge status={getStatus(business)}>
+                                {getStatus(business) === 'verified'
+                                    ? 'Vérifiée'
+                                    : getStatus(business) === 'blocked'
+                                        ? 'Bloquée'
+                                        : 'En attente'}
+                            </StatusBadge>
+
+                            <CardActions>
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_EDIT
+                                ) && (
+                                        <ActionButton
+                                            title="Éditer"
+                                            onClick={() => handleEdit(business.id)}
+                                        >
+                                            <FiEdit /> Éditer
+                                        </ActionButton>
+                                    )}
+
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_BLOQUER
+                                ) && (
+                                        <ActionButton
+                                            title={
+                                                business.is_blocked ? 'Débloquer' : 'Bloquer'
+                                            }
+                                            variant={business.is_blocked ? 'success' : 'danger'}
+                                            onClick={() =>
+                                                handleBlock(business.id, business.is_blocked)
+                                            }
+                                        >
+                                            {business.is_blocked ? <FiUnlock /> : <FiLock />}
+                                            {business.is_blocked ? 'Débloquer' : 'Bloquer'}
+                                        </ActionButton>
+                                    )}
+
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_DELETE
+                                ) && (
+                                        <ActionButton
+                                            title="Supprimer"
+                                            variant="danger"
+                                            onClick={() => handleDelete(business.id)}
+                                        >
+                                            <FiTrash2 /> Supprimer
+                                        </ActionButton>
+                                    )}
+
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_UPLOADER_DOCUMENTS
+                                ) && (
+                                        <ActionButton
+                                            title="Uploader documents"
+                                            onClick={() => handleUploadDocuments(business.id)}
+                                        >
+                                            <FiUpload /> Documents
+                                        </ActionButton>
+                                    )}
+
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_ASSOCIER
+                                ) && (
+                                        <ActionButton
+                                            onClick={() => handleAssociate(business.id)}
+                                        >
+                                            Associer
+                                        </ActionButton>
+                                    )}
+                            </CardActions>
+                        </BusinessCard>
+                    ))}
+                </CardsGrid>
+            )}
+        </Container>
     );
-  }
-
-  return (
-    <Container>
-      <Header>
-        <Title>Entreprises</Title>
-        {hasPermission(userRole, MenuName.BUSINESS, ActionType.BUSINESS_CREATE) && (
-          <Button variant="primary" onClick={handleCreate}>
-            <FiPlus /> Créer
-          </Button>
-        )}
-      </Header>
-
-      <SearchContainer>
-        <SearchIcon>
-          <FiSearch />
-        </SearchIcon>
-        <SearchInput
-          type="text"
-          placeholder="Rechercher par nom, NUI ou registre..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
-      </SearchContainer>
-
-      {error && (
-        <div style={{ color: '#dc3545', marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8d7da', borderRadius: '4px' }}>
-          {error}
-        </div>
-      )}
-
-      {loading ? (
-        <LoadingContainer>Chargement en cours...</LoadingContainer>
-      ) : filteredBusinesses.length === 0 ? (
-        <EmptyState>
-          <h3>Aucune entreprise trouvée</h3>
-          <p>{searchTerm ? 'Aucun résultat pour votre recherche' : 'Commencez par créer une nouvelle entreprise'}</p>
-        </EmptyState>
-      ) : (
-        <TableContainer>
-          <Table>
-            <thead>
-              <tr>
-                <th>Entreprise</th>
-                <th>NUI</th>
-                <th>Registre de Commerce</th>
-                <th>Statut</th>
-                <th style={{ textAlign: 'center' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredBusinesses.map((business) => (
-                <tr key={business.id}>
-                  <td>
-                    <LogoCell>
-                      {business.logo ? (
-                        <Logo src={business.logo} alt={business.name} />
-                      ) : (
-                        <LogoPlaceholder>
-                          {business.name?.charAt(0).toUpperCase()}
-                        </LogoPlaceholder>
-                      )}
-                      <span>{business.name}</span>
-                    </LogoCell>
-                  </td>
-                  <td>{business.nui || '-'}</td>
-                  <td>{business.commerce_register || '-'}</td>
-                  <td>
-                    <Status status={getStatus(business)}>
-                      {getStatus(business) === 'verified'
-                        ? 'Vérifiée'
-                        : getStatus(business) === 'blocked'
-                          ? 'Bloquée'
-                          : 'En attente'}
-                    </Status>
-                  </td>
-                  <td>
-                    <ActionsCell>
-                      {hasPermission(
-                        userRole,
-                        MenuName.BUSINESS,
-                        ActionType.BUSINESS_EDIT
-                      ) && (
-                        <IconButton
-                          title="Éditer"
-                          onClick={() => handleEdit(business.id)}
-                        >
-                          <FiEdit />
-                        </IconButton>
-                      )}
-
-                      {hasPermission(
-                        userRole,
-                        MenuName.BUSINESS,
-                        ActionType.BUSINESS_BLOQUER
-                      ) && (
-                        <IconButton
-                          title={
-                            business.is_blocked ? 'Débloquer' : 'Bloquer'
-                          }
-                          variant={business.is_blocked ? 'success' : 'danger'}
-                          onClick={() =>
-                            handleBlock(business.id, business.is_blocked)
-                          }
-                        >
-                          {business.is_blocked ? <FiUnlock /> : <FiLock />}
-                        </IconButton>
-                      )}
-
-                      {hasPermission(
-                        userRole,
-                        MenuName.BUSINESS,
-                        ActionType.BUSINESS_DELETE
-                      ) && (
-                        <IconButton
-                          title="Supprimer"
-                          variant="danger"
-                          onClick={() => handleDelete(business.id)}
-                        >
-                          <FiTrash2 />
-                        </IconButton>
-                      )}
-
-                      {hasPermission(
-                        userRole,
-                        MenuName.BUSINESS,
-                        ActionType.BUSINESS_UPLOADER_DOCUMENTS
-                      ) && (
-                        <IconButton
-                          title="Uploader documents"
-                          onClick={() => handleUploadDocuments(business.id)}
-                        >
-                          <FiUpload />
-                        </IconButton>
-                      )}
-
-                      {hasPermission(
-                        userRole,
-                        MenuName.BUSINESS,
-                        ActionType.BUSINESS_MARQUER_ACTIVE
-                      ) && (
-                        <IconButton
-                          title="Marquer comme actif"
-                          variant="success"
-                          onClick={() => handleMarkActive(business.id)}
-                          disabled={business.is_verified}
-                        >
-                          <FiCheck />
-                        </IconButton>
-                      )}
-
-                      {hasPermission(
-                        userRole,
-                        MenuName.BUSINESS,
-                        ActionType.BUSINESS_ASSOCIER
-                      ) && (
-                        <Button
-                          onClick={() => handleAssociate(business.id)}
-                          style={{
-                            padding: '0.4rem 0.8rem',
-                            fontSize: '0.75rem',
-                          }}
-                        >
-                          Associer
-                        </Button>
-                      )}
-                    </ActionsCell>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </Table>
-        </TableContainer>
-      )}
-    </Container>
-  );
 };
 
 export default Business;
