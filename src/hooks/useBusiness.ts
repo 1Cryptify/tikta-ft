@@ -197,7 +197,7 @@ export const useBusiness = (): UseBusinessReturn => {
     const blockBusiness = useCallback(async (id: string, reason?: string): Promise<boolean> => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post('/block-company/', { company_id: id, reason });
+            const response = await axiosInstance.post('/block-company/', { company_id: id, is_blocked: true, reason });
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
@@ -225,7 +225,7 @@ export const useBusiness = (): UseBusinessReturn => {
     const unblockBusiness = useCallback(async (id: string): Promise<boolean> => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post(`/${id}/unblock/`);
+            const response = await axiosInstance.post('/block-company/', { company_id: id, is_blocked: false });
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
