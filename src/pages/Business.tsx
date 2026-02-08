@@ -10,6 +10,7 @@ import {
 } from '../config/menuPermissions';
 import { mockBusinesses, Business as BusinessType } from '../mocks/businessMocks';
 import DocumentUploadModal from '../components/DocumentUploadModal';
+import LogoUploadModal from '../components/LogoUploadModal';
 import {
     FiEdit,
     FiTrash2,
@@ -23,8 +24,8 @@ import {
 } from 'react-icons/fi';
 
 interface BusinessPageProps {
-  userRole: UserRole;
-  onCompanyActivated?: (company: { id: string; name: string; logo?: string } | null) => void;
+    userRole: UserRole;
+    onCompanyActivated?: (company: { id: string; name: string; logo?: string } | null) => void;
 }
 
 const Container = styled.div`
@@ -190,15 +191,26 @@ const CardHeader = styled.div`
   margin-bottom: 1rem;
 `;
 
-const Logo = styled.img`
+const LogoImage = styled.img<{ isClickable?: boolean }>`
   width: 48px;
   height: 48px;
   border-radius: 8px;
   background: #f0f0f0;
   object-fit: cover;
+  cursor: ${(props) => (props.isClickable ? 'pointer' : 'default')};
+  transition: all 0.3s ease;
+
+  ${(props) =>
+    props.isClickable &&
+    `
+    &:hover {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  `}
 `;
 
-const LogoPlaceholder = styled.div`
+const LogoPlaceholder = styled.div<{ isClickable?: boolean }>`
   width: 48px;
   height: 48px;
   border-radius: 8px;
@@ -210,6 +222,17 @@ const LogoPlaceholder = styled.div`
   font-size: 1.2rem;
   font-weight: bold;
   flex-shrink: 0;
+  cursor: ${(props) => (props.isClickable ? 'pointer' : 'default')};
+  transition: all 0.3s ease;
+
+  ${(props) =>
+    props.isClickable &&
+    `
+    &:hover {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  `}
 `;
 
 const StatusCircleWrapper = styled.div`
@@ -461,6 +484,8 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const [error, setError] = useState<string | null>(null);
     const [isDocumentModalOpen, setIsDocumentModalOpen] = useState(false);
     const [selectedBusinessForDocs, setSelectedBusinessForDocs] = useState<BusinessWithDocuments | null>(null);
+    const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
+    const [selectedBusinessForLogo, setSelectedBusinessForLogo] = useState<BusinessWithDocuments | null>(null);
 
     // Vérifier l'accès au menu
     const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
@@ -569,37 +594,57 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     };
 
     const handleMarkActive = (id: string) => {
-      const business = businesses.find((b) => b.id === id);
-      if (!business) return;
+        const business = businesses.find((b) => b.id === id);
+        if (!business) return;
 
-      // Si on clique sur une entreprise active, on la désactive
-      // Si on clique sur une entreprise inactive, on désactive les autres et on l'active
-      const updatedBusinesses = businesses.map((b) =>
-        b.id === id
-          ? { ...b, is_active: !b.is_active }
-          : { ...b, is_active: false }
-      );
+        // Si on clique sur une entreprise active, on la désactive
+        // Si on clique sur une entreprise inactive, on désactive les autres et on l'active
+        const updatedBusinesses = businesses.map((b) =>
+            b.id === id
+                ? { ...b, is_active: !b.is_active }
+                : { ...b, is_active: false }
+        );
 
-      setBusinesses(updatedBusinesses);
+        setBusinesses(updatedBusinesses);
 
-      // Notifier le parent de l'entreprise active
-      const activeCompany = updatedBusinesses.find((b) => b.is_active);
-      if (onCompanyActivated) {
-        if (activeCompany) {
-          onCompanyActivated({
-            id: activeCompany.id,
-            name: activeCompany.name,
-            logo: activeCompany.logo,
-          });
-        } else {
-          onCompanyActivated(null);
+        // Notifier le parent de l'entreprise active
+        const activeCompany = updatedBusinesses.find((b) => b.is_active);
+        if (onCompanyActivated) {
+            if (activeCompany) {
+                onCompanyActivated({
+                    id: activeCompany.id,
+                    name: activeCompany.name,
+                    logo: activeCompany.logo,
+                });
+            } else {
+                onCompanyActivated(null);
+            }
         }
-      }
     };
 
     const handleAssociate = (id: string) => {
         console.log('Associer à client:', id);
         // TODO: Implémenter association
+    };
+
+    const handleUploadLogo = (business: BusinessWithDocuments) => {
+        setSelectedBusinessForLogo(business);
+        setIsLogoModalOpen(true);
+    };
+
+    const handleLogoSubmit = (file: File) => {
+        if (!selectedBusinessForLogo) return;
+
+        // Créer une URL d'aperçu pour le fichier
+        const logoUrl = URL.createObjectURL(file);
+
+        setBusinesses(
+            businesses.map((b) =>
+                b.id === selectedBusinessForLogo.id ? { ...b, logo: logoUrl } : b
+            )
+        );
+
+        console.log('Logo uploaded for:', selectedBusinessForLogo.name);
     };
 
     if (!canAccess) {
@@ -616,39 +661,39 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     return (
         <Container>
             <Header>
-              <Title>Businesses</Title>
-              {hasPermission(userRole, MenuName.BUSINESS, ActionType.BUSINESS_CREATE) && (
-                <Button variant="primary" onClick={handleCreate}>
-                  <FiPlus /> Create
-                </Button>
-              )}
+                <Title>Businesses</Title>
+                {hasPermission(userRole, MenuName.BUSINESS, ActionType.BUSINESS_CREATE) && (
+                    <Button variant="primary" onClick={handleCreate}>
+                        <FiPlus /> Create
+                    </Button>
+                )}
             </Header>
 
             <SearchContainer>
-              <SearchIcon>
-                <FiSearch />
-              </SearchIcon>
-              <SearchInput
-                type="text"
-                placeholder="Search by name, NUI or registry..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+                <SearchIcon>
+                    <FiSearch />
+                </SearchIcon>
+                <SearchInput
+                    type="text"
+                    placeholder="Search by name, NUI or registry..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                />
             </SearchContainer>
 
             {error && (
-              <div style={{ color: '#dc3545', marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8d7da', borderRadius: '4px' }}>
-                {error}
-              </div>
+                <div style={{ color: '#dc3545', marginBottom: '1rem', padding: '1rem', backgroundColor: '#f8d7da', borderRadius: '4px' }}>
+                    {error}
+                </div>
             )}
 
             {loading ? (
-              <LoadingContainer>Loading...</LoadingContainer>
+                <LoadingContainer>Loading...</LoadingContainer>
             ) : filteredBusinesses.length === 0 ? (
-              <EmptyState>
-                <h3>No businesses found</h3>
-                <p>{searchTerm ? 'No results for your search' : 'Start by creating a new business'}</p>
-              </EmptyState>
+                <EmptyState>
+                    <h3>No businesses found</h3>
+                    <p>{searchTerm ? 'No results for your search' : 'Start by creating a new business'}</p>
+                </EmptyState>
             ) : (
                 <CardsGrid>
                     {filteredBusinesses.map((business) => (
@@ -656,31 +701,41 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                             <CardHeader>
                                 <div style={{ flex: 1 }}>
                                     {business.logo ? (
-                                        <Logo src={business.logo} alt={business.name} />
+                                      <LogoImage
+                                        src={business.logo}
+                                        alt={business.name}
+                                        isClickable={true}
+                                        onClick={() => handleUploadLogo(business)}
+                                        title="Click to change logo"
+                                      />
                                     ) : (
-                                        <LogoPlaceholder>
+                                        <LogoPlaceholder
+                                            isClickable={true}
+                                            onClick={() => handleUploadLogo(business)}
+                                            title="Click to add logo"
+                                        >
                                             {business.name?.charAt(0).toUpperCase()}
                                         </LogoPlaceholder>
                                     )}
                                 </div>
                                 {hasPermission(
-                                  userRole,
-                                  MenuName.BUSINESS,
-                                  ActionType.BUSINESS_MARQUER_ACTIVE
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_MARQUER_ACTIVE
                                 ) && (
-                                  <StatusCircleWrapper>
-                                    <StatusCircle
-                                      isActive={business.is_active}
-                                      onClick={() => handleMarkActive(business.id)}
-                                      title={business.is_active ? 'Deactivate' : 'Activate'}
-                                    >
-                                      <FiCheck />
-                                    </StatusCircle>
-                                    <StatusLabel isActive={business.is_active}>
-                                      {business.is_active ? 'Active' : 'Inactive'}
-                                    </StatusLabel>
-                                  </StatusCircleWrapper>
-                                )}
+                                        <StatusCircleWrapper>
+                                            <StatusCircle
+                                                isActive={business.is_active}
+                                                onClick={() => handleMarkActive(business.id)}
+                                                title={business.is_active ? 'Deactivate' : 'Activate'}
+                                            >
+                                                <FiCheck />
+                                            </StatusCircle>
+                                            <StatusLabel isActive={business.is_active}>
+                                                {business.is_active ? 'Active' : 'Inactive'}
+                                            </StatusLabel>
+                                        </StatusCircleWrapper>
+                                    )}
                             </CardHeader>
 
                             <CardTitle>{business.name}</CardTitle>
@@ -707,41 +762,41 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                             </CardInfo>
 
                             {hasPermission(
-                              userRole,
-                              MenuName.BUSINESS,
-                              ActionType.BUSINESS_UPLOADER_DOCUMENTS
+                                userRole,
+                                MenuName.BUSINESS,
+                                ActionType.BUSINESS_UPLOADER_DOCUMENTS
                             ) && (
-                              <DocumentsProgress>
-                                <DocumentsProgressTitle>Documents ({Math.round(getDocumentsProgress(business))}%)</DocumentsProgressTitle>
-                                <DocumentsProgressBar>
-                                  <DocumentIndicator completed={!!business.nui_document} />
-                                  <DocumentIndicator completed={!!business.commerce_register_document} />
-                                  <DocumentIndicator completed={!!business.website_document} />
-                                  <DocumentIndicator completed={!!business.creation_document} />
-                                </DocumentsProgressBar>
-                                <DocumentsList style={{ marginTop: '0.75rem' }}>
-                                  <DocumentItem completed={!!business.nui_document}>
-                                    <FiCheck size={14} /> NUI Document
-                                  </DocumentItem>
-                                  <DocumentItem completed={!!business.commerce_register_document}>
-                                    <FiCheck size={14} /> Commerce Registry
-                                  </DocumentItem>
-                                  <DocumentItem completed={!!business.website_document}>
-                                    <FiCheck size={14} /> Website Certificate
-                                  </DocumentItem>
-                                  <DocumentItem completed={!!business.creation_document}>
-                                    <FiCheck size={14} /> Creation Document
-                                  </DocumentItem>
-                                </DocumentsList>
-                              </DocumentsProgress>
-                            )}
+                                    <DocumentsProgress>
+                                        <DocumentsProgressTitle>Documents ({Math.round(getDocumentsProgress(business))}%)</DocumentsProgressTitle>
+                                        <DocumentsProgressBar>
+                                            <DocumentIndicator completed={!!business.nui_document} />
+                                            <DocumentIndicator completed={!!business.commerce_register_document} />
+                                            <DocumentIndicator completed={!!business.website_document} />
+                                            <DocumentIndicator completed={!!business.creation_document} />
+                                        </DocumentsProgressBar>
+                                        <DocumentsList style={{ marginTop: '0.75rem' }}>
+                                            <DocumentItem completed={!!business.nui_document}>
+                                                <FiCheck size={14} /> NUI Document
+                                            </DocumentItem>
+                                            <DocumentItem completed={!!business.commerce_register_document}>
+                                                <FiCheck size={14} /> Commerce Registry
+                                            </DocumentItem>
+                                            <DocumentItem completed={!!business.website_document}>
+                                                <FiCheck size={14} /> Website Certificate
+                                            </DocumentItem>
+                                            <DocumentItem completed={!!business.creation_document}>
+                                                <FiCheck size={14} /> Creation Document
+                                            </DocumentItem>
+                                        </DocumentsList>
+                                    </DocumentsProgress>
+                                )}
 
                             <StatusBadge status={getStatus(business)}>
-                              {getStatus(business) === 'verified'
-                                ? 'Verified'
-                                : getStatus(business) === 'blocked'
-                                  ? 'Blocked'
-                                  : 'Pending'}
+                                {getStatus(business) === 'verified'
+                                    ? 'Verified'
+                                    : getStatus(business) === 'blocked'
+                                        ? 'Blocked'
+                                        : 'Pending'}
                             </StatusBadge>
 
                             <CardActions>
@@ -751,70 +806,70 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                                     ActionType.BUSINESS_EDIT
                                 ) && (
                                         <ActionButton
-                                          title="Edit"
-                                          onClick={() => handleEdit(business.id)}
+                                            title="Edit"
+                                            onClick={() => handleEdit(business.id)}
                                         >
-                                          <FiEdit /> Edit
+                                            <FiEdit /> Edit
                                         </ActionButton>
-                                        )}
+                                    )}
 
-                                        {hasPermission(
-                                        userRole,
-                                        MenuName.BUSINESS,
-                                        ActionType.BUSINESS_BLOQUER
-                                        ) && (
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_BLOQUER
+                                ) && (
                                         <ActionButton
-                                          title={
-                                            business.is_blocked ? 'Unblock' : 'Block'
-                                          }
-                                          variant={business.is_blocked ? 'success' : 'danger'}
-                                          onClick={() =>
-                                            handleBlock(business.id, business.is_blocked)
-                                          }
+                                            title={
+                                                business.is_blocked ? 'Unblock' : 'Block'
+                                            }
+                                            variant={business.is_blocked ? 'success' : 'danger'}
+                                            onClick={() =>
+                                                handleBlock(business.id, business.is_blocked)
+                                            }
                                         >
-                                          {business.is_blocked ? <FiUnlock /> : <FiLock />}
-                                          {business.is_blocked ? 'Unblock' : 'Block'}
+                                            {business.is_blocked ? <FiUnlock /> : <FiLock />}
+                                            {business.is_blocked ? 'Unblock' : 'Block'}
                                         </ActionButton>
-                                        )}
+                                    )}
 
-                                        {hasPermission(
-                                        userRole,
-                                        MenuName.BUSINESS,
-                                        ActionType.BUSINESS_DELETE
-                                        ) && (
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_DELETE
+                                ) && (
                                         <ActionButton
-                                          title="Delete"
-                                          variant="danger"
-                                          onClick={() => handleDelete(business.id)}
+                                            title="Delete"
+                                            variant="danger"
+                                            onClick={() => handleDelete(business.id)}
                                         >
-                                          <FiTrash2 /> Delete
+                                            <FiTrash2 /> Delete
                                         </ActionButton>
-                                        )}
+                                    )}
 
-                                        {hasPermission(
-                                        userRole,
-                                        MenuName.BUSINESS,
-                                        ActionType.BUSINESS_UPLOADER_DOCUMENTS
-                                        ) && (
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_UPLOADER_DOCUMENTS
+                                ) && (
                                         <ActionButton
-                                          title="Upload documents"
-                                          onClick={() => handleUploadDocuments(business)}
+                                            title="Upload documents"
+                                            onClick={() => handleUploadDocuments(business)}
                                         >
-                                          <FiUpload /> Documents
+                                            <FiUpload /> Documents
                                         </ActionButton>
-                                        )}
+                                    )}
 
-                                        {hasPermission(
-                                        userRole,
-                                        MenuName.BUSINESS,
-                                        ActionType.BUSINESS_ASSOCIER
-                                        ) && (
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
+                                    ActionType.BUSINESS_ASSOCIER
+                                ) && (
                                         <ActionButton
-                                          onClick={() => handleAssociate(business.id)}
+                                            onClick={() => handleAssociate(business.id)}
                                         >
-                                          Associate
+                                            Associate
                                         </ActionButton>
-                                        )}
+                                    )}
                             </CardActions>
                         </BusinessCard>
                     ))}
@@ -835,6 +890,17 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                     setSelectedBusinessForDocs(null);
                 }}
                 onSubmit={handleDocumentsSubmit}
+            />
+
+            <LogoUploadModal
+                isOpen={isLogoModalOpen}
+                businessName={selectedBusinessForLogo?.name || ''}
+                currentLogo={selectedBusinessForLogo?.logo}
+                onClose={() => {
+                    setIsLogoModalOpen(false);
+                    setSelectedBusinessForLogo(null);
+                }}
+                onSubmit={handleLogoSubmit}
             />
         </Container>
     );
