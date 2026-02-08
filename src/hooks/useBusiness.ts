@@ -66,7 +66,7 @@ export const useBusiness = (): UseBusinessReturn => {
     const getBusinesses = useCallback(async () => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.get('/');
+            const response = await axiosInstance.get('/list-companies/');
             if (response.data.status === 'success') {
                 setState(prev => ({
                     ...prev,
