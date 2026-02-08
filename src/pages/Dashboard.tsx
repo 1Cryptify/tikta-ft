@@ -153,6 +153,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
     const location = useLocation();
     const [activeCompany, setActiveCompany] = React.useState<{ id: string; name: string; logo?: string } | null>(null);
 
+    const maskEmail = (email: string): string => {
+        if (!email) return '';
+        const [localPart, domain] = email.split('@');
+        if (!domain) return email;
+        
+        const visibleChars = Math.max(1, Math.ceil(localPart.length / 3));
+        const maskedPart = localPart.substring(0, visibleChars) + 'xxxxx';
+        return `${maskedPart}@${domain}`;
+    };
+
     // Get active section from URL path
     const getActiveSection = () => {
         const path = location.pathname;
@@ -179,7 +189,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
         },
         {
             id: 'business',
-            label: 'Business',
+            label: 'Businesses',
             icon: <FiBriefcase size={20} />,
             active: activeNav === 'business',
             onClick: () => navigate('/dashboard/business'),
@@ -229,9 +239,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
     ], [activeNav, navigate]);
 
     const mockTransactions = [
-        { id: 'TXN-001', type: 'Payment In', amount: '50,000 XAF', date: '2024-02-01', status: 'completed' },
+        { id: 'TXN-001', type: 'Deposit', amount: '50,000 XAF', date: '2024-02-01', status: 'completed' },
         { id: 'TXN-002', type: 'Withdrawal', amount: '25,000 XAF', date: '2024-02-02', status: 'pending' },
-        { id: 'TXN-003', type: 'Payment In', amount: '100,000 XAF', date: '2024-02-03', status: 'completed' },
+        { id: 'TXN-003', type: 'Deposit', amount: '100,000 XAF', date: '2024-02-03', status: 'completed' },
         { id: 'TXN-004', type: 'Refund', amount: '10,000 XAF', date: '2024-02-04', status: 'failed' },
     ];
 
@@ -239,7 +249,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
         <MainLayout
             user={user}
             navItems={navItems}
-            navTitle="USER MENU"
+            navTitle="Menu"
             onLogout={onLogout}
             activeCompany={activeCompany}
         >
@@ -248,7 +258,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                     <>
                         <PageHeader>
                             <h1>Dashboard</h1>
-                            <p>Welcome back, {user.email}</p>
+                            <p>Welcome back, {maskEmail(user.email)}</p>
                         </PageHeader>
 
                         <CardsGrid>
@@ -304,7 +314,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 )}
 
                 {activeNav === 'offers_produits' && (
-                    <h1>offer et produits</h1>
+                    <h1>Offers & Products</h1>
                 )}
                 {activeNav === 'business' && (
                     <Business userRole={userRole} onCompanyActivated={setActiveCompany} />
@@ -312,25 +322,25 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 {activeNav === 'payment_api' && (
                     <PageHeader>
                         <h1>Payment API</h1>
-                        <p>Payment API Management</p>
+                        <p>Manage your payment API integration</p>
                     </PageHeader>
                 )}
                 {activeNav === 'payments' && (
                     <PageHeader>
                         <h1>Payments</h1>
-                        <p>Manage your payments</p>
+                        <p>Manage and track your payments</p>
                     </PageHeader>
                 )}
                 {activeNav === 'tickets' && (
                     <PageHeader>
-                        <h1>Tickets</h1>
-                        <p>View and manage your tickets and coupons</p>
+                        <h1>Tickets & Coupons</h1>
+                        <p>View and manage your tickets and discount coupons</p>
                     </PageHeader>
                 )}
                 {activeNav === 'transactions' && (
                     <PageHeader>
-                        <h1>Transactions</h1>
-                        <p>View your transaction history</p>
+                        <h1>Transaction History</h1>
+                        <p>View your complete transaction history</p>
                     </PageHeader>
                 )}
             </ContentSection>

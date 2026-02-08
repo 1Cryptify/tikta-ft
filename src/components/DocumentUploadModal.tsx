@@ -295,23 +295,23 @@ const WarningMessage = styled.div`
 const DOCUMENT_TYPES = [
   {
     key: 'nui_document',
-    label: 'Document NUI',
-    description: 'Numéro d\'Identification Unique',
+    label: 'NUI Document',
+    description: 'Unique Identification Number',
   },
   {
     key: 'commerce_register_document',
-    label: 'Registre de Commerce',
-    description: 'Registre de commerce officiel',
+    label: 'Commerce Registry',
+    description: 'Official commerce registry',
   },
   {
     key: 'website_document',
-    label: 'Certificat de Site Web',
-    description: 'Preuve du domaine ou site web',
+    label: 'Website Certificate',
+    description: 'Domain or website proof',
   },
   {
     key: 'creation_document',
-    label: 'Document de Création',
-    description: 'Acte de création ou constitution',
+    label: 'Creation Document',
+    description: 'Creation act or incorporation',
   },
 ];
 
@@ -393,7 +393,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <div>
-            <ModalTitle>Gestion des Documents</ModalTitle>
+            <ModalTitle>Document Management</ModalTitle>
             <p style={{ margin: '0.5rem 0 0 0', color: '#999', fontSize: '0.9rem' }}>
               {businessName}
             </p>
@@ -406,14 +406,13 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
         <WarningMessage>
           <FiAlertCircle size={20} />
           <span>
-            Tous les 4 documents doivent être téléchargés pour valider la vérification de
-            l'entreprise.
+            All 4 documents must be uploaded to validate the business verification.
           </span>
         </WarningMessage>
 
         <ProgressBar>
           <ProgressTitle>
-            Progression: {completedCount} / {DOCUMENT_TYPES.length}
+            Progress: {completedCount} / {DOCUMENT_TYPES.length}
           </ProgressTitle>
           <ProgressSteps>
             {DOCUMENT_TYPES.map((doc) => (
@@ -458,14 +457,14 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
 
         <FormActions>
           <Button variant="secondary" onClick={onClose}>
-            <FiX /> Annuler
+            <FiX /> Cancel
           </Button>
           <Button
             variant="primary"
             onClick={handleSubmit}
             disabled={!isFormComplete || isSubmitting}
           >
-            <FiCheck /> {isSubmitting ? 'Validation...' : 'Valider'}
+            <FiCheck /> {isSubmitting ? 'Validating...' : 'Validate'}
           </Button>
         </FormActions>
       </ModalContent>

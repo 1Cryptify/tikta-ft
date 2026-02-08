@@ -229,7 +229,7 @@ export const Header: React.FC<HeaderProps> = ({
                         )}
                         <LogoTextContainer>
                             <Logo>{activeCompany.name}</Logo>
-                            <ActiveCompanyName>Entreprise Active</ActiveCompanyName>
+                            <ActiveCompanyName>Active Business</ActiveCompanyName>
                         </LogoTextContainer>
                     </LogoContainer>
                 ) : (
