@@ -4,7 +4,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
-import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiCode, FiTag } from 'react-icons/fi';
+import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiAward, FiBriefcase, FiCode, FiTag } from 'react-icons/fi';
 
 
 const ContentSection = styled.div`

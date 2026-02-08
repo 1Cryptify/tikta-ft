@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { Input } from '../Form/Input';
 import { Button } from '../Form/Button';
 import { colors, spacing, borderRadius, shadows } from '../../config/theme';
 import { useAuth } from '../../hooks/useAuth';
@@ -148,8 +149,9 @@ interface ConfirmationPageProps {
 }
 
 export const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
-  email: propEmail,
-  onSuccess,
+    email: propEmail,
+    onSuccess,
+    onBack,
 }) => {
     const navigate = useNavigate();
     const location = useLocation();
