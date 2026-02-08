@@ -4,6 +4,7 @@ import { API_USERS_BASE_URL} from '../services/api';
 
 const axiosInstance = axios.create({
     baseURL: API_USERS_BASE_URL,
+    withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
     },
@@ -196,7 +197,7 @@ export const useBusiness = (): UseBusinessReturn => {
     const blockBusiness = useCallback(async (id: string, reason?: string): Promise<boolean> => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post(`/${id}/block/`, { reason });
+            const response = await axiosInstance.post('/block-company/', { company_id: id, reason });
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
