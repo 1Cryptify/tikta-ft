@@ -253,7 +253,6 @@ export const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
                 </Header>
 
                 <form onSubmit={handleSubmit}>
-                    {error && <ErrorAlert>{error}</ErrorAlert>}
                     {codeError2 && <ErrorAlert>{codeError2}</ErrorAlert>}
 
                     <CodeInputContainer>
