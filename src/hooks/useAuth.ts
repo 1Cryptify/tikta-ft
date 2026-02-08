@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { API_BASE_URL, apiRequest } from '../services/api'; 
+import { API_USERS_BASE_URL } from '../services/api'; 
 
 export interface User {
   id: string;
