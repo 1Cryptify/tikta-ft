@@ -89,34 +89,34 @@ export const useAuth = (): UseAuthReturn => {
 
     // Login with email and password
     const login = useCallback(async (credentials: LoginCredentials) => {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      try {
-        const response = await axiosInstance.post('/login/', credentials);
-        
-        if (response.data.status === 'error') {
-          throw new Error(response.data.message || 'Login failed');
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        try {
+            const response = await axiosInstance.post('/login/', credentials);
+
+            if (response.data.status === 'error') {
+                throw new Error(response.data.message || 'Login failed');
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: null,
+                }));
+            }
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || error.message
+                : error instanceof Error
+                    ? error.message
+                    : 'An error occurred during login';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            throw error;
         }
-        
-        if (response.data.status === 'success') {
-          setState(prev => ({
-            ...prev,
-            isLoading: false,
-            error: null,
-          }));
-        }
-      } catch (error) {
-        const errorMessage = error instanceof axios.AxiosError
-          ? error.response?.data?.message || error.message
-          : error instanceof Error
-          ? error.message
-          : 'An error occurred during login';
-        setState(prev => ({
-          ...prev,
-          isLoading: false,
-          error: errorMessage,
-        }));
-        throw error;
-      }
     }, []);
 
     // Confirm login with email and confirmation code
@@ -124,6 +124,11 @@ export const useAuth = (): UseAuthReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/confirm/', data);
+
+            if (response.data.status === 'error') {
+                throw new Error(response.data.message || 'Confirmation failed');
+            }
+
             if (response.data.status === 'success') {
                 // After confirmation, fetch current user
                 await getCurrentUser();
@@ -132,13 +137,13 @@ export const useAuth = (): UseAuthReturn => {
                     isLoading: false,
                     error: null,
                 }));
-            } else {
-                throw new Error(response.data.message || 'Confirmation failed');
             }
         } catch (error) {
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || error.message
-                : 'An error occurred during confirmation';
+                : error instanceof Error
+                    ? error.message
+                    : 'An error occurred during confirmation';
             setState(prev => ({
                 ...prev,
                 isLoading: false,
@@ -176,6 +181,11 @@ export const useAuth = (): UseAuthReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/set-active-company/', { company_id: companyId });
+
+            if (response.data.status === 'error') {
+                throw new Error(response.data.message || 'Failed to set active company');
+            }
+
             if (response.data.status === 'success') {
                 const company = response.data.company;
                 setState(prev => ({
@@ -185,13 +195,15 @@ export const useAuth = (): UseAuthReturn => {
                     error: null,
                 }));
                 return company;
-            } else {
-                throw new Error(response.data.message || 'Failed to set active company');
             }
+
+            throw new Error('Unexpected response from server');
         } catch (error) {
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || error.message
-                : 'An error occurred';
+                : error instanceof Error
+                    ? error.message
+                    : 'An error occurred';
             setState(prev => ({
                 ...prev,
                 isLoading: false,
