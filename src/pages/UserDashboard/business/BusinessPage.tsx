@@ -339,13 +339,13 @@ export const BusinessPage: React.FC<BusinessPageProps> = ({
     onCompanySelect,
     onHeaderTitleChange,
 }) => {
-    const { companies, currentCompany, isLoading, error, listCompanies, getCompanyDetail } = useCompany();
+    const { companies, currentCompany, isLoading, error, listUserCompanies, getCompanyDetail } = useCompany();
     const [selectedCompany, setSelectedCompany] = useState<Company | null>(currentCompany || null);
 
     // Load companies on mount
     useEffect(() => {
-        listCompanies();
-    }, [listCompanies]);
+        listUserCompanies();
+    }, [listUserCompanies]);
 
     // Update header title when selected company changes
     useEffect(() => {
