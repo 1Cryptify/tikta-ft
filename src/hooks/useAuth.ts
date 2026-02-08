@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { API_USERS_BASE_URL } from '../services/api'; 
+import { API_USERS_BASE_URL } from '../services/api';
 
 export interface User {
   id: string;
@@ -30,13 +30,23 @@ export const useAuth = () => {
   const checkAuth = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true }));
     try {
-      const response = await apiRequest(endpoints.auth.getCurrentUser, {
+      const response = await fetch(`${API_USERS_BASE_URL}/me/`, {
         method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
       });
 
-      if (response.status === 'success' && response.user) {
+      if (!response.ok) {
+        throw new Error('Failed to fetch user');
+      }
+
+      const data = await response.json();
+
+      if (data && data.id) {
         setState({
-          user: response.user as User,
+          user: data as User,
           isAuthenticated: true,
           isLoading: false,
           error: null,
@@ -58,13 +68,19 @@ export const useAuth = () => {
   const login = useCallback(async (email: string, password: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await apiRequest(endpoints.auth.login, {
+      const response = await fetch(`${API_USERS_BASE_URL}/login/`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ email, password }),
+        credentials: 'include',
       });
 
-      if (response.status !== 'success') {
-        throw new Error(response.message || 'Login failed');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
       }
 
       return { success: true };
@@ -81,30 +97,52 @@ export const useAuth = () => {
   const confirmLogin = useCallback(async (email: string, code: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await apiRequest(endpoints.auth.confirmLogin, {
+      const response = await fetch(`${API_USERS_BASE_URL}/login/confirm/`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ email, code }),
+        credentials: 'include',
       });
 
-      if (response.status !== 'success') {
-        throw new Error(response.message || 'Confirmation failed');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Confirmation failed');
       }
 
       // Fetch current user data
-      // Note: You may need to add a GET /api/users/me/ endpoint
-      setState(prev => ({
-        ...prev,
-        isAuthenticated: true,
-        user: {
-          id: email, // Placeholder - adjust based on actual response
-          email,
-          is_staff: false,
-          is_superuser: false,
-          is_active: true,
-          is_verified: true,
-          is_blocked: false,
+      const userResponse = await fetch(`${API_USERS_BASE_URL}/me/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
         },
-      }));
+        credentials: 'include',
+      });
+
+      if (userResponse.ok) {
+        const userData = await userResponse.json();
+        setState(prev => ({
+          ...prev,
+          isAuthenticated: true,
+          user: userData as User,
+        }));
+      } else {
+        setState(prev => ({
+          ...prev,
+          isAuthenticated: true,
+          user: {
+            id: email,
+            email,
+            is_staff: false,
+            is_superuser: false,
+            is_active: true,
+            is_verified: true,
+            is_blocked: false,
+          },
+        }));
+      }
 
       return { success: true };
     } catch (error) {
@@ -120,8 +158,14 @@ export const useAuth = () => {
   const logout = useCallback(async () => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      // TODO: Add logout endpoint to api.ts endpoints
-      // await apiRequest(endpoints.auth.logout, { method: 'POST' });
+      await fetch(`${API_USERS_BASE_URL}/logout/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
       setState({
         user: null,
         isAuthenticated: false,
@@ -142,13 +186,19 @@ export const useAuth = () => {
   const resendCode = useCallback(async (email: string) => {
     setState(prev => ({ ...prev, isLoading: true, error: null }));
     try {
-      const response = await apiRequest(endpoints.auth.resendConfirmationCode, {
+      const response = await fetch(`${API_USERS_BASE_URL}/login/resend-code/`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: JSON.stringify({ email }),
+        credentials: 'include',
       });
 
-      if (response.status !== 'success') {
-        throw new Error(response.message || 'Resend failed');
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Resend failed');
       }
 
       return { success: true };
