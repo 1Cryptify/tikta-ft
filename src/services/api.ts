@@ -13,6 +13,10 @@ export const getMediaUrl = (relativePath: string): string => {
     if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
         return relativePath;
     }
+    // Remove leading /media/ if it already exists
+    const cleanPath = relativePath.startsWith('/media/') 
+        ? relativePath.substring(7) 
+        : relativePath;
     // Build the full media URL
-    return `${API_BASE_URL}/media/${relativePath}`;
+    return `${API_BASE_URL}/media/${cleanPath}`;
 };
