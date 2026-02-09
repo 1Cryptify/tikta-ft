@@ -8,6 +8,7 @@ import {
     ActionType,
 } from '../config/menuPermissions';
 import { useBusiness, Business as BusinessType } from '../hooks/useBusiness';
+import { getMediaUrl } from '../services/api';
 import DocumentUploadModal from '../components/DocumentUploadModal';
 import LogoUploadModal from '../components/LogoUploadModal';
 import BusinessEditModal from '../components/BusinessEditModal';
@@ -852,7 +853,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                                 <div style={{ flex: 1 }}>
                                     {business.logo ? (
                                         <LogoImage
-                                            src={business.logo}
+                                            src={getMediaUrl(business.logo)}
                                             alt={business.name}
                                             isClickable={true}
                                             onClick={() => handleUploadLogo(business)}
