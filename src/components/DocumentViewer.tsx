@@ -58,7 +58,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
     onError,
     onLoad,
 }) => {
-    const [docType, setDocType] = useState<DocumentType>(type);
+    const [docType, setDocType] = useState<DocumentType>('auto');
     const [numPages, setNumPages] = useState<number | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const [scale, setScale] = useState(1);
@@ -68,15 +68,31 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     // Détecte automatiquement le type de document
     useEffect(() => {
-        if (type === 'auto' && documentUrl) {
-            const ext = documentUrl.split('.').pop()?.toLowerCase();
-            if (ext === 'pdf') {
-                setDocType('pdf');
-            } else if (ext === 'docx') {
-                setDocType('docx');
-            } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(ext || '')) {
-                setDocType('image');
-            }
+        if (!documentUrl) return;
+
+        // Si type n'est pas 'auto', utiliser le type spécifié
+        if (type !== 'auto') {
+            setDocType(type);
+            return;
+        }
+
+        // Auto-détection basée sur l'extension du fichier
+        const ext = documentUrl.split('.').pop()?.toLowerCase();
+        console.log(`[DocumentViewer] Détection type pour: ${documentUrl} (ext: ${ext})`);
+
+        if (ext === 'pdf') {
+            console.log('[DocumentViewer] Type détecté: PDF');
+            setDocType('pdf');
+        } else if (ext === 'docx' || ext === 'doc') {
+            console.log('[DocumentViewer] Type détecté: DOCX');
+            setDocType('docx');
+        } else if (['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'tiff'].includes(ext || '')) {
+            console.log('[DocumentViewer] Type détecté: IMAGE');
+            setDocType('image');
+        } else {
+            // Fallback: assume image if no recognized extension
+            console.warn(`[DocumentViewer] Type inconnu: ${ext}, tentative de chargement comme image`);
+            setDocType('image');
         }
     }, [documentUrl, type]);
 
@@ -115,6 +131,7 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
     };
 
     const handlePdfLoadSuccess = ({ numPages }: { numPages: number }) => {
+        console.log('[DocumentViewer] PDF chargé avec succès, pages:', numPages);
         setNumPages(numPages);
         setCurrentPage(1);
         onLoad?.();
@@ -123,19 +140,24 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
     const handleError = (error: Error) => {
         const errorMessage = `Erreur PDF: ${error.message}`;
+        console.error('[DocumentViewer] PDF Error:', error);
+        console.error('[DocumentViewer] URL:', documentUrl);
         setError(errorMessage);
         onError?.(error);
         setLoading(false);
     };
 
-    const handleImageError = () => {
-        const errorMessage = 'Impossible de charger l\'image';
+    const handleImageError = (e: any) => {
+        const errorMessage = `Erreur chargement image: ${documentUrl}`;
+        console.error('[DocumentViewer] Image Error:', e);
+        console.error('[DocumentViewer] URL:', documentUrl);
         setError(errorMessage);
         onError?.(new Error(errorMessage));
         setLoading(false);
     };
 
     const handleImageLoad = () => {
+        console.log('[DocumentViewer] Image chargée avec succès:', documentUrl);
         onLoad?.();
         setLoading(false);
     };
@@ -196,6 +218,12 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                 {loading && (
                     <div style={{ padding: '40px', textAlign: 'center', color: '#666' }}>
                         <div style={{ fontSize: '14px' }}>Chargement du document...</div>
+                        <div style={{ fontSize: '12px', color: '#999', marginTop: '8px' }}>
+                            URL: {documentUrl}
+                        </div>
+                        <div style={{ fontSize: '12px', color: '#999' }}>
+                            Type: {docType}
+                        </div>
                     </div>
                 )}
 
@@ -208,7 +236,19 @@ export const DocumentViewer: React.FC<DocumentViewerProps> = ({
                         textAlign: 'center',
                     }}>
                         <div style={{ fontSize: '14px', marginBottom: '8px' }}>Erreur de chargement</div>
-                        <div style={{ fontSize: '12px' }}>{error}</div>
+                        <div style={{ fontSize: '12px', marginBottom: '12px' }}>{error}</div>
+                        <a
+                            href={documentUrl}
+                            download
+                            style={{
+                                color: '#1976d2',
+                                textDecoration: 'underline',
+                                cursor: 'pointer',
+                                fontSize: '12px'
+                            }}
+                        >
+                            Télécharger le fichier
+                        </a>
                     </div>
                 )}
 

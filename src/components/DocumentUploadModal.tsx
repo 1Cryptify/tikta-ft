@@ -3,16 +3,16 @@ import styled from 'styled-components';
 import { FiX, FiUpload, FiCheck, FiAlertCircle } from 'react-icons/fi';
 
 interface DocumentUploadModalProps {
-  isOpen: boolean;
-  businessName: string;
-  documents?: {
-    nui_document?: string;
-    commerce_register_document?: string;
-    website_document?: string;
-    creation_document?: string;
-  };
-  onClose: () => void;
-  onSubmit: (documents: FormData) => void;
+    isOpen: boolean;
+    businessName: string;
+    documents?: {
+        nui_document?: string;
+        commerce_register_document?: string;
+        website_document?: string;
+        creation_document?: string;
+    };
+    onClose: () => void;
+    onSubmit: (documents: FormData) => void;
 }
 
 const ModalOverlay = styled.div<{ isOpen: boolean }>`
@@ -139,7 +139,7 @@ const DocumentCard = styled.div`
   }
 `;
 
-const DocumentCardComplete = styled(DocumentCard)<{ isComplete: boolean }>`
+const DocumentCardComplete = styled(DocumentCard) <{ isComplete: boolean }>`
   border-color: ${(props) => (props.isComplete ? '#28a745' : '#dee2e6')};
   background: ${(props) => (props.isComplete ? '#f1f9f5' : '#f8f9fa')};
 
@@ -204,11 +204,11 @@ const ProgressStep = styled.div<{ completed: boolean; active?: boolean }>`
   height: 4px;
   border-radius: 2px;
   background: ${(props) =>
-    props.completed
-      ? '#28a745'
-      : props.active
-        ? '#007bff'
-        : '#dee2e6'};
+        props.completed
+            ? '#28a745'
+            : props.active
+                ? '#007bff'
+                : '#dee2e6'};
   transition: all 0.3s ease;
 `;
 
@@ -237,9 +237,9 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
   gap: 0.5rem;
 
   ${(props) => {
-    switch (props.variant) {
-      case 'primary':
-        return `
+        switch (props.variant) {
+            case 'primary':
+                return `
           background-color: #28a745;
           color: white;
           border: none;
@@ -254,8 +254,8 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
             cursor: not-allowed;
           }
         `;
-      default:
-        return `
+            default:
+                return `
           background-color: white;
           color: #495057;
           border: 1px solid #dee2e6;
@@ -265,8 +265,8 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
             border-color: #999;
           }
         `;
-    }
-  }}
+        }
+    }}
 
   @media (max-width: 480px) {
     padding: 0.6rem 1rem;
@@ -292,184 +292,220 @@ const WarningMessage = styled.div`
   }
 `;
 
+const SUPPORTED_FORMATS = '.pdf, .docx, .jpg, .jpeg, .png';
+const ACCEPTED_MIME_TYPES = 'application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,image/jpeg,image/png';
+
 const DOCUMENT_TYPES = [
-  {
-    key: 'nui_document',
-    label: 'NUI Document',
-    description: 'Unique Identification Number',
-  },
-  {
-    key: 'commerce_register_document',
-    label: 'Commerce Registry',
-    description: 'Official commerce registry',
-  },
-  {
-    key: 'website_document',
-    label: 'Website Certificate',
-    description: 'Domain or website proof',
-  },
-  {
-    key: 'creation_document',
-    label: 'Creation Document',
-    description: 'Creation act or incorporation',
-  },
+    {
+        key: 'nui_document',
+        label: 'NUI Document',
+        description: 'Unique Identification Number',
+    },
+    {
+        key: 'commerce_register_document',
+        label: 'Commerce Registry',
+        description: 'Official commerce registry',
+    },
+    {
+        key: 'website_document',
+        label: 'Website Certificate',
+        description: 'Domain or website proof',
+    },
+    {
+        key: 'creation_document',
+        label: 'Creation Document',
+        description: 'Creation act or incorporation',
+    },
 ];
 
 export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
-  isOpen,
-  businessName,
-  documents = {},
-  onClose,
-  onSubmit,
+    isOpen,
+    businessName,
+    documents = {},
+    onClose,
+    onSubmit,
 }) => {
-  const [files, setFiles] = useState<Record<string, File | null>>({
-    nui_document: null,
-    commerce_register_document: null,
-    website_document: null,
-    creation_document: null,
-  });
-
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const handleFileSelect = (
-    docKey: string,
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setFiles((prev) => ({
-        ...prev,
-        [docKey]: file,
-      }));
-    }
-  };
-
-  const handleCardClick = (docKey: string) => {
-    const input = document.getElementById(`file-${docKey}`) as HTMLInputElement;
-    input?.click();
-  };
-
-  const isDocumentComplete = (docKey: string): boolean => {
-    return !!(files[docKey] || documents[docKey as keyof typeof documents]);
-  };
-
-  const completedCount = DOCUMENT_TYPES.filter((doc) =>
-    isDocumentComplete(doc.key)
-  ).length;
-
-  const isFormComplete = completedCount === DOCUMENT_TYPES.length;
-
-  const handleSubmit = async () => {
-    if (!isFormComplete) {
-      alert('Veuillez compléter tous les documents');
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      const formData = new FormData();
-      Object.entries(files).forEach(([key, file]) => {
-        if (file) {
-          formData.append(key, file);
-        }
-      });
-
-      onSubmit(formData);
-      // Reset after successful submission
-      setFiles({
+    const [files, setFiles] = useState<Record<string, File | null>>({
         nui_document: null,
         commerce_register_document: null,
         website_document: null,
         creation_document: null,
-      });
-      onClose();
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    });
 
-  return (
-    <ModalOverlay isOpen={isOpen} onClick={onClose}>
-      <ModalContent onClick={(e) => e.stopPropagation()}>
-        <ModalHeader>
-          <div>
-            <ModalTitle>Document Management</ModalTitle>
-            <p style={{ margin: '0.5rem 0 0 0', color: '#999', fontSize: '0.9rem' }}>
-              {businessName}
-            </p>
-          </div>
-          <CloseButton onClick={onClose}>
-            <FiX />
-          </CloseButton>
-        </ModalHeader>
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [fileError, setFileError] = useState<string | null>(null);
 
-        <WarningMessage>
-          <FiAlertCircle size={20} />
-          <span>
-            All 4 documents must be uploaded to validate the business verification.
-          </span>
-        </WarningMessage>
+    const validateFile = (file: File): boolean => {
+        const validExtensions = ['pdf', 'docx', 'jpg', 'jpeg', 'png'];
+        const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
-        <ProgressBar>
-          <ProgressTitle>
-            Progress: {completedCount} / {DOCUMENT_TYPES.length}
-          </ProgressTitle>
-          <ProgressSteps>
-            {DOCUMENT_TYPES.map((doc) => (
-              <ProgressStep
-                key={doc.key}
-                completed={isDocumentComplete(doc.key)}
-                active={
-                  !isDocumentComplete(doc.key) && completedCount < DOCUMENT_TYPES.length
+        if (!fileExtension || !validExtensions.includes(fileExtension)) {
+            setFileError(`Format non supporté: ${fileExtension}. Formats autorisés: ${SUPPORTED_FORMATS}`);
+            return false;
+        }
+
+        // Max file size: 10MB
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
+            setFileError(`Fichier trop volumineux (max 10MB). Taille: ${(file.size / 1024 / 1024).toFixed(2)}MB`);
+            return false;
+        }
+
+        setFileError(null);
+        return true;
+    };
+
+    const handleFileSelect = (
+        docKey: string,
+        event: React.ChangeEvent<HTMLInputElement>
+    ) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            if (validateFile(file)) {
+                setFiles((prev) => ({
+                    ...prev,
+                    [docKey]: file,
+                }));
+            }
+        }
+    };
+
+    const handleCardClick = (docKey: string) => {
+        const input = document.getElementById(`file-${docKey}`) as HTMLInputElement;
+        input?.click();
+    };
+
+    const isDocumentComplete = (docKey: string): boolean => {
+        return !!(files[docKey] || documents[docKey as keyof typeof documents]);
+    };
+
+    const completedCount = DOCUMENT_TYPES.filter((doc) =>
+        isDocumentComplete(doc.key)
+    ).length;
+
+    const isFormComplete = completedCount === DOCUMENT_TYPES.length;
+
+    const handleSubmit = async () => {
+        if (!isFormComplete) {
+            alert('Veuillez compléter tous les documents');
+            return;
+        }
+
+        setIsSubmitting(true);
+        try {
+            const formData = new FormData();
+            Object.entries(files).forEach(([key, file]) => {
+                if (file) {
+                    formData.append(key, file);
                 }
-              />
-            ))}
-          </ProgressSteps>
-        </ProgressBar>
+            });
 
-        <DocumentsContainer>
-          {DOCUMENT_TYPES.map((doc) => {
-            const isComplete = isDocumentComplete(doc.key);
-            const fileName = files[doc.key]?.name;
+            onSubmit(formData);
+            // Reset after successful submission
+            setFiles({
+                nui_document: null,
+                commerce_register_document: null,
+                website_document: null,
+                creation_document: null,
+            });
+            onClose();
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
-            return (
-              <DocumentCardComplete
-                key={doc.key}
-                isComplete={isComplete}
-                onClick={() => handleCardClick(doc.key)}
-              >
-                <input
-                  id={`file-${doc.key}`}
-                  type="file"
-                  onChange={(e) => handleFileSelect(doc.key, e)}
-                  accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                />
-                <DocumentIcon isComplete={isComplete}>
-                  {isComplete ? <FiCheck /> : <FiUpload />}
-                </DocumentIcon>
-                <DocumentLabel>{doc.label}</DocumentLabel>
-                <DocumentDescription>{doc.description}</DocumentDescription>
-                {fileName && <FileName>✓ {fileName}</FileName>}
-              </DocumentCardComplete>
-            );
-          })}
-        </DocumentsContainer>
+    return (
+        <ModalOverlay isOpen={isOpen} onClick={onClose}>
+            <ModalContent onClick={(e) => e.stopPropagation()}>
+                <ModalHeader>
+                    <div>
+                        <ModalTitle>Document Management</ModalTitle>
+                        <p style={{ margin: '0.5rem 0 0 0', color: '#999', fontSize: '0.9rem' }}>
+                            {businessName}
+                        </p>
+                    </div>
+                    <CloseButton onClick={onClose}>
+                        <FiX />
+                    </CloseButton>
+                </ModalHeader>
 
-        <FormActions>
-          <Button variant="secondary" onClick={onClose}>
-            <FiX /> Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleSubmit}
-            disabled={!isFormComplete || isSubmitting}
-          >
-            <FiCheck /> {isSubmitting ? 'Validating...' : 'Validate'}
-          </Button>
-        </FormActions>
-      </ModalContent>
-    </ModalOverlay>
-  );
+                <WarningMessage>
+                    <FiAlertCircle size={20} />
+                    <div>
+                        <div>All 4 documents must be uploaded to validate the business verification.</div>
+                        <div style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
+                            Formats supportés: {SUPPORTED_FORMATS} (Max 10MB par fichier)
+                        </div>
+                    </div>
+                </WarningMessage>
+
+                {fileError && (
+                    <WarningMessage style={{ backgroundColor: '#ffebee', borderLeftColor: '#dc3545', color: '#c62828' }}>
+                        <FiAlertCircle size={20} />
+                        <span>{fileError}</span>
+                    </WarningMessage>
+                )}
+
+                <ProgressBar>
+                    <ProgressTitle>
+                        Progress: {completedCount} / {DOCUMENT_TYPES.length}
+                    </ProgressTitle>
+                    <ProgressSteps>
+                        {DOCUMENT_TYPES.map((doc) => (
+                            <ProgressStep
+                                key={doc.key}
+                                completed={isDocumentComplete(doc.key)}
+                                active={
+                                    !isDocumentComplete(doc.key) && completedCount < DOCUMENT_TYPES.length
+                                }
+                            />
+                        ))}
+                    </ProgressSteps>
+                </ProgressBar>
+
+                <DocumentsContainer>
+                    {DOCUMENT_TYPES.map((doc) => {
+                        const isComplete = isDocumentComplete(doc.key);
+                        const fileName = files[doc.key]?.name;
+
+                        return (
+                            <DocumentCardComplete
+                                key={doc.key}
+                                isComplete={isComplete}
+                                onClick={() => handleCardClick(doc.key)}
+                            >
+                                <input
+                                    id={`file-${doc.key}`}
+                                    type="file"
+                                    onChange={(e) => handleFileSelect(doc.key, e)}
+                                    accept=".pdf,.docx,.jpg,.jpeg,.png"
+                                />
+                                <DocumentIcon isComplete={isComplete}>
+                                    {isComplete ? <FiCheck /> : <FiUpload />}
+                                </DocumentIcon>
+                                <DocumentLabel>{doc.label}</DocumentLabel>
+                                <DocumentDescription>{doc.description}</DocumentDescription>
+                                {fileName && <FileName>✓ {fileName}</FileName>}
+                            </DocumentCardComplete>
+                        );
+                    })}
+                </DocumentsContainer>
+
+                <FormActions>
+                    <Button variant="secondary" onClick={onClose}>
+                        <FiX /> Cancel
+                    </Button>
+                    <Button
+                        variant="primary"
+                        onClick={handleSubmit}
+                        disabled={!isFormComplete || isSubmitting}
+                    >
+                        <FiCheck /> {isSubmitting ? 'Validating...' : 'Validate'}
+                    </Button>
+                </FormActions>
+            </ModalContent>
+        </ModalOverlay>
+    );
 };
 
 export default DocumentUploadModal;
