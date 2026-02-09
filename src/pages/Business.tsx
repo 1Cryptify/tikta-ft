@@ -616,6 +616,9 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         markActiveCompany,
         getUsers,
         getDocumentPreviewUrl,
+        associateUserToBusiness,
+        disassociateUserFromBusiness,
+        listBusinessUsers,
     } = useBusiness();
 
     const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithDocuments[]>([]);
