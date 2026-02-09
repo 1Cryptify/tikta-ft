@@ -273,6 +273,13 @@ export const useBusiness = (): UseBusinessReturn => {
                     isLoading: false,
                 }));
                 return true;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to upload documents',
+                }));
+                return false;
             }
             return false;
         } catch (error) {
@@ -308,6 +315,13 @@ export const useBusiness = (): UseBusinessReturn => {
                     isLoading: false,
                 }));
                 return true;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to upload logo',
+                }));
+                return false;
             }
             return false;
         } catch (error) {
