@@ -449,6 +449,26 @@ const StatusBadge = styled.span<{ status: 'verified' | 'pending' | 'blocked' }>`
     }}
 `;
 
+const StatusMessage = styled.div<{ type?: 'positive' | 'negative' }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+
+  ${(props) => {
+        if (props.type === 'positive') {
+            return 'background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;';
+        } else if (props.type === 'negative') {
+            return 'background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;';
+        }
+        return 'background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db;';
+    }}
+`;
+
 const CardActions = styled.div`
   display: flex;
   gap: 0.5rem;
@@ -1005,6 +1025,12 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                             </CardHeader>
 
                             <CardTitle>{business.name}</CardTitle>
+
+                            {business.status_message && (
+                                <StatusMessage type={business.status_type}>
+                                    {business.status_message}
+                                </StatusMessage>
+                            )}
 
                             <CardInfo>
                                 {business.nui && (

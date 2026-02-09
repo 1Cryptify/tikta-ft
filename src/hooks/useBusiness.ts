@@ -35,6 +35,8 @@ export interface Business {
     creation_document?: string;
     created_at?: string;
     updated_at?: string;
+    status_message?: string;
+    status_type?: 'positive' | 'negative';
 }
 
 export interface BusinessUser {
