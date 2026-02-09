@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FiX, FiLink2, FiSearch } from 'react-icons/fi';
-import { Business } from '../hooks/useBusiness';
+import { FiX, FiLink2, FiMinusCircle, FiSearch, FiUsers } from 'react-icons/fi';
+import { Business, BusinessUser } from '../hooks/useBusiness';
 
 interface Client {
   id: string;
@@ -15,8 +15,11 @@ interface BusinessAssociateModalProps {
   isOpen: boolean;
   business: Business | null;
   onClose: () => void;
-  onSubmit: (clientId: string) => Promise<void>;
+  onAssociate?: (userId: string) => Promise<void>;
+  onDisassociate?: (userId: string) => Promise<void>;
   clients?: Client[];
+  associatedUsers?: BusinessUser[];
+  showExistingUsers?: boolean;
 }
 
 const ModalOverlay = styled.div<{ isOpen: boolean }>`
@@ -279,25 +282,111 @@ const ErrorMessage = styled.div`
   font-size: 0.9rem;
 `;
 
+const SuccessMessage = styled.div`
+  padding: 1rem;
+  background: #d4edda;
+  color: #155724;
+  border-left: 4px solid #28a745;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+`;
+
+const TabContainer = styled.div`
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  border-bottom: 2px solid #f0f0f0;
+`;
+
+const Tab = styled.button<{ active?: boolean }>`
+  flex: 1;
+  padding: 1rem;
+  border: none;
+  background: ${(props) => (props.active ? '#007bff' : 'transparent')};
+  color: ${(props) => (props.active ? 'white' : '#666')};
+  cursor: pointer;
+  border-radius: 6px 6px 0 0;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  &:hover {
+    background: ${(props) => (props.active ? '#0056b3' : '#f0f0f0')};
+  }
+`;
+
+const UserCard = styled.div<{ isAssociated?: boolean }>`
+  padding: 1rem;
+  border: 2px solid ${(props) => (props.isAssociated ? '#28a745' : '#ddd')};
+  border-radius: 8px;
+  background: ${(props) => (props.isAssociated ? '#f1f9f5' : 'white')};
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.3s ease;
+
+  &:hover {
+    border-color: ${(props) => (props.isAssociated ? '#28a745' : '#007bff')};
+    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+  }
+`;
+
+const UserInfo = styled.div`
+  flex: 1;
+`;
+
+const UserEmail = styled.p`
+  margin: 0;
+  font-weight: 600;
+  color: #1a1a1a;
+`;
+
+const UserMeta = styled.p`
+  margin: 0.25rem 0 0 0;
+  font-size: 0.85rem;
+  color: #999;
+`;
+
+const UserActions = styled.div`
+  display: flex;
+  gap: 0.5rem;
+`;
+
 export const BusinessAssociateModal: React.FC<BusinessAssociateModalProps> = ({
   isOpen,
   business,
   onClose,
-  onSubmit,
+  onAssociate,
+  onDisassociate,
   clients = [],
+  associatedUsers = [],
+  showExistingUsers = false,
 }) => {
   const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'add' | 'list'>('add');
 
   useEffect(() => {
     if (isOpen) {
       setSelectedClientId(null);
       setSearchTerm('');
       setError(null);
+      setSuccess(null);
+      // Si on a des utilisateurs existants, montrer l'onglet "list"
+      if (showExistingUsers && associatedUsers.length > 0) {
+        setActiveTab('list');
+      } else {
+        setActiveTab('add');
+      }
     }
-  }, [isOpen]);
+  }, [isOpen, associatedUsers.length, showExistingUsers]);
 
   const filteredClients = clients.filter(
     (client) =>
@@ -306,21 +395,48 @@ export const BusinessAssociateModal: React.FC<BusinessAssociateModalProps> = ({
       client.phone?.includes(searchTerm)
   );
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAssociate = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!selectedClientId) {
-      setError('Please select a client');
+      setError('Please select a user');
       return;
     }
 
     setIsSubmitting(true);
     setError(null);
+    setSuccess(null);
 
     try {
-      await onSubmit(selectedClientId);
+      if (onAssociate) {
+        await onAssociate(selectedClientId);
+        setSuccess(`User successfully associated with ${business?.name}`);
+        setSelectedClientId(null);
+        setSearchTerm('');
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to associate business');
+      setError(err instanceof Error ? err.message : 'Failed to associate user');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDisassociate = async (userId: string) => {
+    if (!window.confirm('Are you sure you want to disassociate this user?')) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      if (onDisassociate) {
+        await onDisassociate(userId);
+        setSuccess('User successfully disassociated');
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to disassociate user');
     } finally {
       setIsSubmitting(false);
     }
@@ -331,7 +447,7 @@ export const BusinessAssociateModal: React.FC<BusinessAssociateModalProps> = ({
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
           <div>
-            <ModalTitle>Associate Business</ModalTitle>
+            <ModalTitle>Manage Business Users</ModalTitle>
             <ModalSubtitle>{business?.name}</ModalSubtitle>
           </div>
           <CloseButton onClick={onClose}>
@@ -340,71 +456,137 @@ export const BusinessAssociateModal: React.FC<BusinessAssociateModalProps> = ({
         </ModalHeader>
 
         {error && <ErrorMessage>{error}</ErrorMessage>}
+        {success && <SuccessMessage>{success}</SuccessMessage>}
 
-        <form onSubmit={handleSubmit}>
-          <SearchContainer>
-            <SearchIcon>
-              <FiSearch />
-            </SearchIcon>
-            <SearchInput
-              type="text"
-              placeholder="Search clients by name, email, or phone..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              disabled={isSubmitting || clients.length === 0}
-            />
-          </SearchContainer>
-
-          <ClientsList>
-            {filteredClients.length === 0 ? (
-              <EmptyState>
-                <h4>No clients found</h4>
-                <p>
-                  {clients.length === 0
-                    ? 'No clients available. Please create clients first.'
-                    : 'No clients match your search.'}
-                </p>
-              </EmptyState>
-            ) : (
-              filteredClients.map((client) => (
-                <ClientCard
-                  key={client.id}
-                  selected={selectedClientId === client.id}
-                  onClick={() => {
-                    if (!isSubmitting) {
-                      setSelectedClientId(client.id);
-                    }
-                  }}
-                >
-                  <ClientName>
-                    {client.name}
-                    {client.is_associated && <AssociatedBadge>Associated</AssociatedBadge>}
-                  </ClientName>
-                  {client.email && <ClientInfo>Email: {client.email}</ClientInfo>}
-                  {client.phone && <ClientInfo>Phone: {client.phone}</ClientInfo>}
-                </ClientCard>
-              ))
-            )}
-          </ClientsList>
-
-          <FormActions>
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={onClose}
-              disabled={isSubmitting || clients.length === 0}
+        {showExistingUsers && associatedUsers.length > 0 && (
+          <TabContainer>
+            <Tab
+              active={activeTab === 'add'}
+              onClick={() => setActiveTab('add')}
             >
-              <FiX /> Cancel
-            </Button>
-            <Button
-              variant="primary"
-              type="submit"
-              disabled={isSubmitting || !selectedClientId || clients.length === 0}
+              <FiLink2 /> Add User
+            </Tab>
+            <Tab
+              active={activeTab === 'list'}
+              onClick={() => setActiveTab('list')}
             >
-              <FiLink2 /> {isSubmitting ? 'Associating...' : 'Associate'}
-            </Button>
-          </FormActions>
-        </form>
+              <FiUsers /> {associatedUsers.length} Associated
+            </Tab>
+          </TabContainer>
+        )}
+
+        {activeTab === 'add' && (
+          <form onSubmit={handleAssociate}>
+            <SearchContainer>
+              <SearchIcon>
+                <FiSearch />
+              </SearchIcon>
+              <SearchInput
+                type="text"
+                placeholder="Search users by name, email, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                disabled={isSubmitting || clients.length === 0}
+              />
+            </SearchContainer>
+
+            <ClientsList>
+              {filteredClients.length === 0 ? (
+                <EmptyState>
+                  <h4>No users found</h4>
+                  <p>
+                    {clients.length === 0
+                      ? 'No users available.'
+                      : 'No users match your search.'}
+                  </p>
+                </EmptyState>
+              ) : (
+                filteredClients.map((client) => (
+                  <ClientCard
+                    key={client.id}
+                    selected={selectedClientId === client.id}
+                    onClick={() => {
+                      if (!isSubmitting) {
+                        setSelectedClientId(client.id);
+                      }
+                    }}
+                  >
+                    <ClientName>
+                      {client.name}
+                      {client.is_associated && <AssociatedBadge>Associated</AssociatedBadge>}
+                    </ClientName>
+                    {client.email && <ClientInfo>Email: {client.email}</ClientInfo>}
+                    {client.phone && <ClientInfo>Phone: {client.phone}</ClientInfo>}
+                  </ClientCard>
+                ))
+              )}
+            </ClientsList>
+
+            <FormActions>
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={onClose}
+                disabled={isSubmitting || clients.length === 0}
+              >
+                <FiX /> Cancel
+              </Button>
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={isSubmitting || !selectedClientId || clients.length === 0}
+              >
+                <FiLink2 /> {isSubmitting ? 'Adding...' : 'Add User'}
+              </Button>
+            </FormActions>
+          </form>
+        )}
+
+        {activeTab === 'list' && (
+          <div>
+            <ClientsList>
+              {associatedUsers.length === 0 ? (
+                <EmptyState>
+                  <h4>No associated users</h4>
+                  <p>No users are currently associated with this business.</p>
+                </EmptyState>
+              ) : (
+                associatedUsers.map((user) => (
+                  <UserCard key={user.user_id} isAssociated={true}>
+                    <UserInfo>
+                      <UserEmail>{user.email}</UserEmail>
+                      <UserMeta>
+                        {user.is_staff && '👤 Staff'} {user.is_verified && '✓ Verified'}
+                      </UserMeta>
+                    </UserInfo>
+                    <UserActions>
+                      <Button
+                        variant="secondary"
+                        type="button"
+                        onClick={() => handleDisassociate(user.user_id)}
+                        disabled={isSubmitting}
+                        style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}
+                      >
+                        <FiMinusCircle /> Remove
+                      </Button>
+                    </UserActions>
+                  </UserCard>
+                ))
+              )}
+            </ClientsList>
+
+            <FormActions>
+              <Button
+                variant="secondary"
+                type="button"
+                onClick={onClose}
+                style={{ flex: 1 }}
+              >
+                <FiX /> Close
+              </Button>
+            </FormActions>
+          </div>
+        )}
       </ModalContent>
     </ModalOverlay>
   );

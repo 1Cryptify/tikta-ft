@@ -631,6 +631,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const [isAssociateModalOpen, setIsAssociateModalOpen] = useState(false);
     const [selectedBusinessForAssociate, setSelectedBusinessForAssociate] = useState<BusinessWithDocuments | null>(null);
     const [users, setUsers] = useState<any[]>([]);
+    const [associatedUsers, setAssociatedUsers] = useState<any[]>([]);
     const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
     const [viewerDocument, setViewerDocument] = useState<{ path: string; title: string } | null>(null);
 
@@ -647,14 +648,18 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
 
     // Fetch users when associate modal opens
     useEffect(() => {
-        if (isAssociateModalOpen) {
-            const fetchUsers = async () => {
+        if (isAssociateModalOpen && selectedBusinessForAssociate) {
+            const fetchData = async () => {
                 const fetchedUsers = await getUsers();
                 setUsers(fetchedUsers);
+                
+                // Fetch associated users for this business
+                const businessUsers = await listBusinessUsers(selectedBusinessForAssociate.id);
+                setAssociatedUsers(businessUsers);
             };
-            fetchUsers();
+            fetchData();
         }
-    }, [isAssociateModalOpen, getUsers]);
+    }, [isAssociateModalOpen, selectedBusinessForAssociate, getUsers, listBusinessUsers]);
 
     const filterBusinesses = () => {
         const term = searchTerm.toLowerCase();
@@ -811,18 +816,40 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const handleAssociateSubmit = async (clientId: string) => {
         if (!selectedBusinessForAssociate) return;
 
-        // TODO: Implement the actual association API call
-        // For now, just show a success message and close the modal
         try {
-            // await associateBusinessToClient(selectedBusinessForAssociate.id, clientId);
-            setError(null);
-            setIsAssociateModalOpen(false);
-            setSelectedBusinessForAssociate(null);
-            // Show success message
-            console.log('Business associated successfully:', selectedBusinessForAssociate.id, clientId);
+            const success = await associateUserToBusiness(clientId, selectedBusinessForAssociate.id);
+            if (success) {
+                setError(null);
+                // Reload associated users
+                const businessUsers = await listBusinessUsers(selectedBusinessForAssociate.id);
+                setAssociatedUsers(businessUsers);
+                setIsAssociateModalOpen(false);
+                setSelectedBusinessForAssociate(null);
+                console.log('User associated successfully');
+            } else {
+                setError('Failed to associate user');
+            }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to associate business');
-            throw err;
+            setError(err instanceof Error ? err.message : 'Failed to associate user');
+        }
+    };
+
+    const handleDisassociateUser = async (userId: string) => {
+        if (!selectedBusinessForAssociate) return;
+
+        try {
+            const success = await disassociateUserFromBusiness(userId, selectedBusinessForAssociate.id);
+            if (success) {
+                setError(null);
+                // Reload associated users
+                const businessUsers = await listBusinessUsers(selectedBusinessForAssociate.id);
+                setAssociatedUsers(businessUsers);
+                console.log('User disassociated successfully');
+            } else {
+                setError('Failed to disassociate user');
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to disassociate user');
         }
     };
 
@@ -1163,12 +1190,16 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                 onClose={() => {
                     setIsAssociateModalOpen(false);
                     setSelectedBusinessForAssociate(null);
+                    setAssociatedUsers([]);
                 }}
-                onSubmit={handleAssociateSubmit}
+                onAssociate={handleAssociateSubmit}
+                onDisassociate={handleDisassociateUser}
                 clients={users.map(user => ({
                     id: user.id,
                     name: user.email,
                 }))}
+                associatedUsers={associatedUsers}
+                showExistingUsers={true}
             />
 
             <ViewerModal isOpen={isViewerModalOpen} onClick={closeViewerModal}>

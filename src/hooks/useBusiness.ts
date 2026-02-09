@@ -37,6 +37,29 @@ export interface Business {
     updated_at?: string;
 }
 
+export interface BusinessUser {
+    user_id: string;
+    email: string;
+    is_verified: boolean;
+    is_active: boolean;
+    is_staff: boolean;
+    is_blocked: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface BusinessAssociation {
+    company_id: string;
+    company_name: string;
+    is_verified: boolean;
+    is_blocked: boolean;
+    is_deleted: boolean;
+    user_count: number;
+    is_active_company: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
 interface BusinessState {
     businesses: Business[];
     isLoading: boolean;
@@ -56,6 +79,10 @@ interface UseBusinessReturn extends BusinessState {
     uploadLogo: (id: string, file: File) => Promise<boolean>;
     getUsers: () => Promise<any[]>;
     getDocumentPreviewUrl: (documentPath: string) => string;
+    associateUserToBusiness: (userId: string, companyId: string) => Promise<boolean>;
+    disassociateUserFromBusiness: (userId: string, companyId: string) => Promise<boolean>;
+    listUserBusinessAssociations: () => Promise<BusinessAssociation[]>;
+    listBusinessUsers: (companyId: string) => Promise<BusinessUser[]>;
 }
 
 export const useBusiness = (): UseBusinessReturn => {
@@ -374,6 +401,104 @@ export const useBusiness = (): UseBusinessReturn => {
        return documentUrl;
     }, []);
 
+     // Associate user to business
+     const associateUserToBusiness = useCallback(async (userId: string, companyId: string): Promise<boolean> => {
+         setState(prev => ({ ...prev, isLoading: true, error: null }));
+         try {
+             const response = await axiosInstance.post('/associate-user-business/', {
+                 user_id: userId,
+                 company_id: companyId
+             });
+             if (response.data.status === 'success') {
+                 setState(prev => ({ ...prev, isLoading: false }));
+                 return true;
+             }
+             return false;
+         } catch (error) {
+             const errorMessage = error instanceof axios.AxiosError
+                 ? error.response?.data?.message || 'Failed to associate user to business'
+                 : 'An error occurred';
+             setState(prev => ({
+                 ...prev,
+                 isLoading: false,
+                 error: errorMessage,
+             }));
+             return false;
+         }
+     }, []);
+
+     // Disassociate user from business
+     const disassociateUserFromBusiness = useCallback(async (userId: string, companyId: string): Promise<boolean> => {
+         setState(prev => ({ ...prev, isLoading: true, error: null }));
+         try {
+             const response = await axiosInstance.post('/disassociate-user-business/', {
+                 user_id: userId,
+                 company_id: companyId
+             });
+             if (response.data.status === 'success') {
+                 setState(prev => ({ ...prev, isLoading: false }));
+                 return true;
+             }
+             return false;
+         } catch (error) {
+             const errorMessage = error instanceof axios.AxiosError
+                 ? error.response?.data?.message || 'Failed to disassociate user from business'
+                 : 'An error occurred';
+             setState(prev => ({
+                 ...prev,
+                 isLoading: false,
+                 error: errorMessage,
+             }));
+             return false;
+         }
+     }, []);
+
+     // List user business associations
+     const listUserBusinessAssociations = useCallback(async (): Promise<BusinessAssociation[]> => {
+         setState(prev => ({ ...prev, isLoading: true, error: null }));
+         try {
+             const response = await axiosInstance.get('/list-user-business-associations/');
+             if (response.data.status === 'success') {
+                 setState(prev => ({ ...prev, isLoading: false }));
+                 return response.data.associations || [];
+             }
+             return [];
+         } catch (error) {
+             const errorMessage = error instanceof axios.AxiosError
+                 ? error.response?.data?.message || 'Failed to fetch business associations'
+                 : 'An error occurred';
+             setState(prev => ({
+                 ...prev,
+                 isLoading: false,
+                 error: errorMessage,
+             }));
+             return [];
+         }
+     }, []);
+
+     // List business users
+     const listBusinessUsers = useCallback(async (companyId: string): Promise<BusinessUser[]> => {
+         setState(prev => ({ ...prev, isLoading: true, error: null }));
+         try {
+             const response = await axiosInstance.get(`/list-business-users/?company_id=${companyId}`);
+             if (response.data.status === 'success') {
+                 setState(prev => ({ ...prev, isLoading: false }));
+                 return response.data.users || [];
+             }
+             return [];
+         } catch (error) {
+             const errorMessage = error instanceof axios.AxiosError
+                 ? error.response?.data?.message || 'Failed to fetch business users'
+                 : 'An error occurred';
+             setState(prev => ({
+                 ...prev,
+                 isLoading: false,
+                 error: errorMessage,
+             }));
+             return [];
+         }
+     }, []);
+
      // Initialize - fetch businesses on mount
      useEffect(() => {
          getBusinesses();
@@ -393,5 +518,9 @@ export const useBusiness = (): UseBusinessReturn => {
          uploadLogo,
          getUsers,
          getDocumentPreviewUrl,
+         associateUserToBusiness,
+         disassociateUserFromBusiness,
+         listUserBusinessAssociations,
+         listBusinessUsers,
      };
      };
