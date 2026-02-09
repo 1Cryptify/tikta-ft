@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { RPConfig, RPProvider, RPDefaultLayout, RPPages } from '@pdf-viewer/react';
+import { Document, Page, pdfjs } from 'react-pdf';
 import { FiDownload, FiChevronLeft, FiChevronRight, FiZoomIn, FiZoomOut } from 'react-icons/fi';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+import 'react-pdf/dist/Page/TextLayer.css';
+
+// Configure PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
 
 interface DocumentViewerProps {
   documentUrl: string;
@@ -258,20 +263,30 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         } else if (documentType === 'word') {
           try {
             const response = await fetch(documentUrl);
+            if (!response.ok) {
+              throw new Error(`HTTP error! status: ${response.status}`);
+            }
             const arrayBuffer = await response.arrayBuffer();
             const mammoth = await import('mammoth');
             const result = await mammoth.convertToHtml({ arrayBuffer });
             setWordContent(result.value);
             setLoading(false);
           } catch (err) {
+            console.error('Word document load error:', err);
             throw new Error('Failed to load Word document');
           }
+        } else if (documentType === 'pdf') {
+          // PDF loading is handled by react-pdf Document component
+          setLoading(false);
         } else {
           setLoading(false);
+          setError('Unsupported document type');
         }
       } catch (err) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load document';
+        console.error('Document loading error:', errorMessage);
         setError(errorMessage);
+        setLoading(false);
         onError?.(new Error(errorMessage));
       }
     };
@@ -360,13 +375,26 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
         {!loading && !error && documentType === 'pdf' && (
           <PDFContainer>
-            <RPConfig>
-              <RPProvider src={documentUrl}>
-                <RPDefaultLayout style={{ height: '100%', width: '100%' }}>
-                  <RPPages />
-                </RPDefaultLayout>
-              </RPProvider>
-            </RPConfig>
+            <Document
+              file={documentUrl}
+              onLoadSuccess={({ numPages }) => setNumPages(numPages)}
+              onLoadError={(error) => {
+                console.error('PDF load error:', error);
+                setError('Failed to load PDF document');
+                onError?.(new Error('Failed to load PDF document'));
+              }}
+              loading={<LoadingSpinner />}
+            >
+              <Page
+                pageNumber={currentPage}
+                scale={scale}
+                onRenderError={(error) => {
+                  console.error('PDF render error:', error);
+                  setError('Failed to render PDF page');
+                  onError?.(new Error('Failed to render PDF page'));
+                }}
+              />
+            </Document>
           </PDFContainer>
         )}
 
