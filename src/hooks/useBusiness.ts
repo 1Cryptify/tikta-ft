@@ -264,7 +264,7 @@ export const useBusiness = (): UseBusinessReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             documents.append('company_id', id);
-            const response = await axiosInstance.post('/upload-company-documents/', documents);
+            const response = await axiosInstance.post('/upload-documents/', documents);
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
@@ -296,7 +296,7 @@ export const useBusiness = (): UseBusinessReturn => {
             formData.append('company_id', id);
             formData.append('logo', file);
 
-            const response = await axiosInstance.post('/upload-company-documents/', formData);
+            const response = await axiosInstance.post('/upload-documents/', formData);
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
