@@ -13,6 +13,7 @@ import DocumentUploadModal from '../components/DocumentUploadModal';
 import LogoUploadModal from '../components/LogoUploadModal';
 import BusinessEditModal from '../components/BusinessEditModal';
 import BusinessAssociateModal from '../components/BusinessAssociateModal';
+import DocumentViewer from '../components/DocumentViewer';
 import {
     FiEdit,
     FiTrash2,
@@ -22,6 +23,8 @@ import {
     FiCheck,
     FiPlus,
     FiSearch,
+    FiX,
+    FiEye,
 } from 'react-icons/fi';
 
 interface BusinessPageProps {
@@ -137,6 +140,74 @@ const SearchIcon = styled.div`
   transform: translateY(-50%);
   color: #999;
   pointer-events: none;
+`;
+
+const ViewerModal = styled.div<{ isOpen: boolean }>`
+  display: ${(props) => (props.isOpen ? 'flex' : 'none')};
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  z-index: 9999;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+`;
+
+const ViewerModalContent = styled.div`
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-width: 1200px;
+  max-height: 90vh;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+`;
+
+const ViewerModalHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: #f8f9fa;
+`;
+
+const ViewerModalTitle = styled.h2`
+  margin: 0;
+  font-size: 1.25rem;
+  color: #1a1a1a;
+`;
+
+const CloseButton = styled.button`
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #666;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.3s ease;
+
+  &:hover {
+    color: #000;
+  }
+`;
+
+const ViewerModalBody = styled.div`
+  flex: 1;
+  overflow: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #fafafa;
 `;
 
 const CardsGrid = styled.div`
@@ -544,6 +615,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         uploadLogo: uploadLogoAPI,
         markActiveCompany,
         getUsers,
+        getDocumentPreviewUrl,
     } = useBusiness();
 
     const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithDocuments[]>([]);
@@ -559,6 +631,8 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const [isAssociateModalOpen, setIsAssociateModalOpen] = useState(false);
     const [selectedBusinessForAssociate, setSelectedBusinessForAssociate] = useState<BusinessWithDocuments | null>(null);
     const [users, setUsers] = useState<any[]>([]);
+    const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
+    const [viewerDocument, setViewerDocument] = useState<{ path: string; title: string } | null>(null);
 
     // Vérifier l'accès au menu
     const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
@@ -752,6 +826,17 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         }
     };
 
+    const handleViewDocument = (documentPath: string, title: string) => {
+        const previewUrl = getDocumentPreviewUrl(documentPath);
+        setViewerDocument({ path: previewUrl, title });
+        setIsViewerModalOpen(true);
+    };
+
+    const closeViewerModal = () => {
+        setIsViewerModalOpen(false);
+        setViewerDocument(null);
+    };
+
     if (!canAccess) {
         return (
             <Container>
@@ -926,18 +1011,26 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                                             <DocumentIndicator completed={!!business.creation_document} />
                                         </DocumentsProgressBar>
                                         <DocumentsList style={{ marginTop: '0.75rem' }}>
-                                            <DocumentItem completed={!!business.nui_document}>
-                                                <FiCheck size={14} /> NUI Document
-                                            </DocumentItem>
-                                            <DocumentItem completed={!!business.commerce_register_document}>
-                                                <FiCheck size={14} /> Commerce Registry
-                                            </DocumentItem>
-                                            <DocumentItem completed={!!business.website_document}>
-                                                <FiCheck size={14} /> Website Certificate
-                                            </DocumentItem>
-                                            <DocumentItem completed={!!business.creation_document}>
-                                                <FiCheck size={14} /> Creation Document
-                                            </DocumentItem>
+                                            {business.nui_document && (
+                                                <DocumentItem completed={true} style={{ cursor: 'pointer' }} onClick={() => handleViewDocument(business.nui_document, 'NUI Document')} title="Click to view document">
+                                                    <FiCheck size={14} /> NUI Document
+                                                </DocumentItem>
+                                            )}
+                                            {business.commerce_register_document && (
+                                                <DocumentItem completed={true} style={{ cursor: 'pointer' }} onClick={() => handleViewDocument(business.commerce_register_document, 'Commerce Registry')} title="Click to view document">
+                                                    <FiCheck size={14} /> Commerce Registry
+                                                </DocumentItem>
+                                            )}
+                                            {business.website_document && (
+                                                <DocumentItem completed={true} style={{ cursor: 'pointer' }} onClick={() => handleViewDocument(business.website_document, 'Website Certificate')} title="Click to view document">
+                                                    <FiCheck size={14} /> Website Certificate
+                                                </DocumentItem>
+                                            )}
+                                            {business.creation_document && (
+                                                <DocumentItem completed={true} style={{ cursor: 'pointer' }} onClick={() => handleViewDocument(business.creation_document, 'Creation Document')} title="Click to view document">
+                                                    <FiCheck size={14} /> Creation Document
+                                                </DocumentItem>
+                                            )}
                                         </DocumentsList>
                                     </DocumentsProgress>
                                 )}
@@ -1077,6 +1170,32 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                     name: user.email,
                 }))}
             />
+
+            <ViewerModal isOpen={isViewerModalOpen} onClick={closeViewerModal}>
+                <ViewerModalContent onClick={(e) => e.stopPropagation()}>
+                    <ViewerModalHeader>
+                        <ViewerModalTitle>{viewerDocument?.title || 'Document'}</ViewerModalTitle>
+                        <CloseButton onClick={closeViewerModal} title="Close">
+                            <FiX />
+                        </CloseButton>
+                    </ViewerModalHeader>
+                    <ViewerModalBody>
+                        {viewerDocument && (
+                            <DocumentViewer
+                                documentUrl={viewerDocument.path}
+                                type="auto"
+                                title={viewerDocument.title}
+                                height="100%"
+                                width="100%"
+                                showControls={true}
+                                onError={(error) => {
+                                    console.error('Document viewer error:', error);
+                                }}
+                            />
+                        )}
+                    </ViewerModalBody>
+                </ViewerModalContent>
+            </ViewerModal>
         </Container>
     );
 };

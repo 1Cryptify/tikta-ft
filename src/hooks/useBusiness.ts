@@ -55,6 +55,7 @@ interface UseBusinessReturn extends BusinessState {
     uploadDocuments: (id: string, documents: FormData) => Promise<boolean>;
     uploadLogo: (id: string, file: File) => Promise<boolean>;
     getUsers: () => Promise<any[]>;
+    getDocumentPreviewUrl: (documentPath: string) => string;
 }
 
 export const useBusiness = (): UseBusinessReturn => {
@@ -342,19 +343,30 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Get all users list
     const getUsers = useCallback(async (): Promise<any[]> => {
-        try {
-            const response = await axiosInstance.get('/list-users/');
-            if (response.data.status === 'success') {
-                return response.data.users || [];
-            }
-            return [];
-        } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to fetch users'
-                : 'An error occurred';
-            console.error('Error fetching users:', errorMessage);
-            return [];
-        }
+       try {
+           const response = await axiosInstance.get('/list-users/');
+           if (response.data.status === 'success') {
+               return response.data.users || [];
+           }
+           return [];
+       } catch (error) {
+           const errorMessage = error instanceof axios.AxiosError
+               ? error.response?.data?.message || 'Failed to fetch users'
+               : 'An error occurred';
+           console.error('Error fetching users:', errorMessage);
+           return [];
+       }
+    }, []);
+
+    // Génère l'URL de prévisualisation d'un document
+    const getDocumentPreviewUrl = useCallback((documentPath: string): string => {
+       if (!documentPath) return '';
+       // Si c'est déjà une URL complète, la retourner telle quelle
+       if (documentPath.startsWith('http')) {
+           return documentPath;
+       }
+       // Sinon, construire l'URL avec le base URL
+       return `${API_USERS_BASE_URL}${documentPath.startsWith('/') ? documentPath : '/' + documentPath}`;
     }, []);
 
      // Initialize - fetch businesses on mount
@@ -375,5 +387,6 @@ export const useBusiness = (): UseBusinessReturn => {
          uploadDocuments,
          uploadLogo,
          getUsers,
+         getDocumentPreviewUrl,
      };
-    };
+     };
