@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import styled from 'styled-components';
-import { FiEye, FiDownload, FiFile, FiImage, FiFileText } from 'react-icons/fi';
+import { FiEye, FiDownload, FiFile, FiImage, FiFileText, FiX } from 'react-icons/fi';
 import DocumentViewer from './DocumentViewer';
+import { formatFileSize, formatDate, downloadDocument } from '../utils/documentUtils';
 
 interface Document {
   id: string;
@@ -216,6 +217,11 @@ const CloseButton = styled.button`
   &:hover {
     color: #000;
   }
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
 `;
 
 const ViewerBody = styled.div`
@@ -237,25 +243,7 @@ const getDocumentIcon = (type: string) => {
   }
 };
 
-const formatFileSize = (bytes?: number): string => {
-  if (!bytes) return 'Unknown size';
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-};
 
-const formatDate = (dateString?: string): string => {
-  if (!dateString) return '';
-  try {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return dateString;
-  }
-};
 
 const BusinessDocumentsViewer: React.FC<BusinessDocumentsViewerProps> = ({
   documents,
@@ -284,12 +272,11 @@ const BusinessDocumentsViewer: React.FC<BusinessDocumentsViewerProps> = ({
     if (onDownload) {
       onDownload(doc);
     } else {
-      const link = globalThis.document.createElement('a');
-      link.href = doc.url;
-      link.download = doc.name;
-      globalThis.document.body.appendChild(link);
-      link.click();
-      globalThis.document.body.removeChild(link);
+      try {
+        downloadDocument(doc.url, doc.name);
+      } catch (error) {
+        console.error('Download error:', error);
+      }
     }
   };
 
@@ -345,8 +332,8 @@ const BusinessDocumentsViewer: React.FC<BusinessDocumentsViewerProps> = ({
         <ViewerContent onClick={(e) => e.stopPropagation()}>
           <ViewerHeader>
             <ViewerTitle>{currentDocument?.name || 'Document'}</ViewerTitle>
-            <CloseButton onClick={handleCloseViewer} title="Close">
-              ✕
+            <CloseButton onClick={handleCloseViewer} title="Close document">
+              <FiX />
             </CloseButton>
           </ViewerHeader>
           <ViewerBody>
