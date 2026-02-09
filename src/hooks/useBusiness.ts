@@ -358,15 +358,20 @@ export const useBusiness = (): UseBusinessReturn => {
        }
     }, []);
 
-    // Génère l'URL de prévisualisation d'un document
-    const getDocumentPreviewUrl = useCallback((documentPath: string): string => {
-       if (!documentPath) return '';
-       // Si c'est déjà une URL complète, la retourner telle quelle
-       if (documentPath.startsWith('http')) {
-           return documentPath;
+    // Retourne l'URL du document (le backend retourne déjà des URLs complètes /media/...)
+    const getDocumentPreviewUrl = useCallback((documentUrl: string): string => {
+       if (!documentUrl) return '';
+       // Si c'est déjà une URL complète (http://...), la retourner telle quelle
+       if (documentUrl.startsWith('http')) {
+           return documentUrl;
        }
-       // Sinon, construire l'URL avec le base URL
-       return `${API_USERS_BASE_URL}${documentPath.startsWith('/') ? documentPath : '/' + documentPath}`;
+       // Si c'est un chemin /media/, ajouter le domaine
+       if (documentUrl.startsWith('/media/')) {
+           const API_BASE_URL = API_USERS_BASE_URL.split('/api/users')[0]; // http://localhost:8000
+           return API_BASE_URL + documentUrl;
+       }
+       // Sinon retourner tel quel (chemin relatif costumer_doc/...)
+       return documentUrl;
     }, []);
 
      // Initialize - fetch businesses on mount
