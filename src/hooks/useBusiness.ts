@@ -265,7 +265,6 @@ export const useBusiness = (): UseBusinessReturn => {
         try {
             documents.append('company_id', id);
             const response = await axiosInstance.post('/upload-documents/', documents);
-            console.log('Upload response:', response.data);
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
