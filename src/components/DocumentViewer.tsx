@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Document, Page, pdfjs } from 'react-pdf';
-import { FiDownload, FiChevronLeft, FiChevronRight, FiZoomIn, FiZoomOut } from 'react-icons/fi';
+import { FiDownload, FiZoomIn, FiZoomOut } from 'react-icons/fi';
 
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`;
+// TODO: Implement PDF support
 
 interface DocumentViewerProps {
   documentUrl: string;
@@ -117,15 +115,6 @@ const ImageContainer = styled.div`
   }
 `;
 
-const PDFContainer = styled.div`
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-direction: column;
-  width: 100%;
-  height: 100%;
-`;
-
 const ErrorMessage = styled.div`
   display: flex;
   align-items: center;
@@ -234,14 +223,12 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
       const extension = documentUrl.split('.').pop()?.toLowerCase() || '';
 
-      if (['pdf'].includes(extension)) {
-        setDocumentType('pdf');
-      } else if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
         setDocumentType('image');
       } else if (['doc', 'docx'].includes(extension)) {
         setDocumentType('word');
       } else {
-        setDocumentType('pdf');
+        setDocumentType('image');
       }
     };
 
@@ -273,9 +260,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             console.error('Word document load error:', err);
             throw new Error('Failed to load Word document');
           }
-        } else if (documentType === 'pdf') {
-          // PDF loading is handled by react-pdf Document component
-          setLoading(false);
         } else {
           setLoading(false);
           setError('Unsupported document type');
@@ -324,21 +308,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       {showControls && documentType && (
         <Controls>
           <ControlGroup>
-            {documentType === 'pdf' && (
-              <>
-                <ControlButton onClick={handlePreviousPage} disabled={currentPage <= 1} title="Previous page">
-                  <FiChevronLeft size={18} />
-                </ControlButton>
-                <PageInfo>
-                  {currentPage} / {numPages}
-                </PageInfo>
-                <ControlButton onClick={handleNextPage} disabled={currentPage >= numPages} title="Next page">
-                  <FiChevronRight size={18} />
-                </ControlButton>
-              </>
-            )}
-
-            {(documentType === 'pdf' || documentType === 'image') && (
+            {documentType === 'image' && (
               <>
                 <ControlButton onClick={handleZoomOut} disabled={scale <= 0.5} title="Zoom out">
                   <FiZoomOut size={18} />
@@ -369,31 +339,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
               <p>{error}</p>
             </div>
           </ErrorMessage>
-        )}
-
-        {!loading && !error && documentType === 'pdf' && (
-          <PDFContainer>
-            <Document
-              file={documentUrl}
-              onLoadSuccess={({ numPages }) => setNumPages(numPages)}
-              onLoadError={(error) => {
-                console.error('PDF load error:', error);
-                setError('Failed to load PDF document');
-                onError?.(new Error('Failed to load PDF document'));
-              }}
-              loading={<LoadingSpinner />}
-            >
-              <Page
-                pageNumber={currentPage}
-                scale={scale}
-                onRenderError={(error) => {
-                  console.error('PDF render error:', error);
-                  setError('Failed to render PDF page');
-                  onError?.(new Error('Failed to render PDF page'));
-                }}
-              />
-            </Document>
-          </PDFContainer>
         )}
 
         {!loading && !error && documentType === 'image' && imageData && (
