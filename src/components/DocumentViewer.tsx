@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FiDownload, FiZoomIn, FiZoomOut } from 'react-icons/fi';
 
-// TODO: Implement PDF support
-
 interface DocumentViewerProps {
   documentUrl: string;
   type?: 'pdf' | 'image' | 'word' | 'auto';
@@ -153,6 +151,21 @@ const LoadingSpinner = styled.div`
     100% {
       transform: rotate(360deg);
     }
+  }
+`;
+
+const PdfContainer = styled.div`
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+
+  object {
+    width: 100%;
+    height: 100%;
+    border: none;
   }
 `;
 
