@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { Document, Page, pdfjs } from 'react-pdf';
+import { RPConfig, RPProvider, RPDefaultLayout, RPPages } from '@pdf-viewer/react';
 import { FiDownload, FiChevronLeft, FiChevronRight, FiZoomIn, FiZoomOut } from 'react-icons/fi';
-import 'react-pdf/dist/Page/AnnotationLayer.css';
-import 'react-pdf/dist/Page/TextLayer.css';
-
-// Set up the worker for PDF.js
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 interface DocumentViewerProps {
   documentUrl: string;
@@ -124,17 +119,8 @@ const PDFContainer = styled.div`
   align-items: center;
   justify-content: center;
   flex-direction: column;
-
-  .react-pdf__Document {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-  }
-
-  .react-pdf__Page {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 1rem;
-  }
+  width: 100%;
+  height: 100%;
 `;
 
 const ErrorMessage = styled.div`
@@ -252,8 +238,7 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
       } else if (['doc', 'docx'].includes(extension)) {
         setDocumentType('word');
       } else {
-        // Try to guess from content-type
-        setDocumentType('pdf'); // Default to PDF
+        setDocumentType('pdf');
       }
     };
 
@@ -268,11 +253,9 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
         setError(null);
 
         if (documentType === 'image') {
-          // For images, we can directly use the URL
           setImageData(documentUrl);
           setLoading(false);
         } else if (documentType === 'word') {
-          // Load Word document
           try {
             const response = await fetch(documentUrl);
             const arrayBuffer = await response.arrayBuffer();
@@ -284,7 +267,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
             throw new Error('Failed to load Word document');
           }
         } else {
-          // PDF will be loaded by react-pdf component
           setLoading(false);
         }
       } catch (err) {
@@ -322,10 +304,6 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const handlePDFLoadSuccess = (pdf: any) => {
-    setNumPages(pdf.numPages);
   };
 
   return (
@@ -382,12 +360,13 @@ const DocumentViewer: React.FC<DocumentViewerProps> = ({
 
         {!loading && !error && documentType === 'pdf' && (
           <PDFContainer>
-            <Document file={documentUrl} onLoadSuccess={handlePDFLoadSuccess} onError={(err) => {
-              setError('Failed to load PDF');
-              onError?.(err);
-            }}>
-              <Page pageNumber={currentPage} scale={scale} />
-            </Document>
+            <RPConfig>
+              <RPProvider src={documentUrl}>
+                <RPDefaultLayout style={{ height: '100%', width: '100%' }}>
+                  <RPPages />
+                </RPDefaultLayout>
+              </RPProvider>
+            </RPConfig>
           </PDFContainer>
         )}
 
