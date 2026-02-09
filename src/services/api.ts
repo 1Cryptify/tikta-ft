@@ -14,5 +14,5 @@ export const getMediaUrl = (relativePath: string): string => {
         return relativePath;
     }
     // Build the full media URL
-    return `${API_BASE_URL}/media/${relativePath}`;
+    return `${API_BASE_URL}/media${relativePath}`;
 };
