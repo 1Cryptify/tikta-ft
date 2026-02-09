@@ -265,6 +265,7 @@ export const useBusiness = (): UseBusinessReturn => {
         try {
             documents.append('company_id', id);
             const response = await axiosInstance.post('/upload-documents/', documents);
+            console.log('Upload response:', response.data);
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
@@ -276,9 +277,12 @@ export const useBusiness = (): UseBusinessReturn => {
             }
             return false;
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to upload documents'
-                : 'An error occurred';
+            let errorMessage = 'Failed to upload documents';
+            if (error instanceof axios.AxiosError) {
+                errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || errorMessage;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
             setState(prev => ({
                 ...prev,
                 isLoading: false,
@@ -308,9 +312,12 @@ export const useBusiness = (): UseBusinessReturn => {
             }
             return false;
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to upload logo'
-                : 'An error occurred';
+            let errorMessage = 'Failed to upload logo';
+            if (error instanceof axios.AxiosError) {
+                errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || errorMessage;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
             setState(prev => ({
                 ...prev,
                 isLoading: false,
@@ -318,7 +325,7 @@ export const useBusiness = (): UseBusinessReturn => {
             }));
             return false;
         }
-    }, []);
+        }, []);
 
     // Get all users list
     const getUsers = useCallback(async (): Promise<any[]> => {
