@@ -14,6 +14,7 @@ import LogoUploadModal from '../components/LogoUploadModal';
 import BusinessEditModal from '../components/BusinessEditModal';
 import BusinessAssociateModal from '../components/BusinessAssociateModal';
 import DocumentViewer from '../components/DocumentViewer';
+import UpdateStatusMessageModal from '../components/UpdateStatusMessageModal';
 import {
     FiEdit,
     FiTrash2,
@@ -449,7 +450,7 @@ const StatusBadge = styled.span<{ status: 'verified' | 'pending' | 'blocked' }>`
     }}
 `;
 
-const StatusMessage = styled.div<{ type?: 'positive' | 'negative' }>`
+const StatusMessage = styled.div<{ type?: 'positive' | 'negative'; isClickable?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -458,6 +459,8 @@ const StatusMessage = styled.div<{ type?: 'positive' | 'negative' }>`
   font-size: 0.85rem;
   font-weight: 500;
   margin-bottom: 1rem;
+  cursor: ${(props) => (props.isClickable ? 'pointer' : 'default')};
+  transition: ${(props) => (props.isClickable ? 'all 0.3s ease' : 'none')};
 
   ${(props) => {
         if (props.type === 'positive') {
@@ -467,6 +470,37 @@ const StatusMessage = styled.div<{ type?: 'positive' | 'negative' }>`
         }
         return 'background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db;';
     }}
+
+  ${(props) => (props.isClickable ? `
+    &:hover {
+      opacity: 0.85;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+  ` : '')}
+`;
+
+const StatusMessagePlaceholder = styled.div<{ isClickable?: boolean }>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 2px dashed #ddd;
+  font-size: 0.85rem;
+  color: #999;
+  cursor: ${(props) => (props.isClickable ? 'pointer' : 'default')};
+  transition: ${(props) => (props.isClickable ? 'all 0.3s ease' : 'none')};
+  margin-bottom: 1rem;
+
+  ${(props) => (props.isClickable ? `
+    &:hover {
+      border-color: #007bff;
+      background-color: #f0f8ff;
+      color: #007bff;
+    }
+  ` : '')}
 `;
 
 const CardActions = styled.div`
@@ -639,6 +673,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         associateUserToBusiness,
         disassociateUserFromBusiness,
         listBusinessUsers,
+        updateCompanyStatusMessage,
     } = useBusiness();
 
     const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithDocuments[]>([]);
@@ -657,6 +692,9 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const [associatedUsers, setAssociatedUsers] = useState<any[]>([]);
     const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
     const [viewerDocument, setViewerDocument] = useState<{ path: string; title: string } | null>(null);
+    const [isStatusMessageModalOpen, setIsStatusMessageModalOpen] = useState(false);
+    const [selectedBusinessForStatusMessage, setSelectedBusinessForStatusMessage] = useState<BusinessWithDocuments | null>(null);
+    const [isUpdatingStatusMessage, setIsUpdatingStatusMessage] = useState(false);
 
     // Vérifier l'accès au menu
     const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
@@ -675,7 +713,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
             const fetchData = async () => {
                 const fetchedUsers = await getUsers();
                 setUsers(fetchedUsers);
-                
+
                 // Fetch associated users for this business
                 const businessUsers = await listBusinessUsers(selectedBusinessForAssociate.id);
                 setAssociatedUsers(businessUsers);
@@ -887,6 +925,35 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         setViewerDocument(null);
     };
 
+    const handleUpdateStatusMessage = (id: string) => {
+        const business = businesses.find((b) => b.id === id);
+        if (business) {
+            setSelectedBusinessForStatusMessage(business);
+            setIsStatusMessageModalOpen(true);
+        }
+    };
+
+    const handleStatusMessageSubmit = async (message: string, type: 'positive' | 'negative') => {
+        if (!selectedBusinessForStatusMessage) return;
+
+        setIsUpdatingStatusMessage(true);
+        try {
+            const result = await updateCompanyStatusMessage(selectedBusinessForStatusMessage.id, message, type);
+            if (result) {
+                setError(null);
+                setIsStatusMessageModalOpen(false);
+                setSelectedBusinessForStatusMessage(null);
+            } else {
+                throw new Error('Failed to update status message');
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update status message');
+            throw err;
+        } finally {
+            setIsUpdatingStatusMessage(false);
+        }
+    };
+
     if (!canAccess) {
         return (
             <Container>
@@ -1026,10 +1093,35 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
 
                             <CardTitle>{business.name}</CardTitle>
 
-                            {business.status_message && (
-                                <StatusMessage type={business.status_type}>
-                                    {business.status_message}
-                                </StatusMessage>
+                            {hasPermission(userRole, MenuName.BUSINESS, ActionType.BUSINESS_EDIT) ? (
+                                <>
+                                    {business.status_message ? (
+                                        <StatusMessage
+                                            type={business.status_type}
+                                            isClickable={true}
+                                            onClick={() => handleUpdateStatusMessage(business.id)}
+                                            title="Click to edit status message"
+                                        >
+                                            {business.status_message}
+                                        </StatusMessage>
+                                    ) : (
+                                        <StatusMessagePlaceholder
+                                            isClickable={true}
+                                            onClick={() => handleUpdateStatusMessage(business.id)}
+                                            title="Click to add status message"
+                                        >
+                                            + Ajouter un message de statut
+                                        </StatusMessagePlaceholder>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    {business.status_message && (
+                                        <StatusMessage type={business.status_type}>
+                                            {business.status_message}
+                                        </StatusMessage>
+                                    )}
+                                </>
                             )}
 
                             <CardInfo>
@@ -1229,6 +1321,19 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                 }))}
                 associatedUsers={associatedUsers}
                 showExistingUsers={true}
+            />
+
+            <UpdateStatusMessageModal
+                isOpen={isStatusMessageModalOpen}
+                businessName={selectedBusinessForStatusMessage?.name || ''}
+                currentMessage={selectedBusinessForStatusMessage?.status_message}
+                currentType={selectedBusinessForStatusMessage?.status_type || 'positive'}
+                onClose={() => {
+                    setIsStatusMessageModalOpen(false);
+                    setSelectedBusinessForStatusMessage(null);
+                }}
+                onSubmit={handleStatusMessageSubmit}
+                isLoading={isUpdatingStatusMessage}
             />
 
             <ViewerModal isOpen={isViewerModalOpen} onClick={closeViewerModal}>
