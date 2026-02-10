@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FiX, FiSave } from 'react-icons/fi';
 import { Offer } from '../hooks/useOffer';
+import { useAuth } from '../hooks/useAuth';
+import { useBusiness } from '../hooks/useBusiness';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 
 interface OfferModalProps {
@@ -247,6 +249,9 @@ export const OfferModal: React.FC<OfferModalProps> = ({
   onSubmit,
   isLoading = false,
 }) => {
+  const { user } = useAuth();
+  const { businesses } = useBusiness();
+
   const [formData, setFormData] = useState<Partial<Offer>>({
     name: '',
     description: '',
@@ -263,9 +268,16 @@ export const OfferModal: React.FC<OfferModalProps> = ({
     if (offer) {
       setFormData(offer);
     } else {
+      // For new offers, auto-select active company if user is not superuser
+      const initialCompanyId = 
+        user && !user.is_superuser && user.active_company
+          ? user.active_company.id
+          : undefined;
+
       setFormData({
         name: '',
         description: '',
+        company_id: initialCompanyId,
         discount_type: 'percentage',
         discount_value: 0,
         original_price: 0,
@@ -274,7 +286,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
       });
     }
     setErrors({});
-  }, [offer, isOpen]);
+  }, [offer, isOpen, user]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -381,15 +393,35 @@ export const OfferModal: React.FC<OfferModalProps> = ({
           </FormGroup>
 
           <FormGroup>
-            <Label>Company ID *</Label>
-            <Input
-              type="text"
-              name="company_id"
-              value={formData.company_id || ''}
-              onChange={handleChange}
-              placeholder="Your company ID"
-              disabled={isLoading}
-            />
+            <Label>Company *</Label>
+            {user?.is_superuser ? (
+              <Select
+                name="company_id"
+                value={formData.company_id || ''}
+                onChange={handleChange}
+                disabled={isLoading || businesses.length === 0}
+              >
+                <option value="">Select a company</option>
+                {businesses.map((business) => (
+                  <option key={business.id} value={business.id}>
+                    {business.name} {business.nui ? `(${business.nui})` : ''}
+                  </option>
+                ))}
+              </Select>
+            ) : (
+              <Input
+                type="text"
+                name="company_display"
+                value={
+                  user?.active_company
+                    ? `${user.active_company.name}`
+                    : 'No active company'
+                }
+                disabled
+                title="Your active company is selected automatically"
+                style={{ backgroundColor: colors.neutral, cursor: 'not-allowed' }}
+              />
+            )}
             {errors.company_id && (
               <p style={{ color: colors.error, fontSize: '0.75rem', marginTop: spacing.sm }}>
                 {errors.company_id}
