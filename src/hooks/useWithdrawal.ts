@@ -14,6 +14,16 @@ const axiosInstance = axios.create({
     },
 });
 
+export interface PaymentMethod {
+    id: string;
+    name: string;
+    type: string;
+    details?: Record<string, any>;
+    is_active: boolean;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface WithdrawalAccount {
     id: string;
     company_id: string;
@@ -25,6 +35,8 @@ export interface WithdrawalAccount {
     swift_code?: string;
     iban?: string;
     currency_code?: string;
+    payment_method?: string; // payment method name
+    payment_method_id?: string;
     status: 'pending' | 'verified' | 'rejected';
     verification_details?: Record<string, any>;
     created_at?: string;
@@ -47,6 +59,8 @@ interface UseWithdrawalReturn extends WithdrawalState {
     verifyWithdrawalAccount: (id: string) => Promise<boolean>;
     rejectWithdrawalAccount: (id: string, reason?: string) => Promise<boolean>;
     getCompanyWithdrawalAccounts: (companyId: string) => Promise<WithdrawalAccount[]>;
+    linkPaymentMethod: (withdrawalId: string, paymentMethodName: string) => Promise<WithdrawalAccount | null>;
+    unlinkPaymentMethod: (withdrawalId: string) => Promise<WithdrawalAccount | null>;
 }
 
 export const useWithdrawal = (): UseWithdrawalReturn => {
@@ -374,6 +388,88 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
         }
     }, []);
 
+    // Link payment method to withdrawal account
+    const linkPaymentMethod = useCallback(async (withdrawalId: string, paymentMethodName: string): Promise<WithdrawalAccount | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.post(`/withdrawal-accounts/${withdrawalId}/payment-methods/${paymentMethodName}/link/`, {});
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const updatedAccount = response.data.withdrawal_account;
+                setState(prev => ({
+                    ...prev,
+                    withdrawalAccounts: prev.withdrawalAccounts.map(a => a.id === withdrawalId ? updatedAccount : a),
+                    isLoading: false,
+                    successMessage: response.data.message || 'Payment method linked successfully',
+                }));
+                return updatedAccount;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to link payment method',
+                }));
+            }
+            return null;
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to link payment method',
+            }));
+            return null;
+        }
+    }, []);
+
+    // Unlink payment method from withdrawal account
+    const unlinkPaymentMethod = useCallback(async (withdrawalId: string): Promise<WithdrawalAccount | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.post(`/withdrawal-accounts/${withdrawalId}/payment-methods/unlink/`, {});
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const updatedAccount = response.data.withdrawal_account;
+                setState(prev => ({
+                    ...prev,
+                    withdrawalAccounts: prev.withdrawalAccounts.map(a => a.id === withdrawalId ? updatedAccount : a),
+                    isLoading: false,
+                    successMessage: response.data.message || 'Payment method unlinked successfully',
+                }));
+                return updatedAccount;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to unlink payment method',
+                }));
+            }
+            return null;
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to unlink payment method',
+            }));
+            return null;
+        }
+    }, []);
+
     // Initialize - fetch data on mount
     useEffect(() => {
         getWithdrawalAccounts();
@@ -389,5 +485,7 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
         verifyWithdrawalAccount,
         rejectWithdrawalAccount,
         getCompanyWithdrawalAccounts,
+        linkPaymentMethod,
+        unlinkPaymentMethod,
     };
 };
