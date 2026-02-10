@@ -71,13 +71,28 @@ export interface Company {
     updated_at?: string;
 }
 
+export interface Currency {
+    id: string;
+    code: string;
+    name: string;
+    symbol: string;
+    value_in_usd: number;
+    decimal_places: number;
+    is_active: boolean;
+    is_default: boolean;
+}
+
 export interface PaymentBalance {
     id: string;
     company: string;
     available_balance: number;
     total_deposits: number;
     total_withdrawals: number;
-    pending_withdrawals: number;
+    pending_balance?: number;
+    pending_withdrawals?: number;
+    currency?: Currency;
+    currency_code?: string;
+    last_updated?: string;
     last_transaction_date?: string;
     created_at?: string;
     updated_at?: string;
