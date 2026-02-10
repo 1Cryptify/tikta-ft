@@ -14,6 +14,7 @@ import LogoUploadModal from '../components/LogoUploadModal';
 import BusinessEditModal from '../components/BusinessEditModal';
 import BusinessAssociateModal from '../components/BusinessAssociateModal';
 import DocumentViewer from '../components/DocumentViewer';
+import UpdateStatusMessageModal from '../components/UpdateStatusMessageModal';
 import {
     FiEdit,
     FiTrash2,
@@ -24,7 +25,6 @@ import {
     FiPlus,
     FiSearch,
     FiX,
-    FiEye,
 } from 'react-icons/fi';
 
 interface BusinessPageProps {
@@ -449,7 +449,7 @@ const StatusBadge = styled.span<{ status: 'verified' | 'pending' | 'blocked' }>`
     }}
 `;
 
-const StatusMessage = styled.div<{ type?: 'positive' | 'negative' }>`
+const StatusMessage = styled.div<{ type?: 'positive' | 'negative'; isClickable?: boolean }>`
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -458,6 +458,8 @@ const StatusMessage = styled.div<{ type?: 'positive' | 'negative' }>`
   font-size: 0.85rem;
   font-weight: 500;
   margin-bottom: 1rem;
+  cursor: ${(props) => (props.isClickable ? 'pointer' : 'default')};
+  transition: all 0.3s ease;
 
   ${(props) => {
         if (props.type === 'positive') {
@@ -467,6 +469,39 @@ const StatusMessage = styled.div<{ type?: 'positive' | 'negative' }>`
         }
         return 'background-color: #e2e3e5; color: #383d41; border: 1px solid #d6d8db;';
     }}
+
+  ${(props) =>
+        props.isClickable &&
+        `
+    &:hover {
+      opacity: 0.85;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+  `}
+`;
+
+const StatusMessagePlaceholder = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 2px dashed #007bff;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #007bff;
+  margin-bottom: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  background-color: #f0f8ff;
+
+  &:hover {
+    background-color: #e7f3ff;
+    border-color: #0056b3;
+    color: #0056b3;
+  }
 `;
 
 const CardActions = styled.div`
@@ -639,6 +674,8 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         associateUserToBusiness,
         disassociateUserFromBusiness,
         listBusinessUsers,
+        updateCompanyStatusMessage,
+        updateBusiness,
     } = useBusiness();
 
     const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithDocuments[]>([]);
@@ -657,6 +694,9 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const [associatedUsers, setAssociatedUsers] = useState<any[]>([]);
     const [isViewerModalOpen, setIsViewerModalOpen] = useState(false);
     const [viewerDocument, setViewerDocument] = useState<{ path: string; title: string } | null>(null);
+    const [isStatusMessageModalOpen, setIsStatusMessageModalOpen] = useState(false);
+    const [selectedBusinessForStatusMessage, setSelectedBusinessForStatusMessage] = useState<BusinessWithDocuments | null>(null);
+    const [isUpdatingStatusMessage, setIsUpdatingStatusMessage] = useState(false);
 
     // Vérifier l'accès au menu
     const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
@@ -675,7 +715,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
             const fetchData = async () => {
                 const fetchedUsers = await getUsers();
                 setUsers(fetchedUsers);
-                
+
                 // Fetch associated users for this business
                 const businessUsers = await listBusinessUsers(selectedBusinessForAssociate.id);
                 setAssociatedUsers(businessUsers);
@@ -804,6 +844,38 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         }
     };
 
+    const handleUpdateStatusMessage = (id: string) => {
+        const business = businesses.find((b) => b.id === id);
+        if (business) {
+            setSelectedBusinessForStatusMessage(business);
+            setIsStatusMessageModalOpen(true);
+        }
+    };
+
+    const handleStatusMessageSubmit = async (message: string, type: 'positive' | 'negative') => {
+        if (!selectedBusinessForStatusMessage) return;
+
+        setIsUpdatingStatusMessage(true);
+        try {
+            const result = await updateCompanyStatusMessage(
+                selectedBusinessForStatusMessage.id,
+                message,
+                type
+            );
+            if (result) {
+                setError(null);
+                setIsStatusMessageModalOpen(false);
+                setSelectedBusinessForStatusMessage(null);
+            } else {
+                throw new Error('Failed to update status message');
+            }
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to update status message');
+        } finally {
+            setIsUpdatingStatusMessage(false);
+        }
+    };
+
     const handleUploadLogo = (business: BusinessWithDocuments) => {
         setSelectedBusinessForLogo(business);
         setIsLogoModalOpen(true);
@@ -876,7 +948,8 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         }
     };
 
-    const handleViewDocument = (documentPath: string, title: string) => {
+    const handleViewDocument = (documentPath: string | undefined, title: string) => {
+        if (!documentPath) return;
         const previewUrl = getDocumentPreviewUrl(documentPath);
         setViewerDocument({ path: previewUrl, title });
         setIsViewerModalOpen(true);
@@ -1026,11 +1099,41 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
 
                             <CardTitle>{business.name}</CardTitle>
 
-                            {business.status_message && (
-                                <StatusMessage type={business.status_type}>
-                                    {business.status_message}
-                                </StatusMessage>
-                            )}
+                            {hasPermission(
+                                userRole,
+                                MenuName.BUSINESS,
+                                ActionType.BUSINESS_EDIT
+                            ) && (
+                                    <>
+                                        {business.status_message ? (
+                                            <StatusMessage
+                                                type={business.status_type}
+                                                isClickable={true}
+                                                onClick={() => handleUpdateStatusMessage(business.id)}
+                                                title="Click to edit status message"
+                                            >
+                                                {business.status_message}
+                                            </StatusMessage>
+                                        ) : (
+                                            <StatusMessagePlaceholder
+                                                onClick={() => handleUpdateStatusMessage(business.id)}
+                                                title="Click to add status message"
+                                            >
+                                                + Ajouter un message de statut
+                                            </StatusMessagePlaceholder>
+                                        )}
+                                    </>
+                                )}
+
+                            {!hasPermission(
+                                userRole,
+                                MenuName.BUSINESS,
+                                ActionType.BUSINESS_EDIT
+                            ) && business.status_message && (
+                                    <StatusMessage type={business.status_type}>
+                                        {business.status_message}
+                                    </StatusMessage>
+                                )}
 
                             <CardInfo>
                                 {business.nui && (
@@ -1229,6 +1332,18 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                 }))}
                 associatedUsers={associatedUsers}
                 showExistingUsers={true}
+            />
+
+            <UpdateStatusMessageModal
+                isOpen={isStatusMessageModalOpen}
+                statusMessage={selectedBusinessForStatusMessage?.status_message}
+                statusType={selectedBusinessForStatusMessage?.status_type}
+                isLoading={isUpdatingStatusMessage}
+                onClose={() => {
+                    setIsStatusMessageModalOpen(false);
+                    setSelectedBusinessForStatusMessage(null);
+                }}
+                onSubmit={handleStatusMessageSubmit}
             />
 
             <ViewerModal isOpen={isViewerModalOpen} onClick={closeViewerModal}>
