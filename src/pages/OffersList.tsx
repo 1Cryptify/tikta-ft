@@ -13,25 +13,19 @@ import { useOffer, Offer } from '../hooks/useOffer';
 import { OfferModal } from '../components/OfferModal';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 
-const ContentSection = styled.div`
-  padding: ${spacing.xl};
-  max-width: 1400px;
-  margin: 0 auto;
-  width: 100%;
-`;
-
-const PageHeader = styled.div`
+const Header = styled.div`
   margin-bottom: ${spacing.xxl};
 
-  h1 {
-    font-size: 2rem;
+  h2 {
+    font-size: 1.5rem;
     color: ${colors.textPrimary};
-    margin-bottom: ${spacing.sm};
+    margin: 0;
   }
 
   p {
     color: ${colors.textSecondary};
     font-size: 0.875rem;
+    margin: ${spacing.sm} 0 0 0;
   }
 `;
 
@@ -310,7 +304,11 @@ const ActionButton = styled.button<{ variant?: 'primary' | 'danger' }>`
   }
 `;
 
-export const OffersListPage: React.FC = () => {
+interface OffersListProps {
+  onTabChange?: (tab: 'offers' | 'products') => void;
+}
+
+export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
   const {
     offers,
     isLoading,
@@ -388,11 +386,10 @@ export const OffersListPage: React.FC = () => {
   };
 
   return (
-    <ContentSection>
-      <PageHeader>
-        <h1>Offers Management</h1>
-        <p>Create, manage, and monitor your special offers</p>
-      </PageHeader>
+    <>
+      <Header>
+        <h2>Offers</h2>
+      </Header>
 
       {error && (
         <ErrorBanner>
@@ -517,6 +514,6 @@ export const OffersListPage: React.FC = () => {
         onSubmit={handleSubmit}
         isLoading={isSaving}
       />
-    </ContentSection>
+    </>
   );
 };
