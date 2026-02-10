@@ -264,6 +264,17 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         setError(null);
         setSuccess(null);
 
+        // Clear autofill on form submission
+        const formElement = e.currentTarget as HTMLFormElement;
+        const inputs = formElement.querySelectorAll('input');
+        inputs.forEach(input => {
+            if (input.id === 'ticket_id' || input.id === 'password') {
+                setTimeout(() => {
+                    input.value = '';
+                }, 0);
+            }
+        });
+
         // Validation
         if (!formData.ticket_id.trim()) {
             setError('Ticket ID is required');
@@ -312,17 +323,20 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                     {error && <ErrorMessage>{error}</ErrorMessage>}
                     {success && <SuccessMessage>{success}</SuccessMessage>}
 
-                    <Form onSubmit={handleSubmit}>
+                    <Form onSubmit={handleSubmit} autoComplete="off" data-lpignore="true" data-form-type="other">
                         <FormGroup>
                             <Label htmlFor="ticket_id">Ticket ID (User Identifier) *</Label>
                             <Input
                                 id="ticket_id"
                                 type="text"
-                                name="ticket_id"
+                                name="ticket_id_temp"
                                 value={formData.ticket_id}
                                 onChange={handleChange}
                                 placeholder="Enter user identifier"
                                 disabled={isLoading}
+                                autoComplete="off"
+                                data-lpignore="true"
+                                spellCheck="false"
                             />
                         </FormGroup>
 
@@ -331,11 +345,13 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                             <Input
                                 id="password"
                                 type="password"
-                                name="password"
+                                name="password_temp"
                                 value={formData.password}
                                 onChange={handleChange}
                                 placeholder="Enter password"
                                 disabled={isLoading}
+                                autoComplete="new-password"
+                                data-lpignore="true"
                             />
                         </FormGroup>
 
