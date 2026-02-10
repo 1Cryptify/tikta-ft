@@ -329,7 +329,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                             <Input
                                 id="ticket_id"
                                 type="text"
-                                name="ticket_id_temp"
+                                name="ticket_id"
                                 value={formData.ticket_id}
                                 onChange={handleChange}
                                 placeholder="Enter user identifier"
@@ -345,7 +345,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                             <Input
                                 id="password"
                                 type="password"
-                                name="password_temp"
+                                name="password"
                                 value={formData.password}
                                 onChange={handleChange}
                                 placeholder="Enter password"
