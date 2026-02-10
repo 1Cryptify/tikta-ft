@@ -59,6 +59,7 @@ interface UseWithdrawalReturn extends WithdrawalState {
     verifyWithdrawalAccount: (id: string) => Promise<boolean>;
     rejectWithdrawalAccount: (id: string, reason?: string) => Promise<boolean>;
     getCompanyWithdrawalAccounts: (companyId: string) => Promise<WithdrawalAccount[]>;
+    getPaymentMethods: () => Promise<PaymentMethod[]>;
     linkPaymentMethod: (withdrawalId: string, paymentMethodName: string) => Promise<WithdrawalAccount | null>;
     unlinkPaymentMethod: (withdrawalId: string) => Promise<WithdrawalAccount | null>;
 }
@@ -388,6 +389,28 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
         }
     }, []);
 
+    // Get available payment methods
+    const getPaymentMethods = useCallback(async (): Promise<PaymentMethod[]> => {
+        try {
+            const response = await axiosInstance.get('/payment-methods/');
+            if (response.data.status === 'success') {
+                return response.data.payment_methods || [];
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    error: response.data.message || 'Failed to fetch payment methods',
+                }));
+            }
+            return [];
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                error: 'Failed to fetch payment methods',
+            }));
+            return [];
+        }
+    }, []);
+
     // Link payment method to withdrawal account
     const linkPaymentMethod = useCallback(async (withdrawalId: string, paymentMethodName: string): Promise<WithdrawalAccount | null> => {
         const startTime = Date.now();
@@ -485,6 +508,7 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
         verifyWithdrawalAccount,
         rejectWithdrawalAccount,
         getCompanyWithdrawalAccounts,
+        getPaymentMethods,
         linkPaymentMethod,
         unlinkPaymentMethod,
     };

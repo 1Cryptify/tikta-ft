@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
+import axios from 'axios';
 import { colors, spacing } from '../../config/theme';
-import { useWithdrawal } from '../../hooks/useWithdrawal';
+import { useWithdrawal, PaymentMethod } from '../../hooks/useWithdrawal';
 import { useAuth } from '../../hooks/useAuth';
+import { API_PAYMENTS_BASE_URL } from '../../services/api';
 import LoadingSpinner from '../LoadingSpinner';
 
 const PanelContainer = styled.div`
@@ -171,9 +173,30 @@ const StatusBadge = styled.span<{ status: string }>`
 `;
 
 const CardActions = styled.div`
-  display: flex;
-  gap: ${spacing.sm};
-  flex-wrap: wrap;
+   display: flex;
+   gap: ${spacing.sm};
+   flex-wrap: wrap;
+   align-items: center;
+`;
+
+const LinkMethodSelect = styled.select`
+   padding: ${spacing.xs} ${spacing.sm};
+   border-radius: 4px;
+   border: 1px solid ${colors.primary};
+   color: ${colors.primary};
+   font-size: 0.875rem;
+   cursor: pointer;
+   background-color: white;
+   transition: all 0.3s ease;
+
+   &:hover {
+     background-color: ${colors.primary}10;
+   }
+
+   &:focus {
+     outline: none;
+     box-shadow: 0 0 0 3px ${colors.primary}20;
+   }
 `;
 
 const ActionButton = styled.button`
@@ -288,6 +311,15 @@ interface WithdrawalStats {
     lastWithdrawal: string | null;
 }
 
+interface FormDataType {
+    account_type: string;
+    provider: string;
+    account_number: string;
+    account_name: string;
+    payment_method: string;
+    details: Record<string, any>;
+}
+
 export const WithdrawalPanel: React.FC = () => {
     const { user } = useAuth();
     const {
@@ -299,21 +331,50 @@ export const WithdrawalPanel: React.FC = () => {
         createWithdrawalAccount,
         deleteWithdrawalAccount,
         verifyWithdrawalAccount,
+        linkPaymentMethod,
+        unlinkPaymentMethod,
     } = useWithdrawal();
 
     const [showForm, setShowForm] = useState(false);
+    const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+    const [linkedPaymentMethod, setLinkedPaymentMethod] = useState<Record<string, string | null>>({});
     const [stats, setStats] = useState<WithdrawalStats>({
         balance: 100000,
         totalPayments: 0,
         lastWithdrawal: null,
     });
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<FormDataType>({
         account_type: 'bank_account',
         provider: '',
         account_number: '',
         account_name: '',
+        payment_method: '',
         details: {},
     });
+
+    // Fetch available payment methods
+    useEffect(() => {
+        const fetchPaymentMethods = async () => {
+            setLoadingPaymentMethods(true);
+            try {
+                const axiosInstance = axios.create({
+                    baseURL: API_PAYMENTS_BASE_URL,
+                    withCredentials: true,
+                });
+                const response = await axiosInstance.get('/payment-methods/');
+                if (response.data.status === 'success') {
+                    setPaymentMethods(response.data.payment_methods || []);
+                }
+            } catch (err) {
+                console.error('Failed to fetch payment methods:', err);
+            } finally {
+                setLoadingPaymentMethods(false);
+            }
+        };
+
+        fetchPaymentMethods();
+    }, []);
 
     useEffect(() => {
         getWithdrawalAccounts();
@@ -334,6 +395,13 @@ export const WithdrawalPanel: React.FC = () => {
                 totalPayments: withdrawalAccounts.length,
                 lastWithdrawal: lastDate ? new Date(lastDate).toLocaleDateString() : null,
             }));
+
+            // Initialize linked payment methods state
+            const linked: Record<string, string | null> = {};
+            withdrawalAccounts.forEach(account => {
+                linked[account.id] = account.payment_method || null;
+            });
+            setLinkedPaymentMethod(linked);
         }
     }, [withdrawalAccounts.length]);
 
@@ -347,13 +415,19 @@ export const WithdrawalPanel: React.FC = () => {
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const result = await createWithdrawalAccount(formData);
+        const submitData = {
+            ...formData,
+            // Only include payment_method if one was selected
+            ...(formData.payment_method && { payment_method: formData.payment_method }),
+        };
+        const result = await createWithdrawalAccount(submitData);
         if (result) {
             setFormData({
                 account_type: 'bank_account',
                 provider: '',
                 account_number: '',
                 account_name: '',
+                payment_method: '',
                 details: {},
             });
             setShowForm(false);
@@ -370,6 +444,34 @@ export const WithdrawalPanel: React.FC = () => {
         const result = await verifyWithdrawalAccount(id);
         if (result) {
             await getWithdrawalAccounts();
+        }
+    };
+
+    const handleLinkPaymentMethod = async (accountId: string, paymentMethodName: string) => {
+        if (!paymentMethodName) {
+            alert('Please select a payment method');
+            return;
+        }
+        const result = await linkPaymentMethod(accountId, paymentMethodName);
+        if (result) {
+            setLinkedPaymentMethod(prev => ({
+                ...prev,
+                [accountId]: paymentMethodName,
+            }));
+            await getWithdrawalAccounts();
+        }
+    };
+
+    const handleUnlinkPaymentMethod = async (accountId: string) => {
+        if (confirm('Are you sure you want to unlink the payment method from this account?')) {
+            const result = await unlinkPaymentMethod(accountId);
+            if (result) {
+                setLinkedPaymentMethod(prev => ({
+                    ...prev,
+                    [accountId]: null,
+                }));
+                await getWithdrawalAccounts();
+            }
         }
     };
 
@@ -448,6 +550,23 @@ export const WithdrawalPanel: React.FC = () => {
                             />
                         </FormGroup>
 
+                        <FormGroup>
+                            <label>Link Payment Method (Optional)</label>
+                            <select
+                                name="payment_method"
+                                value={formData.payment_method}
+                                onChange={handleInputChange}
+                                disabled={loadingPaymentMethods}
+                            >
+                                <option value="">Select a payment method...</option>
+                                {paymentMethods.map(method => (
+                                    <option key={method.id} value={method.name}>
+                                        {method.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </FormGroup>
+
                         <FormActions>
                             <SubmitButton type="submit" disabled={isLoading}>
                                 {isLoading ? 'Creating...' : 'Create Account'}
@@ -503,6 +622,12 @@ export const WithdrawalPanel: React.FC = () => {
                                         <strong>✓</strong>
                                     </InfoRow>
                                 )}
+                                <InfoRow>
+                                    <span>Payment Method:</span>
+                                    <strong>
+                                        {linkedPaymentMethod[account.id] || 'Not linked'}
+                                    </strong>
+                                </InfoRow>
                             </CardInfo>
                             <CardActions>
                                 {account.verification_status === 'pending' && user?.is_superuser && (
@@ -512,6 +637,29 @@ export const WithdrawalPanel: React.FC = () => {
                                     >
                                         Verify
                                     </ActionButton>
+                                )}
+                                {linkedPaymentMethod[account.id] ? (
+                                    <ActionButton
+                                        onClick={() => handleUnlinkPaymentMethod(account.id)}
+                                    >
+                                        Unlink Method
+                                    </ActionButton>
+                                ) : (
+                                    <LinkMethodSelect
+                                        value=""
+                                        onChange={(e) => {
+                                            if (e.target.value) {
+                                                handleLinkPaymentMethod(account.id, e.target.value);
+                                            }
+                                        }}
+                                    >
+                                        <option value="">Link Method...</option>
+                                        {paymentMethods.map(method => (
+                                            <option key={method.id} value={method.name}>
+                                                {method.name}
+                                            </option>
+                                        ))}
+                                    </LinkMethodSelect>
                                 )}
                                 <ActionButton
                                     className="danger"
