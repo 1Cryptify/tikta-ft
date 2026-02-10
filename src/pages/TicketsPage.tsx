@@ -2,10 +2,11 @@ import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 // @ts-ignore
 import QRCode from 'qrcode.react';
-import { FiPrinter, FiEye, FiEyeOff, FiCheck, FiX, FiCopy } from 'react-icons/fi';
+import { FiPrinter, FiEye, FiEyeOff, FiCheck, FiX, FiCopy, FiPlus, FiTrash2, FiEdit2 } from 'react-icons/fi';
 import { colors, spacing } from '../config/theme';
 import { useTicket, Ticket } from '../hooks/useTicket';
 import LoadingSpinner from '../components/LoadingSpinner';
+import CreateTicketModal from '../components/CreateTicketModal';
 
 // ========== STYLED COMPONENTS ==========
 
@@ -17,7 +18,15 @@ const ContentSection = styled.div`
 `;
 
 const PageHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: ${spacing.xxl};
+  gap: ${spacing.lg};
+
+  > div {
+    flex: 1;
+  }
 
   h1 {
     font-size: 2rem;
@@ -28,6 +37,42 @@ const PageHeader = styled.div`
   p {
     color: ${colors.textSecondary};
     font-size: 0.875rem;
+  }
+`;
+
+const CreateButton = styled.button`
+  padding: 10px 16px;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+
+  &:hover {
+    background: #0056b3;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  @media (max-width: 768px) {
+    padding: 8px 12px;
+    font-size: 0.8rem;
   }
 `;
 
@@ -235,6 +280,28 @@ const PrintButton = styled(ActionButton)`
   }
 `;
 
+const DeleteButton = styled(ActionButton)`
+  background: #dc3545;
+  color: white;
+  border-color: #dc3545;
+
+  &:hover {
+    background: #c82333;
+    border-color: #c82333;
+  }
+`;
+
+const EditButton = styled(ActionButton)`
+  background: #ffc107;
+  color: #000;
+  border-color: #ffc107;
+
+  &:hover {
+    background: #e0a800;
+    border-color: #e0a800;
+  }
+`;
+
 const EmptyState = styled.div`
   text-align: center;
   padding: ${spacing.xxl};
@@ -399,7 +466,19 @@ export const TicketsPage: React.FC = () => {
     const isLoading = ticketData?.isLoading || false;
     const error = ticketData?.error || null;
     const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [editingTicketId, setEditingTicketId] = useState<string | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
+
+    const handleCreateTicket = async (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }) => {
+        await ticketData.createTicket(data);
+    };
+
+    const handleDeleteTicket = async (ticketId: string) => {
+        if (window.confirm('Are you sure you want to delete this ticket?')) {
+            await ticketData.deleteTicket(ticketId);
+        }
+    };
 
     const toggleSecretVisibility = (ticketId: string) => {
         setRevealedSecrets(prev => {
@@ -580,9 +659,21 @@ export const TicketsPage: React.FC = () => {
     return (
         <ContentSection>
             <PageHeader>
-                <h1>Tickets & Coupons</h1>
-                <p>View and manage your tickets and discount coupons</p>
+                <div>
+                    <h1>Tickets & Coupons</h1>
+                    <p>View and manage your tickets and discount coupons</p>
+                </div>
+                <CreateButton onClick={() => setIsCreateModalOpen(true)} disabled={isLoading}>
+                    <FiPlus /> Create Ticket
+                </CreateButton>
             </PageHeader>
+
+            <CreateTicketModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSubmit={handleCreateTicket}
+                isLoading={isLoading}
+            />
 
             {error && (
                 <EmptyState>
@@ -709,14 +800,29 @@ export const TicketsPage: React.FC = () => {
                                 </PrintButton>
                                 {ticket.is_valid && !ticket.is_used && (
                                     <>
-                                        <ActionButton title="Validate ticket">
+                                        <ActionButton 
+                                            title="Validate ticket"
+                                            onClick={() => validateTicket(ticket.id, ticket.ticket_code, ticket.ticket_secret)}
+                                        >
                                             <FiCheck /> Validate
                                         </ActionButton>
-                                        <ActionButton title="Mark as used">
+                                        <ActionButton 
+                                            title="Mark as used"
+                                            onClick={() => useTicket(ticket.id, ticket.ticket_code, ticket.ticket_secret)}
+                                        >
                                             <FiX /> Use
                                         </ActionButton>
                                     </>
                                 )}
+                                <EditButton title="Edit ticket">
+                                    <FiEdit2 /> Edit
+                                </EditButton>
+                                <DeleteButton 
+                                    title="Delete ticket"
+                                    onClick={() => handleDeleteTicket(ticket.id)}
+                                >
+                                    <FiTrash2 /> Delete
+                                </DeleteButton>
                             </TicketActions>
                         </TicketCard>
                     ))}

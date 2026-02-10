@@ -49,6 +49,8 @@ interface UseTicketReturn extends TicketState {
     getTickets: () => Promise<void>;
     getTicketById: (id: string) => Promise<Ticket | null>;
     createTicket: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }) => Promise<Ticket | null>;
+    updateTicket: (id: string, data: Partial<Ticket>) => Promise<Ticket | null>;
+    deleteTicket: (id: string) => Promise<boolean>;
     validateTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
     useTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
     getCompanyTickets: (companyId: string, filters?: { status?: string; offer_id?: string }) => Promise<Ticket[]>;
@@ -282,6 +284,97 @@ export const useTicket = (): UseTicketReturn => {
         }
     }, []);
 
+    // Update ticket
+    const updateTicket = useCallback(async (id: string, data: Partial<Ticket>): Promise<Ticket | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.patch(`/tickets/${id}/`, data);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const updatedTicket = response.data.ticket;
+                setState(prev => ({
+                    ...prev,
+                    tickets: prev.tickets.map(t => t.id === id ? updatedTicket : t),
+                    isLoading: false,
+                    successMessage: response.data.message || 'Ticket updated successfully',
+                }));
+                return updatedTicket;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to update ticket',
+                }));
+            }
+            return null;
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || error.message
+                : error instanceof Error
+                    ? error.message
+                    : 'Failed to update ticket';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return null;
+        }
+    }, []);
+
+    // Delete ticket
+    const deleteTicket = useCallback(async (id: string): Promise<boolean> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.delete(`/tickets/${id}/`);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    tickets: prev.tickets.filter(t => t.id !== id),
+                    isLoading: false,
+                    successMessage: response.data.message || 'Ticket deleted successfully',
+                }));
+                return true;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to delete ticket',
+                }));
+            }
+            return false;
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || error.message
+                : error instanceof Error
+                    ? error.message
+                    : 'Failed to delete ticket';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return false;
+        }
+    }, []);
+
     // Get company tickets
     const getCompanyTickets = useCallback(async (companyId: string, filters?: { status?: string; offer_id?: string }): Promise<Ticket[]> => {
         const startTime = Date.now();
@@ -337,6 +430,8 @@ export const useTicket = (): UseTicketReturn => {
         getTickets,
         getTicketById,
         createTicket,
+        updateTicket,
+        deleteTicket,
         validateTicket,
         useTicket,
         getCompanyTickets,
