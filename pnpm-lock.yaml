@@ -14,9 +14,6 @@ importers:
       '@react-pdf-viewer/default-layout':
         specifier: ^3.12.0
         version: 3.12.0(pdfjs-dist@3.4.120)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
-      '@types/qrcode.react':
-        specifier: ^3.0.0
-        version: 3.0.0(react@18.3.1)
       axios:
         specifier: ^1.13.4
         version: 1.13.4
@@ -45,6 +42,9 @@ importers:
         specifier: ^6.0.0
         version: 6.3.8(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
     devDependencies:
+      '@types/qrcode.react':
+        specifier: ^3.0.0
+        version: 3.0.0(react@18.3.1)
       '@types/react':
         specifier: ^18.2.0
         version: 18.3.27

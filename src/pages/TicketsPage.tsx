@@ -1,10 +1,11 @@
 import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
+// @ts-ignore
 import QRCode from 'qrcode.react';
 import { FiPrinter, FiEye, FiEyeOff, FiCheck, FiX, FiCopy } from 'react-icons/fi';
 import { colors, spacing } from '../config/theme';
 import { useTicket, Ticket } from '../hooks/useTicket';
-import  LoadingSpinner  from '../components/LoadingSpinner';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 // ========== STYLED COMPONENTS ==========
 
@@ -75,19 +76,19 @@ const StatusBadge = styled.span<{ status: string }>`
   margin-left: ${spacing.sm};
 
   ${props => {
-    switch (props.status) {
-      case 'active':
-        return `background: #d4edda; color: #155724;`;
-      case 'used':
-        return `background: #cfe2ff; color: #084298;`;
-      case 'expired':
-        return `background: #f8d7da; color: #842029;`;
-      case 'cancelled':
-        return `background: #e2e3e5; color: #383d41;`;
-      default:
-        return `background: #e7e7e7; color: #383d41;`;
-    }
-  }}
+        switch (props.status) {
+            case 'active':
+                return `background: #d4edda; color: #155724;`;
+            case 'used':
+                return `background: #cfe2ff; color: #084298;`;
+            case 'expired':
+                return `background: #f8d7da; color: #842029;`;
+            case 'cancelled':
+                return `background: #e2e3e5; color: #383d41;`;
+            default:
+                return `background: #e7e7e7; color: #383d41;`;
+        }
+    }}
 `;
 
 const TicketContent = styled.div`
@@ -314,113 +315,118 @@ const ThermalFooter = styled.div`
 // ========== THERMAL PRINT COMPONENT ==========
 
 interface ThermalTicketProps {
-  ticket: Ticket;
+    ticket: Ticket;
 }
 
 const ThermalTicket: React.FC<ThermalTicketProps> = ({ ticket }) => {
-  const qrValue = JSON.stringify({
-    id: ticket.id,
-    code: ticket.ticket_code,
-    secret: ticket.ticket_secret,
-  });
+    const qrValue = JSON.stringify({
+        id: ticket.id || '',
+        code: ticket.ticket_code || '',
+        secret: ticket.ticket_secret || '',
+    });
 
-  return (
-    <ThermalTicketTemplate>
-      <ThermalHeader>
-        {ticket.offer_name || ticket.ticket_code}
-      </ThermalHeader>
+    return (
+        <ThermalTicketTemplate>
+            <ThermalHeader>
+                {ticket.offer_name || ticket.ticket_code}
+            </ThermalHeader>
 
-      <ThermalQR>
-        <QRCode
-          value={qrValue}
-          size={128}
-          level="H"
-          includeMargin={true}
-        />
-      </ThermalQR>
+            <ThermalQR>
+                <QRCode
+                    value={qrValue}
+                    size={128}
+                    level="H"
+                    includeMargin={true}
+                />
+            </ThermalQR>
 
-      <ThermalField>
-        <ThermalLabel>Ticket ID:</ThermalLabel>
-        <ThermalValue>{ticket.id}</ThermalValue>
-      </ThermalField>
+            <ThermalField>
+                <ThermalLabel>Ticket ID:</ThermalLabel>
+                <ThermalValue>{ticket.id || 'N/A'}</ThermalValue>
+            </ThermalField>
 
-      <ThermalField>
-        <ThermalLabel>Code:</ThermalLabel>
-        <ThermalValue>{ticket.ticket_code}</ThermalValue>
-      </ThermalField>
+            <ThermalField>
+                <ThermalLabel>Code:</ThermalLabel>
+                <ThermalValue>{ticket.ticket_code || 'N/A'}</ThermalValue>
+            </ThermalField>
 
-      <ThermalField>
-        <ThermalLabel>Secret:</ThermalLabel>
-        <ThermalValue>{ticket.ticket_secret}</ThermalValue>
-      </ThermalField>
+            {ticket.ticket_secret && (
+                <ThermalField>
+                    <ThermalLabel>Secret:</ThermalLabel>
+                    <ThermalValue>{ticket.ticket_secret}</ThermalValue>
+                </ThermalField>
+            )}
 
-      {ticket.offer_name && (
-        <ThermalField>
-          <ThermalLabel>Offer:</ThermalLabel>
-          <ThermalValue>{ticket.offer_name}</ThermalValue>
-        </ThermalField>
-      )}
+            {ticket.offer_name && (
+                <ThermalField>
+                    <ThermalLabel>Offer:</ThermalLabel>
+                    <ThermalValue>{ticket.offer_name}</ThermalValue>
+                </ThermalField>
+            )}
 
-      {ticket.valid_from && (
-        <ThermalField>
-          <ThermalLabel>Valid From:</ThermalLabel>
-          <ThermalValue>
-            {new Date(ticket.valid_from).toLocaleDateString()}
-          </ThermalValue>
-        </ThermalField>
-      )}
+            {ticket.valid_from && (
+                <ThermalField>
+                    <ThermalLabel>Valid From:</ThermalLabel>
+                    <ThermalValue>
+                        {new Date(ticket.valid_from).toLocaleDateString()}
+                    </ThermalValue>
+                </ThermalField>
+            )}
 
-      {ticket.valid_until && (
-        <ThermalField>
-          <ThermalLabel>Valid Until:</ThermalLabel>
-          <ThermalValue>
-            {new Date(ticket.valid_until).toLocaleDateString()}
-          </ThermalValue>
-        </ThermalField>
-      )}
+            {ticket.valid_until && (
+                <ThermalField>
+                    <ThermalLabel>Valid Until:</ThermalLabel>
+                    <ThermalValue>
+                        {new Date(ticket.valid_until).toLocaleDateString()}
+                    </ThermalValue>
+                </ThermalField>
+            )}
 
-      <ThermalFooter>
-        Status: {ticket.status.toUpperCase()}
-        <br />
-        {new Date().toLocaleString()}
-      </ThermalFooter>
-    </ThermalTicketTemplate>
-  );
+            <ThermalFooter>
+                Status: {ticket.status.toUpperCase()}
+                <br />
+                {new Date().toLocaleString()}
+            </ThermalFooter>
+        </ThermalTicketTemplate>
+    );
 };
 
 // ========== MAIN COMPONENT ==========
 
 export const TicketsPage: React.FC = () => {
-  const { tickets, isLoading, error } = useTicket();
-  const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
-  const printRef = useRef<HTMLDivElement>(null);
+    const ticketData = useTicket();
+    const tickets = ticketData?.tickets || [];
+    const isLoading = ticketData?.isLoading || false;
+    const error = ticketData?.error || null;
+    const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
+    const printRef = useRef<HTMLDivElement>(null);
 
-  const toggleSecretVisibility = (ticketId: string) => {
-    setRevealedSecrets(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(ticketId)) {
-        newSet.delete(ticketId);
-      } else {
-        newSet.add(ticketId);
-      }
-      return newSet;
-    });
-  };
+    const toggleSecretVisibility = (ticketId: string) => {
+        setRevealedSecrets(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(ticketId)) {
+                newSet.delete(ticketId);
+            } else {
+                newSet.add(ticketId);
+            }
+            return newSet;
+        });
+    };
 
-  const copyToClipboard = (text: string) => {
-    navigator.clipboard.writeText(text);
-  };
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+    };
 
-  const handlePrintThermal = (ticket: Ticket) => {
-    const printWindow = window.open('', '', 'width=600,height=800');
-    if (printWindow) {
-      const qrValue = JSON.stringify({
-        id: ticket.id,
-        code: ticket.ticket_code,
-        secret: ticket.ticket_secret,
-      });
+    const handlePrintThermal = (ticket: Ticket) => {
+        const printWindow = window.open('', '', 'width=600,height=800');
+        if (printWindow) {
+            const qrValue = JSON.stringify({
+                id: ticket.id || '',
+                code: ticket.ticket_code || '',
+                secret: ticket.ticket_secret || '',
+            });
 
-      const html = `
+            const html = `
         <!DOCTYPE html>
         <html>
         <head>
@@ -494,17 +500,17 @@ export const TicketsPage: React.FC = () => {
 
             <div class="field">
               <div class="label">Ticket ID:</div>
-              <div class="value">${ticket.id}</div>
+              <div class="value">${ticket.id || 'N/A'}</div>
             </div>
 
             <div class="field">
               <div class="label">Code:</div>
-              <div class="value">${ticket.ticket_code}</div>
+              <div class="value">${ticket.ticket_code || 'N/A'}</div>
             </div>
 
             <div class="field">
               <div class="label">Secret:</div>
-              <div class="value">${ticket.ticket_secret}</div>
+              <div class="value">${ticket.ticket_secret || 'N/A'}</div>
             </div>
 
             ${ticket.offer_name ? `
@@ -537,162 +543,168 @@ export const TicketsPage: React.FC = () => {
         </body>
         </html>
       `;
-      
-      printWindow.document.write(html);
-      printWindow.document.close();
-      setTimeout(() => {
-        printWindow.print();
-      }, 500);
+
+            printWindow.document.write(html);
+            printWindow.document.close();
+            setTimeout(() => {
+                printWindow.print();
+            }, 500);
+        }
+    };
+
+    if (isLoading && tickets.length === 0) {
+        return <LoadingSpinner />;
     }
-  };
 
-  if (isLoading && tickets.length === 0) {
-    return <LoadingSpinner />;
-  }
+    return (
+        <ContentSection>
+            <PageHeader>
+                <h1>Tickets & Coupons</h1>
+                <p>View and manage your tickets and discount coupons</p>
+            </PageHeader>
 
-  return (
-    <ContentSection>
-      <PageHeader>
-        <h1>Tickets & Coupons</h1>
-        <p>View and manage your tickets and discount coupons</p>
-      </PageHeader>
+            {error && (
+                <EmptyState>
+                    <p style={{ color: '#d32f2f' }}>Error: {error}</p>
+                </EmptyState>
+            )}
 
-      {error && (
-        <EmptyState>
-          <p style={{ color: '#d32f2f' }}>Error: {error}</p>
-        </EmptyState>
-      )}
+            {!error && tickets.length === 0 && (
+                <EmptyState>
+                    <p>No tickets found. Create your first ticket to get started.</p>
+                </EmptyState>
+            )}
 
-      {!error && tickets.length === 0 && (
-        <EmptyState>
-          <p>No tickets found. Create your first ticket to get started.</p>
-        </EmptyState>
-      )}
+            {tickets.length > 0 && (
+                <TicketsContainer>
+                    {tickets.map(ticket => (
+                        <TicketCard key={ticket.id}>
+                            <TicketHeader>
+                                <TicketTitle>{ticket.ticket_code}</TicketTitle>
+                                <StatusBadge status={ticket.status}>
+                                    {ticket.status}
+                                </StatusBadge>
+                            </TicketHeader>
 
-      {tickets.length > 0 && (
-        <TicketsContainer>
-          {tickets.map(ticket => (
-            <TicketCard key={ticket.id}>
-              <TicketHeader>
-                <TicketTitle>{ticket.ticket_code}</TicketTitle>
-                <StatusBadge status={ticket.status}>
-                  {ticket.status}
-                </StatusBadge>
-              </TicketHeader>
+                            <TicketContent>
+                                {ticket.id && ticket.ticket_code && (
+                                    <QRContainer>
+                                        <QRCode
+                                            value={JSON.stringify({
+                                                id: ticket.id,
+                                                code: ticket.ticket_code,
+                                                secret: ticket.ticket_secret || '',
+                                            })}
+                                            size={100}
+                                            level="H"
+                                            includeMargin={true}
+                                        />
+                                        <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>QR Code</span>
+                                    </QRContainer>
+                                )}
 
-              <TicketContent>
-                <QRContainer>
-                  <QRCode
-                    value={JSON.stringify({
-                      id: ticket.id,
-                      code: ticket.ticket_code,
-                      secret: ticket.ticket_secret,
-                    })}
-                    size={100}
-                    level="H"
-                    includeMargin={true}
-                  />
-                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>QR Code</span>
-                </QRContainer>
+                                <TicketDetails>
+                                    <DetailRow>
+                                        <DetailLabel>Ticket ID</DetailLabel>
+                                        <DetailValue>{ticket.id}</DetailValue>
+                                    </DetailRow>
 
-                <TicketDetails>
-                  <DetailRow>
-                    <DetailLabel>Ticket ID</DetailLabel>
-                    <DetailValue>{ticket.id}</DetailValue>
-                  </DetailRow>
+                                    {ticket.ticket_code && (
+                                        <DetailRow>
+                                            <DetailLabel>Code</DetailLabel>
+                                            <DetailValue>{ticket.ticket_code}</DetailValue>
+                                        </DetailRow>
+                                    )}
 
-                  <DetailRow>
-                    <DetailLabel>Code</DetailLabel>
-                    <DetailValue>{ticket.ticket_code}</DetailValue>
-                  </DetailRow>
+                                    {ticket.ticket_secret && (
+                                        <DetailRow>
+                                            <DetailLabel>Secret Key</DetailLabel>
+                                            <SecretField>
+                                                <SecretValue>
+                                                    {revealedSecrets.has(ticket.id)
+                                                        ? ticket.ticket_secret
+                                                        : '•'.repeat(ticket.ticket_secret.length)}
+                                                </SecretValue>
+                                                <IconButton
+                                                    title={revealedSecrets.has(ticket.id) ? 'Hide' : 'Show'}
+                                                    onClick={() => toggleSecretVisibility(ticket.id)}
+                                                >
+                                                    {revealedSecrets.has(ticket.id) ? <FiEyeOff /> : <FiEye />}
+                                                </IconButton>
+                                                <IconButton
+                                                    title="Copy"
+                                                    onClick={() => copyToClipboard(ticket.ticket_secret)}
+                                                >
+                                                    <FiCopy />
+                                                </IconButton>
+                                            </SecretField>
+                                        </DetailRow>
+                                    )}
 
-                  <DetailRow>
-                    <DetailLabel>Secret Key</DetailLabel>
-                    <SecretField>
-                      <SecretValue>
-                        {revealedSecrets.has(ticket.id) 
-                          ? ticket.ticket_secret 
-                          : '•'.repeat(ticket.ticket_secret.length)}
-                      </SecretValue>
-                      <IconButton
-                        title={revealedSecrets.has(ticket.id) ? 'Hide' : 'Show'}
-                        onClick={() => toggleSecretVisibility(ticket.id)}
-                      >
-                        {revealedSecrets.has(ticket.id) ? <FiEyeOff /> : <FiEye />}
-                      </IconButton>
-                      <IconButton
-                        title="Copy"
-                        onClick={() => copyToClipboard(ticket.ticket_secret)}
-                      >
-                        <FiCopy />
-                      </IconButton>
-                    </SecretField>
-                  </DetailRow>
+                                    {ticket.offer_name && (
+                                        <DetailRow>
+                                            <DetailLabel>Offer</DetailLabel>
+                                            <DetailValue>{ticket.offer_name}</DetailValue>
+                                        </DetailRow>
+                                    )}
 
-                  {ticket.offer_name && (
-                    <DetailRow>
-                      <DetailLabel>Offer</DetailLabel>
-                      <DetailValue>{ticket.offer_name}</DetailValue>
-                    </DetailRow>
-                  )}
+                                    {ticket.valid_from && (
+                                        <DetailRow>
+                                            <DetailLabel>Valid From</DetailLabel>
+                                            <DetailValue>
+                                                {new Date(ticket.valid_from).toLocaleDateString()}
+                                            </DetailValue>
+                                        </DetailRow>
+                                    )}
 
-                  {ticket.valid_from && (
-                    <DetailRow>
-                      <DetailLabel>Valid From</DetailLabel>
-                      <DetailValue>
-                        {new Date(ticket.valid_from).toLocaleDateString()}
-                      </DetailValue>
-                    </DetailRow>
-                  )}
+                                    {ticket.valid_until && (
+                                        <DetailRow>
+                                            <DetailLabel>Valid Until</DetailLabel>
+                                            <DetailValue>
+                                                {new Date(ticket.valid_until).toLocaleDateString()}
+                                            </DetailValue>
+                                        </DetailRow>
+                                    )}
 
-                  {ticket.valid_until && (
-                    <DetailRow>
-                      <DetailLabel>Valid Until</DetailLabel>
-                      <DetailValue>
-                        {new Date(ticket.valid_until).toLocaleDateString()}
-                      </DetailValue>
-                    </DetailRow>
-                  )}
+                                    {ticket.is_used && ticket.used_at && (
+                                        <DetailRow>
+                                            <DetailLabel>Used At</DetailLabel>
+                                            <DetailValue>
+                                                {new Date(ticket.used_at).toLocaleString()}
+                                            </DetailValue>
+                                        </DetailRow>
+                                    )}
+                                </TicketDetails>
+                            </TicketContent>
 
-                  {ticket.is_used && ticket.used_at && (
-                    <DetailRow>
-                      <DetailLabel>Used At</DetailLabel>
-                      <DetailValue>
-                        {new Date(ticket.used_at).toLocaleString()}
-                      </DetailValue>
-                    </DetailRow>
-                  )}
-                </TicketDetails>
-              </TicketContent>
+                            <TicketActions>
+                                <PrintButton
+                                    onClick={() => handlePrintThermal(ticket)}
+                                    title="Print on 58mm thermal printer"
+                                >
+                                    <FiPrinter /> Print
+                                </PrintButton>
+                                {ticket.is_valid && !ticket.is_used && (
+                                    <>
+                                        <ActionButton title="Validate ticket">
+                                            <FiCheck /> Validate
+                                        </ActionButton>
+                                        <ActionButton title="Mark as used">
+                                            <FiX /> Use
+                                        </ActionButton>
+                                    </>
+                                )}
+                            </TicketActions>
+                        </TicketCard>
+                    ))}
+                </TicketsContainer>
+            )}
 
-              <TicketActions>
-                <PrintButton
-                  onClick={() => handlePrintThermal(ticket)}
-                  title="Print on 58mm thermal printer"
-                >
-                  <FiPrinter /> Print
-                </PrintButton>
-                {ticket.is_valid && !ticket.is_used && (
-                  <>
-                    <ActionButton title="Validate ticket">
-                      <FiCheck /> Validate
-                    </ActionButton>
-                    <ActionButton title="Mark as used">
-                      <FiX /> Use
-                    </ActionButton>
-                  </>
-                )}
-              </TicketActions>
-            </TicketCard>
-          ))}
-        </TicketsContainer>
-      )}
-
-      <PrintContainer ref={printRef}>
-        {tickets.map(ticket => (
-          <ThermalTicket key={ticket.id} ticket={ticket} />
-        ))}
-      </PrintContainer>
-    </ContentSection>
-  );
+            <PrintContainer ref={printRef}>
+                {tickets.map(ticket => (
+                    <ThermalTicket key={ticket.id} ticket={ticket} />
+                ))}
+            </PrintContainer>
+        </ContentSection>
+    );
 };
