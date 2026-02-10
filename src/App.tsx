@@ -1,11 +1,10 @@
 import { useEffect } from 'react';
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation } from 'react-router-dom';
 import { useAuth, User } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './components/Auth/LoginPage';
 import { ConfirmationPage } from './components/Auth/ConfirmationPage';
 import { Dashboard } from './pages/Dashboard';
-import { DebugInfo } from './components/DebugInfo';
 import { UserRole } from './config/menuPermissions';
 import './styles/global.css';
 

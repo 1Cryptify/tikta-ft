@@ -13,6 +13,7 @@ export const ProtectedRoute = ({
     children,
 }: ProtectedRouteProps) => {
     if (isLoading) {
+
         return (
             <div
                 style={{
@@ -25,16 +26,20 @@ export const ProtectedRoute = ({
                 }}
             >
                 <div style={{ textAlign: 'center', color: 'white' }}>
-                    <div style={{ fontSize: '2rem', marginBottom: '1rem' }}>⏳</div>
+                    <div style={{ fontSize: '2rem', marginBottom: '1rem' }}></div>
                     <p>Loading...</p>
                 </div>
             </div>
         );
     }
 
-    if (!isAuthenticated) {
-        return <Navigate to="/login" replace />;
-    }
+    // if (!isAuthenticated) {
+    //     return <Navigate to="/login" replace />;
+    // }
 
     return children;
 };
+function timeout(arg0: () => void, arg1: number) {
+    throw new Error('Function not implemented.');
+}
+
