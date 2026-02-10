@@ -112,28 +112,40 @@ const TicketTitle = styled.h3`
 `;
 
 const StatusBadge = styled.span<{ status: string }>`
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  white-space: nowrap;
-  margin-left: ${spacing.sm};
+   padding: 4px 12px;
+   border-radius: 20px;
+   font-size: 0.75rem;
+   font-weight: 600;
+   text-transform: uppercase;
+   white-space: nowrap;
+   margin-left: ${spacing.sm};
 
-  ${props => {
-        switch (props.status) {
-            case 'active':
-                return `background: #d4edda; color: #155724;`;
-            case 'used':
-                return `background: #cfe2ff; color: #084298;`;
-            case 'expired':
-                return `background: #f8d7da; color: #842029;`;
-            case 'cancelled':
-                return `background: #e2e3e5; color: #383d41;`;
-            default:
-                return `background: #e7e7e7; color: #383d41;`;
-        }
-    }}
+   ${props => {
+         switch (props.status) {
+             case 'active':
+                 return `background: #d4edda; color: #155724;`;
+             case 'used':
+                 return `background: #cfe2ff; color: #084298;`;
+             case 'expired':
+                 return `background: #f8d7da; color: #842029;`;
+             case 'cancelled':
+                 return `background: #e2e3e5; color: #383d41;`;
+             default:
+                 return `background: #e7e7e7; color: #383d41;`;
+         }
+     }}
+`;
+
+const UsedBadge = styled.span<{ isUsed: boolean }>`
+   padding: 4px 12px;
+   border-radius: 20px;
+   font-size: 0.75rem;
+   font-weight: 600;
+   text-transform: uppercase;
+   white-space: nowrap;
+   margin-left: ${spacing.sm};
+   background: ${props => props.isUsed ? '#cfe2ff' : '#d4edda'};
+   color: ${props => props.isUsed ? '#084298' : '#155724'};
 `;
 
 const TicketContent = styled.div`
@@ -680,14 +692,17 @@ export const TicketsPage: React.FC = () => {
                 <TicketsContainer>
                     {tickets.map(ticket => (
                         <TicketCard key={ticket.id}>
-                            <TicketHeader>
-                              <TicketTitle>{ticket.ticket_code}</TicketTitle>
-                              {ticket.status && (
-                                <StatusBadge status={ticket.status}>
-                                  {ticket.status}
-                                </StatusBadge>
-                              )}
-                            </TicketHeader>
+                             <TicketHeader>
+                               <TicketTitle>{ticket.ticket_code}</TicketTitle>
+                               <UsedBadge isUsed={ticket.is_used}>
+                                 {ticket.is_used ? 'Used' : 'Available'}
+                               </UsedBadge>
+                               {ticket.status && (
+                                 <StatusBadge status={ticket.status}>
+                                   {ticket.status}
+                                 </StatusBadge>
+                               )}
+                             </TicketHeader>
 
                             <TicketContent>
                                 {ticket.id && ticket.ticket_code && (
