@@ -696,6 +696,15 @@ export const WithdrawalPanel: React.FC = () => {
                                         <strong>✓</strong>
                                     </InfoRow>
                                 )}
+                                {account.verified_by && (
+                                    <InfoRow>
+                                        <span>Verified By:</span>
+                                        <strong>
+                                            {account.verified_by.first_name || account.verified_by.username}
+                                            {account.verified_by.last_name && ` ${account.verified_by.last_name}`}
+                                        </strong>
+                                    </InfoRow>
+                                )}
                                 <InfoRow>
                                     <span>Payment Method:</span>
                                     <strong>

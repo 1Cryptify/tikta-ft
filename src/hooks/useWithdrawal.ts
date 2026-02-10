@@ -53,6 +53,7 @@ export interface WithdrawalAccount {
     is_verified: boolean;
     verification_status: 'pending' | 'verified' | 'rejected';
     verification_notes?: string;
+    verified_by?: { id: string; username: string; first_name: string; last_name: string } | null;
     linked_payment_methods?: LinkedPaymentMethod[];
     payment_method?: string; // fallback for backward compatibility
     payment_method_id?: string;
