@@ -154,19 +154,6 @@ const TicketContent = styled.div`
   margin-bottom: ${spacing.md};
 `;
 
-const QRContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: ${spacing.sm};
-
-  canvas {
-    border: 2px solid #f0f0f0;
-    border-radius: 4px;
-    padding: 4px;
-  }
-`;
-
 const TicketDetails = styled.div`
   flex: 1;
   display: flex;
@@ -346,16 +333,6 @@ const ThermalHeader = styled.div`
   padding-bottom: 2mm;
 `;
 
-const ThermalQR = styled.div`
-  text-align: center;
-  margin: 3mm 0;
-
-  img {
-    width: 40mm;
-    height: 40mm;
-  }
-`;
-
 const ThermalField = styled.div`
   margin: 2mm 0;
   word-break: break-all;
@@ -387,26 +364,11 @@ interface ThermalTicketProps {
 }
 
 const ThermalTicket: React.FC<ThermalTicketProps> = ({ ticket }: ThermalTicketProps) => {
-    const qrValue = JSON.stringify({
-        id: ticket.id || '',
-        code: ticket.ticket_code || '',
-        secret: ticket.ticket_secret || '',
-    });
-
     return (
         <ThermalTicketTemplate>
             <ThermalHeader>
                 {ticket.offer_name || ticket.ticket_code}
             </ThermalHeader>
-
-            <ThermalQR>
-                <QRCode
-                    value={qrValue}
-                    size={128}
-                    level="H"
-                    includeMargin={true}
-                />
-            </ThermalQR>
 
             <ThermalField>
                 <ThermalLabel>ID:</ThermalLabel>
@@ -507,12 +469,6 @@ export const TicketsPage: React.FC = () => {
     const handlePrintThermal = (ticket: Ticket) => {
         const printWindow = window.open('', '', 'width=600,height=800');
         if (printWindow) {
-            const qrValue = JSON.stringify({
-                id: ticket.id || '',
-                code: ticket.ticket_code || '',
-                secret: ticket.ticket_secret || '',
-            });
-
             const html = `
         <!DOCTYPE html>
         <html>
@@ -597,13 +553,9 @@ export const TicketsPage: React.FC = () => {
         </head>
         <body>
           <div class="ticket">
-             <div class="header">${ticket.offer_name || ticket.ticket_code}</div>
-             
-             <div class="qr">
-               <img src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(qrValue)}" />
-             </div>
+              <div class="header">${ticket.offer_name || ticket.ticket_code}</div>
 
-             <div class="content">
+              <div class="content">
                <div class="field">
                  <div class="label">ID:</div>
                  <div class="value">${ticket.id || 'N/A'}</div>
@@ -712,23 +664,7 @@ export const TicketsPage: React.FC = () => {
                              </TicketHeader>
 
                             <TicketContent>
-                                {ticket.id && ticket.ticket_code && (
-                                    <QRContainer>
-                                        <QRCode
-                                            value={JSON.stringify({
-                                                id: ticket.id,
-                                                code: ticket.ticket_code,
-                                                secret: ticket.ticket_secret || '',
-                                            })}
-                                            size={100}
-                                            level="H"
-                                            includeMargin={true}
-                                        />
-                                        <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>QR Code</span>
-                                    </QRContainer>
-                                )}
-
-                                <TicketDetails>
+                                 <TicketDetails>
                                     <DetailRow>
                                         <DetailLabel>ID</DetailLabel>
                                         <DetailValue>{ticket.id}</DetailValue>
