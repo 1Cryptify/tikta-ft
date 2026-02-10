@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import { API_PAYMENTS_BASE_URL } from '../services/api';
+import { useAuth } from './useAuth';
 
 // Délai minimum du loader en millisecondes
 const LOADER_DURATION = 1000;
@@ -45,6 +46,7 @@ interface UseProductReturn extends ProductState {
 }
 
 export const useProduct = (): UseProductReturn => {
+    const { user } = useAuth();
     const [state, setState] = useState<ProductState>({
         products: [],
         isLoading: false,
@@ -128,12 +130,18 @@ export const useProduct = (): UseProductReturn => {
         }
     }, []);
 
-    // Create new product
+    // Create new product (auto-selects active company for non-superusers)
     const createProduct = useCallback(async (data: Partial<Product>): Promise<Product | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post('/products/create/', data);
+            // Auto-add company_id from active company if not a superuser
+            const productData = { ...data };
+            if (user && !user.is_superuser && user.active_company) {
+                productData.company_id = user.active_company.id;
+            }
+
+            const response = await axiosInstance.post('/products/create/', productData);
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
             
@@ -169,7 +177,7 @@ export const useProduct = (): UseProductReturn => {
             }));
             return null;
         }
-    }, []);
+    }, [user]);
 
     // Update product
     const updateProduct = useCallback(async (id: string, data: Partial<Product>): Promise<Product | null> => {

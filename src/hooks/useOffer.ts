@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import { API_PAYMENTS_BASE_URL } from '../services/api';
+import { useAuth } from './useAuth';
 
 // Délai minimum du loader en millisecondes
 const LOADER_DURATION = 1000;
@@ -64,6 +65,7 @@ interface UseOfferReturn extends OfferState {
 }
 
 export const useOffer = (): UseOfferReturn => {
+    const { user } = useAuth();
     const [state, setState] = useState<OfferState>({
         offers: [],
         offerGroups: [],
@@ -148,12 +150,18 @@ export const useOffer = (): UseOfferReturn => {
         }
     }, []);
 
-    // Create new offer
+    // Create new offer (auto-selects active company for non-superusers)
     const createOffer = useCallback(async (data: Partial<Offer>): Promise<Offer | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post('/offers/create/', data);
+            // Auto-add company_id from active company if not a superuser
+            const offerData = { ...data };
+            if (user && !user.is_superuser && user.active_company) {
+                offerData.company_id = user.active_company.id;
+            }
+
+            const response = await axiosInstance.post('/offers/create/', offerData);
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
             
@@ -189,7 +197,7 @@ export const useOffer = (): UseOfferReturn => {
             }));
             return null;
         }
-    }, []);
+    }, [user]);
 
     // Update offer
     const updateOffer = useCallback(async (id: string, data: Partial<Offer>): Promise<Offer | null> => {
@@ -477,12 +485,18 @@ export const useOffer = (): UseOfferReturn => {
         }
     }, []);
 
-    // Create new offer group
+    // Create new offer group (auto-selects active company for non-superusers)
     const createOfferGroup = useCallback(async (data: Partial<OfferGroup>): Promise<OfferGroup | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post('/offer-groups/create/', data);
+            // Auto-add company_id from active company if not a superuser
+            const groupData = { ...data };
+            if (user && !user.is_superuser && user.active_company) {
+                groupData.company_id = user.active_company.id;
+            }
+
+            const response = await axiosInstance.post('/offer-groups/create/', groupData);
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
             
@@ -518,7 +532,7 @@ export const useOffer = (): UseOfferReturn => {
             }));
             return null;
         }
-    }, []);
+    }, [user]);
 
     // Update offer group
     const updateOfferGroup = useCallback(async (id: string, data: Partial<OfferGroup>): Promise<OfferGroup | null> => {
