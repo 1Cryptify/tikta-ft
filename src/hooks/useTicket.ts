@@ -46,24 +46,39 @@ interface TicketState {
 }
 
 interface UseTicketReturn extends TicketState {
-    getTickets: () => Promise<void>;
-    getTicketById: (id: string) => Promise<Ticket | null>;
-    createTicket: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }) => Promise<Ticket | null>;
-    updateTicket: (id: string, data: Partial<Ticket>) => Promise<Ticket | null>;
-    deleteTicket: (id: string) => Promise<boolean>;
-    validateTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
-    useTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
-    getCompanyTickets: (companyId: string, filters?: { status?: string; offer_id?: string }) => Promise<Ticket[]>;
-}
+     getTickets: () => Promise<void>;
+     getTicketById: (id: string) => Promise<Ticket | null>;
+     createTicket: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }) => Promise<Ticket | null>;
+     updateTicket: (id: string, data: Partial<Ticket>) => Promise<Ticket | null>;
+     deleteTicket: (id: string) => Promise<boolean>;
+     validateTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
+     useTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
+     getCompanyTickets: (companyId: string, filters?: { status?: string; offer_id?: string }) => Promise<Ticket[]>;
+     validateTicketFields: () => Promise<any>;
+ }
 
 export const useTicket = (): UseTicketReturn => {
-    const { user } = useAuth();
-    const [state, setState] = useState<TicketState>({
-        tickets: [],
-        isLoading: false,
-        error: null,
-        successMessage: null,
-    });
+     const { user } = useAuth();
+     const [state, setState] = useState<TicketState>({
+         tickets: [],
+         isLoading: false,
+         error: null,
+         successMessage: null,
+     });
+
+     // Validation helper
+     const validateTicketFields = useCallback(async () => {
+         try {
+             const response = await axiosInstance.get('/tickets/validate-fields/');
+             if (response.data.status === 'success') {
+                 return response.data;
+             }
+             return null;
+         } catch (error) {
+             console.error('Error validating ticket fields:', error);
+             return null;
+         }
+     }, []);
 
     // Get all tickets
     const getTickets = useCallback(async () => {
@@ -142,10 +157,17 @@ export const useTicket = (): UseTicketReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
+            // Prepare ticket data for creation
+            const ticketData: any = {
+                ticket_id: data.ticket_id || data.ticket_code,
+                password: data.password || data.ticket_secret,
+                valid_until: data.valid_until,
+                offer_id: data.offer_id
+            };
+
             // Auto-add company_id from active company if not a superuser
-            const ticketData = { ...data };
             if (user && !user.is_superuser && user.active_company) {
-                ticketData.company = user.active_company.id;
+                ticketData.company_id = user.active_company.id;
             }
 
             const response = await axiosInstance.post('/tickets/create/', ticketData);
@@ -435,5 +457,6 @@ export const useTicket = (): UseTicketReturn => {
         validateTicket,
         useTicket,
         getCompanyTickets,
+        validateTicketFields,
     };
-};
+    };
