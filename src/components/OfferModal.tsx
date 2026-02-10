@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FiX, FiSave } from 'react-icons/fi';
-import { Offer } from '../hooks/useOffer';
+import { Offer, Currency } from '../hooks/useOffer';
 import { useAuth } from '../hooks/useAuth';
 import { useBusiness } from '../hooks/useBusiness';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
@@ -12,6 +12,7 @@ interface OfferModalProps {
   onClose: () => void;
   onSubmit: (data: Partial<Offer>) => Promise<void>;
   isLoading?: boolean;
+  currencies?: Currency[];
 }
 
 const ModalOverlay = styled.div<{ isOpen: boolean }>`
@@ -248,6 +249,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
   onClose,
   onSubmit,
   isLoading = false,
+  currencies = [],
 }) => {
   const { user } = useAuth();
   const { businesses } = useBusiness();
@@ -255,9 +257,10 @@ export const OfferModal: React.FC<OfferModalProps> = ({
   const [formData, setFormData] = useState<Partial<Offer>>({
     name: '',
     description: '',
+    price: 0,
+    currency_id: '',
     discount_type: 'percentage',
     discount_value: 0,
-    original_price: 0,
     is_active: true,
     is_deleted: false,
   });
@@ -278,15 +281,16 @@ export const OfferModal: React.FC<OfferModalProps> = ({
         name: '',
         description: '',
         company_id: initialCompanyId,
+        price: 0,
+        currency_id: currencies.length > 0 ? currencies[0].id : '',
         discount_type: 'percentage',
         discount_value: 0,
-        original_price: 0,
         is_active: true,
         is_deleted: false,
       });
     }
     setErrors({});
-  }, [offer, isOpen, user]);
+  }, [offer, isOpen, user, currencies]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -297,11 +301,11 @@ export const OfferModal: React.FC<OfferModalProps> = ({
     if (!formData.company_id?.trim()) {
       newErrors.company_id = 'Company ID is required';
     }
-    if (
-      formData.original_price === undefined ||
-      formData.original_price <= 0
-    ) {
-      newErrors.original_price = 'Price must be greater than 0';
+    if (formData.price === undefined || formData.price <= 0) {
+      newErrors.price = 'Price must be greater than 0';
+    }
+    if (!formData.currency_id?.trim()) {
+      newErrors.currency_id = 'Currency is required';
     }
     if (
       formData.discount_value === undefined ||
@@ -441,24 +445,48 @@ export const OfferModal: React.FC<OfferModalProps> = ({
           </FormGroup>
 
           {/* Pricing */}
-          <FormGroup>
-            <Label>Original Price *</Label>
-            <Input
-              type="number"
-              name="original_price"
-              value={formData.original_price || 0}
-              onChange={handleChange}
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              disabled={isLoading}
-            />
-            {errors.original_price && (
-              <p style={{ color: colors.error, fontSize: '0.75rem', marginTop: spacing.sm }}>
-                {errors.original_price}
-              </p>
-            )}
-          </FormGroup>
+          <RowGrid>
+            <FormGroup>
+              <Label>Price *</Label>
+              <Input
+                type="number"
+                name="price"
+                value={formData.price || 0}
+                onChange={handleChange}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+                disabled={isLoading}
+              />
+              {errors.price && (
+                <p style={{ color: colors.error, fontSize: '0.75rem', marginTop: spacing.sm }}>
+                  {errors.price}
+                </p>
+              )}
+            </FormGroup>
+
+            <FormGroup>
+              <Label>Currency *</Label>
+              <Select
+                name="currency_id"
+                value={formData.currency_id || ''}
+                onChange={handleChange}
+                disabled={isLoading || currencies.length === 0}
+              >
+                <option value="">Select a currency</option>
+                {currencies.map((currency) => (
+                  <option key={currency.id} value={currency.id}>
+                    {currency.name} ({currency.symbol})
+                  </option>
+                ))}
+              </Select>
+              {errors.currency_id && (
+                <p style={{ color: colors.error, fontSize: '0.75rem', marginTop: spacing.sm }}>
+                  {errors.currency_id}
+                </p>
+              )}
+            </FormGroup>
+          </RowGrid>
 
           {/* Discount */}
           <RowGrid>

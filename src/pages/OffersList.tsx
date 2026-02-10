@@ -311,6 +311,7 @@ interface OffersListProps {
 export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
   const {
     offers,
+    currencies,
     isLoading,
     error,
     createOffer,
@@ -454,15 +455,17 @@ export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
               )}
 
               <PriceSection>
-                <div>
-                  <label>Original Price</label>
-                  <span>${offer.original_price?.toFixed(2) || '0.00'}</span>
-                </div>
-                <div>
-                  <label>Final Price</label>
-                  <span>${offer.final_price?.toFixed(2) || offer.original_price?.toFixed(2) || '0.00'}</span>
-                </div>
-              </PriceSection>
+                 <div>
+                   <label>Price</label>
+                   <span>
+                     {offer.currency?.symbol || '$'}{offer.price?.toFixed(offer.currency?.decimal_places || 2) || '0.00'}
+                   </span>
+                 </div>
+                 <div>
+                   <label>Currency</label>
+                   <span>{offer.currency?.code || 'N/A'}</span>
+                 </div>
+               </PriceSection>
 
               {offer.discount_value && offer.discount_value > 0 && (
                 <DiscountSection>
@@ -513,6 +516,7 @@ export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
         onClose={handleCloseModal}
         onSubmit={handleSubmit}
         isLoading={isSaving}
+        currencies={currencies}
       />
     </>
   );
