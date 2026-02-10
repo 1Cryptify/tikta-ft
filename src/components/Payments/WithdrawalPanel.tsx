@@ -545,7 +545,7 @@ export const WithdrawalPanel: React.FC = () => {
             <StatsSection>
                 <StatCard>
                     <div className="stat-label">Balance</div>
-                    <div className="stat-value">${stats.balance.toLocaleString()}</div>
+                    <div className="stat-value">{stats.balance.toLocaleString()}</div>
                     <div className="stat-subtext">Available balance</div>
                 </StatCard>
                 <StatCard>
