@@ -506,7 +506,8 @@ export const useBusiness = (): UseBusinessReturn => {
     const updateCompanyStatusMessage = useCallback(async (id: string, message: string, type: 'positive' | 'negative'): Promise<Business | null> => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post(`/${id}/update-company-status-message/`, {
+            const response = await axiosInstance.post('/update-company-status-message/', {
+                company_id: id,
                 status_message: message,
                 status_type: type
             });
