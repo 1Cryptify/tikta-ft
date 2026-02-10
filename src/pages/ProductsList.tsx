@@ -529,7 +529,9 @@ export const ProductsList: React.FC = () => {
 
                             <PriceSection>
                                 <label>Price</label>
-                                <span>${Number(product.price)?.toFixed(2) || '0.00'}</span>
+                                <span>{Number(product.price)?.toFixed(2) || '0.00'}</span>
+                                <label>Currency</label>
+                                <span>{product.currency?.symbol}</span>
                             </PriceSection>
 
                             <CardActions>
