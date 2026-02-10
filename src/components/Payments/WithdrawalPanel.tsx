@@ -29,13 +29,6 @@ const StatsAction = styled.div`
   margin-bottom: ${spacing.xl};
 `;
 
-const WithdrawalButton = styled(AddButton)`
-  padding: ${spacing.md} ${spacing.lg};
-  font-size: 1rem;
-  font-weight: 600;
-  min-width: 250px;
-`;
-
 const StatCard = styled.div`
   background: linear-gradient(135deg, ${colors.primary}15 0%, ${colors.primary}05 100%);
   border: 1px solid ${colors.primary}30;
@@ -90,6 +83,13 @@ const AddButton = styled.button`
   &:hover {
     background-color: ${colors.primaryDark || colors.primary}99;
   }
+`;
+
+const WithdrawalButton = styled(AddButton)`
+  padding: ${spacing.md} ${spacing.lg};
+  font-size: 1rem;
+  font-weight: 600;
+  min-width: 250px;
 `;
 
 const ErrorMessage = styled.div`
@@ -704,9 +704,9 @@ export const WithdrawalPanel: React.FC = () => {
                 </StatCard>
             </StatsSection>
             <StatsAction>
-                <AddButton onClick={() => setShowWithdrawalModal(true)}>
+                <WithdrawalButton onClick={() => setShowWithdrawalModal(true)}>
                     ↓ Effectuer un retrait
-                </AddButton>
+                </WithdrawalButton>
             </StatsAction>
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
