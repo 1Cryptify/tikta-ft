@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { FiX, FiPlus } from 'react-icons/fi';
 import { colors, spacing } from '../config/theme';
 import { Ticket } from '../hooks/useTicket';
+import { useOffer, Offer } from '../hooks/useOffer';
 
 interface CreateTicketModalProps {
     isOpen: boolean;
@@ -228,6 +229,7 @@ const SuccessMessage = styled.div`
 `;
 
 const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, onSubmit, isLoading }) => {
+    const { offers } = useOffer();
     const [formData, setFormData] = useState({
         ticket_id: '',
         password: '',
@@ -240,10 +242,24 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
     });
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
+    const [selectedOfferName, setSelectedOfferName] = useState<string>('');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleOfferChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedOfferId = e.target.value;
+        const selectedOffer = offers.find(o => o.id === selectedOfferId);
+
+        if (selectedOffer) {
+            setFormData(prev => ({ ...prev, offer_id: selectedOfferId }));
+            setSelectedOfferName(selectedOffer.name);
+        } else {
+            setFormData(prev => ({ ...prev, offer_id: '' }));
+            setSelectedOfferName('');
+        }
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -282,6 +298,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 offer_id: '',
                 payment_id: '',
             });
+            setSelectedOfferName('');
             setTimeout(() => {
                 onClose();
             }, 1500);
@@ -373,14 +390,31 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                         </FormGroup>
 
                         <FormGroup>
-                            <Label htmlFor="offer_id">Offer ID (Optional)</Label>
+                            <Label htmlFor="offer_select">Select Offer (Auto-fill ID)</Label>
+                            <Select
+                                id="offer_select"
+                                value={formData.offer_id}
+                                onChange={handleOfferChange}
+                                disabled={isLoading}
+                            >
+                                <option value="">-- Choose an offer --</option>
+                                {offers.map(offer => (
+                                    <option key={offer.id} value={offer.id}>
+                                        {offer.name} {offer.price ? `($${offer.price})` : ''}
+                                    </option>
+                                ))}
+                            </Select>
+                        </FormGroup>
+
+                        <FormGroup>
+                            <Label htmlFor="offer_id">Offer ID (Manual Entry)</Label>
                             <Input
                                 id="offer_id"
                                 type="text"
                                 name="offer_id"
                                 value={formData.offer_id}
                                 onChange={handleChange}
-                                placeholder="Offer ID"
+                                placeholder="Or enter Offer ID manually"
                                 disabled={isLoading}
                             />
                         </FormGroup>
