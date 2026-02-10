@@ -296,7 +296,7 @@ export const UpdateStatusMessageModal: React.FC<UpdateStatusMessageModalProps> =
     const isNearLimit = characterCount > MAX_CHARACTERS * 0.8;
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+        // e.preventDefault();
 
         if (!message.trim()) {
             setError('Le message ne peut pas être vide');
