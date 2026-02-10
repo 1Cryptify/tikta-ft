@@ -78,8 +78,8 @@ const CreateButton = styled.button`
 
 const TicketsContainer = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: ${spacing.lg};
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: ${spacing.md};
   margin-bottom: ${spacing.xl};
 `;
 
@@ -87,7 +87,7 @@ const TicketCard = styled.div`
   background: white;
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: ${spacing.lg};
+  padding: ${spacing.md};
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   transition: all 0.3s ease;
 
@@ -101,65 +101,69 @@ const TicketHeader = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: ${spacing.md};
+  margin-bottom: ${spacing.sm};
+  gap: ${spacing.xs};
+  flex-wrap: wrap;
 `;
 
 const TicketTitle = styled.h3`
   margin: 0;
   color: ${colors.textPrimary};
-  font-size: 1.125rem;
+  font-size: 0.95rem;
   word-break: break-all;
+  flex: 1;
+  min-width: 0;
 `;
 
 const StatusBadge = styled.span<{ status: string }>`
-   padding: 4px 12px;
-   border-radius: 20px;
-   font-size: 0.75rem;
+   padding: 3px 8px;
+   border-radius: 12px;
+   font-size: 0.65rem;
    font-weight: 600;
    text-transform: uppercase;
    white-space: nowrap;
-   margin-left: ${spacing.sm};
+   margin-left: 0;
 
    ${props => {
-         switch (props.status) {
-             case 'active':
-                 return `background: #d4edda; color: #155724;`;
-             case 'used':
-                 return `background: #cfe2ff; color: #084298;`;
-             case 'expired':
-                 return `background: #f8d7da; color: #842029;`;
-             case 'cancelled':
-                 return `background: #e2e3e5; color: #383d41;`;
-             default:
-                 return `background: #e7e7e7; color: #383d41;`;
-         }
-     }}
+        switch (props.status) {
+            case 'active':
+                return `background: #d4edda; color: #155724;`;
+            case 'used':
+                return `background: #cfe2ff; color: #084298;`;
+            case 'expired':
+                return `background: #f8d7da; color: #842029;`;
+            case 'cancelled':
+                return `background: #e2e3e5; color: #383d41;`;
+            default:
+                return `background: #e7e7e7; color: #383d41;`;
+        }
+    }}
 `;
 
 const UsedBadge = styled.span<{ isUsed: boolean }>`
-   padding: 4px 12px;
-   border-radius: 20px;
-   font-size: 0.75rem;
+   padding: 3px 8px;
+   border-radius: 12px;
+   font-size: 0.65rem;
    font-weight: 600;
    text-transform: uppercase;
    white-space: nowrap;
-   margin-left: ${spacing.sm};
+   margin-left: 0;
    background: ${props => props.isUsed ? '#cfe2ff' : '#d4edda'};
    color: ${props => props.isUsed ? '#084298' : '#155724'};
 `;
 
 const TicketContent = styled.div`
   display: flex;
-  gap: ${spacing.lg};
-  margin-bottom: ${spacing.md};
+  gap: ${spacing.md};
+  margin-bottom: ${spacing.sm};
 `;
 
 const TicketDetails = styled.div`
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: ${spacing.sm};
-  font-size: 0.875rem;
+  gap: 4px;
+  font-size: 0.8rem;
 `;
 
 const DetailRow = styled.div`
@@ -171,25 +175,27 @@ const DetailRow = styled.div`
 const DetailLabel = styled.span`
   color: ${colors.textSecondary};
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   text-transform: uppercase;
+  letter-spacing: 0.3px;
 `;
 
 const DetailValue = styled.span<{ secret?: boolean }>`
   color: ${colors.textPrimary};
   word-break: break-all;
   font-family: 'Courier New', monospace;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   background: ${props => (props.secret ? '#f5f5f5' : 'transparent')};
-  padding: ${props => (props.secret ? '4px 8px' : '0')};
-  border-radius: 4px;
+  padding: ${props => (props.secret ? '3px 6px' : '0')};
+  border-radius: 3px;
   position: relative;
+  line-height: 1.2;
 `;
 
 const SecretField = styled.div`
   display: flex;
   align-items: center;
-  gap: ${spacing.sm};
+  gap: 4px;
   position: relative;
 `;
 
@@ -197,12 +203,13 @@ const SecretValue = styled.span`
   flex: 1;
   word-break: break-all;
   font-family: 'Courier New', monospace;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   background: #f5f5f5;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 3px 6px;
+  border-radius: 3px;
   cursor: text;
   user-select: all;
+  line-height: 1.2;
 `;
 
 const IconButton = styled.button`
@@ -213,9 +220,10 @@ const IconButton = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 4px;
-  border-radius: 4px;
+  padding: 3px;
+  border-radius: 3px;
   transition: all 0.2s ease;
+  flex-shrink: 0;
 
   &:hover {
     background: #f0f0f0;
@@ -223,33 +231,33 @@ const IconButton = styled.button`
   }
 
   svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
   }
 `;
 
 const TicketActions = styled.div`
   display: flex;
-  gap: ${spacing.sm};
-  margin-top: ${spacing.md};
-  padding-top: ${spacing.md};
+  gap: 4px;
+  margin-top: ${spacing.sm};
+  padding-top: ${spacing.sm};
   border-top: 1px solid #e0e0e0;
 `;
 
 const ActionButton = styled.button`
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 10px;
   border: 1px solid #ddd;
   border-radius: 4px;
   background: white;
   color: ${colors.textPrimary};
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.75rem;
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 3px;
   transition: all 0.2s ease;
 
   &:hover {
@@ -263,8 +271,9 @@ const ActionButton = styled.button`
   }
 
   svg {
-    width: 16px;
-    height: 16px;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
   }
 `;
 
@@ -413,9 +422,9 @@ const ThermalTicket: React.FC<ThermalTicketProps> = ({ ticket }: ThermalTicketPr
             )}
 
             <ThermalFooter>
-              Status: {(ticket.status || 'UNKNOWN').toUpperCase()}
-              <br />
-              {new Date().toLocaleString()}
+                Status: {(ticket.status || 'UNKNOWN').toUpperCase()}
+                <br />
+                {new Date().toLocaleString()}
             </ThermalFooter>
         </ThermalTicketTemplate>
     );
@@ -656,20 +665,20 @@ export const TicketsPage: React.FC = () => {
                 <TicketsContainer>
                     {tickets.map(ticket => (
                         <TicketCard key={ticket.id}>
-                             <TicketHeader>
-                               <TicketTitle>{ticket.ticket_code}</TicketTitle>
-                               <UsedBadge isUsed={ticket.is_used}>
-                                 {ticket.is_used ? 'Used' : 'Available'}
-                               </UsedBadge>
-                               {ticket.status && (
-                                 <StatusBadge status={ticket.status}>
-                                   {ticket.status}
-                                 </StatusBadge>
-                               )}
-                             </TicketHeader>
+                            <TicketHeader>
+                                <TicketTitle>{ticket.ticket_code}</TicketTitle>
+                                <UsedBadge isUsed={ticket.is_used}>
+                                    {ticket.is_used ? 'Used' : 'Available'}
+                                </UsedBadge>
+                                {ticket.status && (
+                                    <StatusBadge status={ticket.status}>
+                                        {ticket.status}
+                                    </StatusBadge>
+                                )}
+                            </TicketHeader>
 
                             <TicketContent>
-                                 <TicketDetails>
+                                <TicketDetails>
                                     <DetailRow>
                                         <DetailLabel>ID</DetailLabel>
                                         <DetailValue>{ticket.id}</DetailValue>
@@ -751,22 +760,14 @@ export const TicketsPage: React.FC = () => {
                                     <FiPrinter /> Print
                                 </PrintButton>
                                 {ticket.is_valid && !ticket.is_used && (
-                                    <>
-                                        <ActionButton 
-                                             title="Validate ticket"
-                                             onClick={() => handleValidateTicket(ticket.id, ticket.ticket_code, ticket.ticket_secret)}
-                                         >
-                                             <FiCheck /> Validate
-                                         </ActionButton>
-                                         <ActionButton 
-                                             title="Mark as used"
-                                             onClick={() => handleUseTicket(ticket.id, ticket.ticket_code, ticket.ticket_secret)}
-                                        >
-                                            <FiX /> Use
-                                        </ActionButton>
-                                    </>
+                                    <ActionButton 
+                                        title="Mark as used"
+                                        onClick={() => handleUseTicket(ticket.id, ticket.ticket_code, ticket.ticket_secret)}
+                                    >
+                                        <FiX /> Use
+                                    </ActionButton>
                                 )}
-                                <DeleteButton 
+                                <DeleteButton
                                     title="Delete ticket"
                                     onClick={() => handleDeleteTicket(ticket.id)}
                                 >
@@ -779,8 +780,8 @@ export const TicketsPage: React.FC = () => {
             )}
 
             <PrintContainer ref={printRef}>
-                 {tickets.map((ticket: Ticket) => (
-                     <ThermalTicket key={ticket.id} ticket={ticket} />
+                {tickets.map((ticket: Ticket) => (
+                    <ThermalTicket key={ticket.id} ticket={ticket} />
                 ))}
             </PrintContainer>
         </ContentSection>
