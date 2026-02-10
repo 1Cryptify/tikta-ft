@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
-import { LoadingSpinner } from './LoadingSpinner';
+import LoadingSpinner from './LoadingSpinner';
+
 
 interface ProtectedRouteProps {
     isAuthenticated: boolean;
@@ -14,13 +15,8 @@ export const ProtectedRoute = ({
     children,
 }: ProtectedRouteProps) => {
     if (isLoading) {
-        return <LoadingSpinner fullScreen message="Chargement en cours..." size="large" />;
+        return <LoadingSpinner />;
     }
-
-    // if (!isAuthenticated) {
-    //     return <Navigate to="/login" replace />;
-    // }
-
     return children;
 };
 
