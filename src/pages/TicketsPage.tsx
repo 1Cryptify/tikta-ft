@@ -409,7 +409,7 @@ const ThermalTicket: React.FC<ThermalTicketProps> = ({ ticket }: ThermalTicketPr
             </ThermalQR>
 
             <ThermalField>
-                <ThermalLabel>Ticket ID:</ThermalLabel>
+                <ThermalLabel>ID:</ThermalLabel>
                 <ThermalValue>{ticket.id || 'N/A'}</ThermalValue>
             </ThermalField>
 
@@ -605,7 +605,7 @@ export const TicketsPage: React.FC = () => {
 
              <div class="content">
                <div class="field">
-                 <div class="label">Ticket ID:</div>
+                 <div class="label">ID:</div>
                  <div class="value">${ticket.id || 'N/A'}</div>
                </div>
 
@@ -730,7 +730,7 @@ export const TicketsPage: React.FC = () => {
 
                                 <TicketDetails>
                                     <DetailRow>
-                                        <DetailLabel>Ticket ID</DetailLabel>
+                                        <DetailLabel>ID</DetailLabel>
                                         <DetailValue>{ticket.id}</DetailValue>
                                     </DetailRow>
 
