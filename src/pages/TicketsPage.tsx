@@ -447,99 +447,120 @@ export const TicketsPage: React.FC = () => {
             }
             .ticket {
               width: 58mm;
-              padding: 5mm;
-              font-size: 9pt;
-              line-height: 1.4;
+              max-height: 80mm;
+              padding: 4mm;
+              font-size: 8pt;
+              line-height: 1.3;
               background: white;
               color: black;
               page-break-after: always;
+              overflow: hidden;
+              display: flex;
+              flex-direction: column;
             }
             .header {
               text-align: center;
               font-weight: bold;
-              margin-bottom: 3mm;
-              font-size: 10pt;
+              margin-bottom: 2mm;
+              font-size: 9pt;
               border-bottom: 1px dashed black;
-              padding-bottom: 2mm;
+              padding-bottom: 1.5mm;
             }
             .qr {
               text-align: center;
-              margin: 3mm 0;
+              margin: 2mm 0;
+              flex-shrink: 0;
             }
             .qr img {
-              width: 40mm;
-              height: 40mm;
+              width: 38mm;
+              height: 38mm;
             }
             .field {
-              margin: 2mm 0;
+              margin: 1mm 0;
               word-break: break-all;
             }
             .label {
               font-weight: bold;
-              font-size: 8pt;
+              font-size: 7pt;
             }
             .value {
-              font-size: 9pt;
+              font-size: 8pt;
+            }
+            .content {
+              flex: 1;
+              overflow: hidden;
             }
             .footer {
               text-align: center;
-              margin-top: 3mm;
-              padding-top: 2mm;
+              margin-top: 1.5mm;
+              padding-top: 1.5mm;
+              padding-bottom: 1mm;
               border-top: 1px dashed black;
-              font-size: 8pt;
+              border-bottom: 2px dashed black;
+              font-size: 7pt;
+              flex-shrink: 0;
+            }
+            .cut-line {
+              text-align: center;
+              font-size: 7pt;
+              margin-top: 0.5mm;
+              letter-spacing: 2px;
             }
           </style>
         </head>
         <body>
           <div class="ticket">
-            <div class="header">${ticket.offer_name || ticket.ticket_code}</div>
-            
-            <div class="qr">
-              <img src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(qrValue)}" />
-            </div>
+             <div class="header">${ticket.offer_name || ticket.ticket_code}</div>
+             
+             <div class="qr">
+               <img src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(qrValue)}" />
+             </div>
 
-            <div class="field">
-              <div class="label">Ticket ID:</div>
-              <div class="value">${ticket.id || 'N/A'}</div>
-            </div>
+             <div class="content">
+               <div class="field">
+                 <div class="label">Ticket ID:</div>
+                 <div class="value">${ticket.id || 'N/A'}</div>
+               </div>
 
-            <div class="field">
-              <div class="label">Code:</div>
-              <div class="value">${ticket.ticket_code || 'N/A'}</div>
-            </div>
+               <div class="field">
+                 <div class="label">Code:</div>
+                 <div class="value">${ticket.ticket_code || 'N/A'}</div>
+               </div>
 
-            <div class="field">
-              <div class="label">Secret:</div>
-              <div class="value">${ticket.ticket_secret || 'N/A'}</div>
-            </div>
+               <div class="field">
+                 <div class="label">Secret:</div>
+                 <div class="value">${ticket.ticket_secret || 'N/A'}</div>
+               </div>
 
-            ${ticket.offer_name ? `
-              <div class="field">
-                <div class="label">Offer:</div>
-                <div class="value">${ticket.offer_name}</div>
-              </div>
-            ` : ''}
+               ${ticket.offer_name ? `
+                 <div class="field">
+                   <div class="label">Offer:</div>
+                   <div class="value">${ticket.offer_name}</div>
+                 </div>
+               ` : ''}
 
-            ${ticket.valid_from ? `
-              <div class="field">
-                <div class="label">Valid From:</div>
-                <div class="value">${new Date(ticket.valid_from).toLocaleDateString()}</div>
-              </div>
-            ` : ''}
+               ${ticket.valid_from ? `
+                 <div class="field">
+                   <div class="label">Valid From:</div>
+                   <div class="value">${new Date(ticket.valid_from).toLocaleDateString()}</div>
+                 </div>
+               ` : ''}
 
-            ${ticket.valid_until ? `
-              <div class="field">
-                <div class="label">Valid Until:</div>
-                <div class="value">${new Date(ticket.valid_until).toLocaleDateString()}</div>
-              </div>
-            ` : ''}
+               ${ticket.valid_until ? `
+                 <div class="field">
+                   <div class="label">Valid Until:</div>
+                   <div class="value">${new Date(ticket.valid_until).toLocaleDateString()}</div>
+                 </div>
+               ` : ''}
+             </div>
 
-            <div class="footer">
-              Status: ${(ticket.status || 'UNKNOWN').toUpperCase()}
-              <br/>
-              ${new Date().toLocaleString()}
-            </div>
-          </div>
+             <div class="footer">
+               Status: ${(ticket.status || 'UNKNOWN').toUpperCase()}
+               <br/>
+               ${new Date().toLocaleString()}
+             </div>
+             <div class="cut-line">✂ ✂ ✂ ✂ ✂</div>
+           </div>
         </body>
         </html>
       `;
