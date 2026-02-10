@@ -481,6 +481,14 @@ export const TicketsPage: React.FC = () => {
         }
     };
 
+    const validateTicket = async (ticketId: string, ticketCode: string, ticketSecret: string) => {
+        await ticketData.validateTicket(ticketId, ticketCode, ticketSecret);
+    };
+
+    const useTicket = async (ticketId: string, ticketCode: string, ticketSecret: string) => {
+        await ticketData.useTicket(ticketId, ticketCode, ticketSecret);
+    };
+
     const toggleSecretVisibility = (ticketId: string) => {
         setRevealedSecrets(prev => {
             const newSet = new Set(prev);
