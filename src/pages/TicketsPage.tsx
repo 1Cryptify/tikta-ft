@@ -591,20 +591,6 @@ export const TicketsPage: React.FC = () => {
                       <div class="value">${ticket.offer_name}</div>
                     </div>
                   ` : ''}
-
-                  ${ticket.valid_from ? `
-                    <div class="field">
-                      <div class="label">Valid From:</div>
-                      <div class="value">${new Date(ticket.valid_from).toLocaleDateString()}</div>
-                    </div>
-                  ` : ''}
-
-                  ${ticket.valid_until ? `
-                    <div class="field">
-                      <div class="label">Valid Until:</div>
-                      <div class="value">${new Date(ticket.valid_until).toLocaleDateString()}</div>
-                    </div>
-                  ` : ''}
                 </div>
 
                 <div class="qr">
