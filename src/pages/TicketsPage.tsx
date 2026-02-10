@@ -40,6 +40,12 @@ const PageHeader = styled.div`
   }
 `;
 
+const ButtonGroup = styled.div`
+  display: flex;
+  gap: ${spacing.sm};
+  flex-wrap: wrap;
+`;
+
 const CreateButton = styled.button`
   padding: 10px 16px;
   background: #007bff;
@@ -73,6 +79,14 @@ const CreateButton = styled.button`
   @media (max-width: 768px) {
     padding: 8px 12px;
     font-size: 0.8rem;
+  }
+`;
+
+const BulkCreateButton = styled(CreateButton)`
+  background: #28a745;
+  
+  &:hover {
+    background: #218838;
   }
 `;
 
@@ -309,6 +323,131 @@ const EmptyState = styled.div`
   }
 `;
 
+const ModalOverlay = styled.div<{ isOpen: boolean }>`
+  display: ${props => props.isOpen ? 'flex' : 'none'};
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+  background: white;
+  border-radius: 8px;
+  padding: ${spacing.xl};
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.15);
+
+  h2 {
+    margin: 0 0 ${spacing.md} 0;
+    color: ${colors.textPrimary};
+    font-size: 1.5rem;
+  }
+
+  p {
+    margin: 0 0 ${spacing.md} 0;
+    color: ${colors.textSecondary};
+    font-size: 0.875rem;
+  }
+`;
+
+const JsonTextarea = styled.textarea`
+  width: 100%;
+  min-height: 300px;
+  padding: ${spacing.md};
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  resize: vertical;
+  margin-bottom: ${spacing.md};
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+`;
+
+const ModalActions = styled.div`
+  display: flex;
+  gap: ${spacing.md};
+  justify-content: flex-end;
+
+  button {
+    padding: 10px 20px;
+    border-radius: 4px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+`;
+
+const CancelButton = styled.button`
+  background: #e9ecef;
+  color: ${colors.textPrimary};
+
+  &:hover {
+    background: #dee2e6;
+  }
+`;
+
+const SubmitBulkButton = styled.button`
+  background: #28a745;
+  color: white;
+
+  &:hover {
+    background: #218838;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const ErrorMessage = styled.div`
+  padding: ${spacing.md};
+  background: #f8d7da;
+  color: #842029;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  margin-bottom: ${spacing.md};
+  font-size: 0.875rem;
+`;
+
+const JsonExample = styled.div`
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: ${spacing.md};
+  margin-bottom: ${spacing.md};
+  font-size: 0.8rem;
+  font-family: 'Courier New', monospace;
+  overflow-x: auto;
+
+  p {
+    margin: 0 0 ${spacing.sm} 0;
+    color: ${colors.textSecondary};
+    font-weight: 600;
+  }
+
+  pre {
+    margin: 0;
+    color: #333;
+    line-height: 1.4;
+  }
+`;
+
 const PrintContainer = styled.div`
   display: none;
 
@@ -439,10 +578,61 @@ export const TicketsPage: React.FC = () => {
     const error = ticketData?.error || null;
     const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+    const [bulkJsonInput, setBulkJsonInput] = useState('');
+    const [bulkError, setBulkError] = useState<string | null>(null);
+    const [bulkLoading, setBulkLoading] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
 
     const handleCreateTicket = async (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }) => {
         await ticketData.createTicket(data);
+    };
+
+    const handleBulkCreateTickets = async () => {
+        setBulkError(null);
+        setBulkLoading(true);
+
+        try {
+            const data = JSON.parse(bulkJsonInput);
+
+            // Suporta ambos os formatos: array ou objeto com array
+            const ticketsToCreate = Array.isArray(data) ? data : (data.tickets || []);
+
+            if (!Array.isArray(ticketsToCreate) || ticketsToCreate.length === 0) {
+                throw new Error('JSON deve conter um array de tickets');
+            }
+
+            let successCount = 0;
+            let errorCount = 0;
+
+            for (const ticket of ticketsToCreate) {
+                try {
+                    await ticketData.createTicket({
+                        ...ticket,
+                        valid_until: ticket.valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    });
+                    successCount++;
+                } catch (err) {
+                    errorCount++;
+                    console.error('Erro ao criar ticket:', err);
+                }
+            }
+
+            if (successCount > 0) {
+                setBulkJsonInput('');
+                setIsBulkModalOpen(false);
+                setBulkError(null);
+                alert(`${successCount} ticket(s) criado(s) com sucesso!`);
+            }
+
+            if (errorCount > 0) {
+                setBulkError(`${errorCount} ticket(s) falharam ao serem criados`);
+            }
+        } catch (err) {
+            setBulkError(err instanceof Error ? err.message : 'Erro ao processar JSON');
+        } finally {
+            setBulkLoading(false);
+        }
     };
 
     const handleDeleteTicket = async (ticketId: string) => {
@@ -637,10 +827,72 @@ export const TicketsPage: React.FC = () => {
                     <h1>Tickets & Coupons</h1>
                     <p>View and manage your tickets and discount coupons</p>
                 </div>
-                <CreateButton onClick={() => setIsCreateModalOpen(true)} disabled={isLoading}>
-                    <FiPlus /> Create Ticket
-                </CreateButton>
+                <ButtonGroup>
+                    <CreateButton onClick={() => setIsCreateModalOpen(true)} disabled={isLoading}>
+                        <FiPlus /> Create Ticket
+                    </CreateButton>
+                    <BulkCreateButton onClick={() => setIsBulkModalOpen(true)} disabled={isLoading}>
+                        <FiPlus /> Bulk Create
+                    </BulkCreateButton>
+                </ButtonGroup>
             </PageHeader>
+
+            <ModalOverlay isOpen={isBulkModalOpen} onClick={() => setIsBulkModalOpen(false)}>
+                <ModalContent onClick={(e) => e.stopPropagation()}>
+                    <h2>Create Multiple Tickets</h2>
+                    <p>Enter a JSON array with ticket data. Each object should contain the form field names and an optional offer_id.</p>
+
+                    <JsonExample>
+                        <p>Example JSON format:</p>
+                        <pre>{`[
+  {
+    "ticket_code": "CODE001",
+    "ticket_secret": "secret123",
+    "offer_id": "offer-uuid-123",
+    "valid_until": "2025-12-31"
+  },
+  {
+    "ticket_code": "CODE002",
+    "ticket_secret": "secret456",
+    "offer_id": "offer-uuid-123",
+      "valid_until": "2025-12-31"
+  }
+]`}</pre>
+                    </JsonExample>
+
+                    {bulkError && (
+                        <ErrorMessage>
+                            {bulkError}
+                        </ErrorMessage>
+                    )}
+
+                    <JsonTextarea
+                        placeholder="Paste your JSON array here..."
+                        value={bulkJsonInput}
+                        onChange={(e) => setBulkJsonInput(e.target.value)}
+                        disabled={bulkLoading}
+                    />
+
+                    <ModalActions>
+                        <CancelButton
+                            onClick={() => {
+                                setIsBulkModalOpen(false);
+                                setBulkJsonInput('');
+                                setBulkError(null);
+                            }}
+                            disabled={bulkLoading}
+                        >
+                            Cancel
+                        </CancelButton>
+                        <SubmitBulkButton
+                            onClick={handleBulkCreateTickets}
+                            disabled={bulkLoading || !bulkJsonInput.trim()}
+                        >
+                            {bulkLoading ? 'Creating...' : 'Create Tickets'}
+                        </SubmitBulkButton>
+                    </ModalActions>
+                </ModalContent>
+            </ModalOverlay>
 
             <CreateTicketModal
                 isOpen={isCreateModalOpen}
@@ -760,7 +1012,7 @@ export const TicketsPage: React.FC = () => {
                                     <FiPrinter /> Print
                                 </PrintButton>
                                 {ticket.is_valid && !ticket.is_used && (
-                                    <ActionButton 
+                                    <ActionButton
                                         title="Mark as used"
                                         onClick={() => handleUseTicket(ticket.id, ticket.ticket_code, ticket.ticket_secret)}
                                     >
