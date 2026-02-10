@@ -8,6 +8,7 @@ import {
   FiAlertCircle,
   FiCheck,
   FiX,
+  FiEye,
 } from 'react-icons/fi';
 import { useOffer, Offer } from '../hooks/useOffer';
 import { OfferModal } from '../components/OfferModal';
@@ -304,6 +305,103 @@ const ActionButton = styled.button<{ variant?: 'primary' | 'danger' }>`
   }
 `;
 
+const DetailsModalOverlay = styled.div<{ isOpen: boolean }>`
+  display: ${(props) => (props.isOpen ? 'flex' : 'none')};
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+`;
+
+const DetailsModalContent = styled.div`
+  background: ${colors.surface};
+  border-radius: ${borderRadius.lg};
+  padding: ${spacing.xl};
+  max-width: 600px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: ${shadows.lg};
+
+  h2 {
+    color: ${colors.textPrimary};
+    margin: 0 0 ${spacing.lg} 0;
+  }
+`;
+
+const DetailsSection = styled.div`
+  margin-bottom: ${spacing.lg};
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+
+  h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: ${colors.textSecondary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 ${spacing.sm} 0;
+  }
+
+  p {
+    color: ${colors.textPrimary};
+    margin: 0;
+    font-size: 0.95rem;
+    line-height: 1.6;
+    word-break: break-word;
+  }
+`;
+
+const DetailsGrid = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${spacing.lg};
+  margin-bottom: ${spacing.lg};
+`;
+
+const DetailItem = styled.div`
+  h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: ${colors.textSecondary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 ${spacing.xs} 0;
+  }
+
+  p {
+    color: ${colors.textPrimary};
+    margin: 0;
+    font-size: 0.95rem;
+  }
+`;
+
+const DetailsCloseButton = styled.button`
+  width: 100%;
+  padding: ${spacing.md} ${spacing.lg};
+  background-color: ${colors.primary};
+  color: ${colors.surface};
+  border: none;
+  border-radius: ${borderRadius.md};
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    opacity: 0.9;
+    transform: translateY(-2px);
+    box-shadow: ${shadows.md};
+  }
+`;
+
 interface OffersListProps {
   onTabChange?: (tab: 'offers' | 'products') => void;
 }
@@ -325,6 +423,8 @@ export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingOffer, setEditingOffer] = useState<Offer | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+  const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
 
   const filteredOffers = useMemo(() => {
     return offers.filter(
@@ -384,6 +484,16 @@ export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
     } catch (error) {
       console.error('Failed to toggle offer status:', error);
     }
+  };
+
+  const handleOpenDetails = (offer: Offer) => {
+    setSelectedOffer(offer);
+    setDetailsModalOpen(true);
+  };
+
+  const handleCloseDetails = () => {
+    setDetailsModalOpen(false);
+    setSelectedOffer(null);
   };
 
   return (
@@ -484,27 +594,33 @@ export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
               )}
 
               <CardActions>
-                <ActionButton
-                  variant="primary"
-                  onClick={() => handleOpenModal(offer)}
-                  disabled={isSaving}
-                >
-                  <FiEdit2 /> Edit
-                </ActionButton>
-                <ActionButton
-                  onClick={() => handleToggleActive(offer)}
-                  disabled={isSaving}
-                >
-                  {offer.is_active ? 'Deactivate' : 'Activate'}
-                </ActionButton>
-                <ActionButton
-                  variant="danger"
-                  onClick={() => handleDelete(offer.id)}
-                  disabled={isSaving}
-                >
-                  <FiTrash2 /> Delete
-                </ActionButton>
-              </CardActions>
+                 <ActionButton
+                   onClick={() => handleOpenDetails(offer)}
+                   disabled={isSaving}
+                 >
+                   <FiEye /> Details
+                 </ActionButton>
+                 <ActionButton
+                   variant="primary"
+                   onClick={() => handleOpenModal(offer)}
+                   disabled={isSaving}
+                 >
+                   <FiEdit2 /> Edit
+                 </ActionButton>
+                 <ActionButton
+                   onClick={() => handleToggleActive(offer)}
+                   disabled={isSaving}
+                 >
+                   {offer.is_active ? 'Deactivate' : 'Activate'}
+                 </ActionButton>
+                 <ActionButton
+                   variant="danger"
+                   onClick={() => handleDelete(offer.id)}
+                   disabled={isSaving}
+                 >
+                   <FiTrash2 /> Delete
+                 </ActionButton>
+               </CardActions>
             </Card>
           ))}
         </Grid>
@@ -518,6 +634,83 @@ export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
         isLoading={isSaving}
         currencies={currencies}
       />
+
+      <DetailsModalOverlay isOpen={detailsModalOpen} onClick={handleCloseDetails}>
+        <DetailsModalContent onClick={(e) => e.stopPropagation()}>
+          {selectedOffer && (
+            <>
+              <h2>{selectedOffer.name}</h2>
+
+              {selectedOffer.description && (
+                <DetailsSection>
+                  <h3>Description</h3>
+                  <p>{selectedOffer.description}</p>
+                </DetailsSection>
+              )}
+
+              <DetailsGrid>
+                <DetailItem>
+                  <h3>Price</h3>
+                  <p>
+                    {selectedOffer.currency?.symbol || '$'}
+                    {parseFloat(String(selectedOffer.price || 0)).toFixed(
+                      selectedOffer.currency?.decimal_places || 2
+                    )}
+                  </p>
+                </DetailItem>
+                <DetailItem>
+                  <h3>Currency</h3>
+                  <p>{selectedOffer.currency?.code || 'N/A'}</p>
+                </DetailItem>
+              </DetailsGrid>
+
+              {selectedOffer.discount_value && selectedOffer.discount_value > 0 && (
+                <DetailsGrid>
+                  <DetailItem>
+                    <h3>
+                      {selectedOffer.discount_type === 'percentage'
+                        ? 'Discount'
+                        : 'Discount Amount'}
+                    </h3>
+                    <p>
+                      {selectedOffer.discount_value}
+                      {selectedOffer.discount_type === 'percentage' ? '%' : '$'}
+                    </p>
+                  </DetailItem>
+                  {selectedOffer.discount_type === 'percentage' && (
+                    <DetailItem>
+                      <h3>Discounted Price</h3>
+                      <p>
+                        {selectedOffer.currency?.symbol || '$'}
+                        {(
+                          (parseFloat(String(selectedOffer.price || 0)) *
+                            (100 - selectedOffer.discount_value)) /
+                          100
+                        ).toFixed(selectedOffer.currency?.decimal_places || 2)}
+                      </p>
+                    </DetailItem>
+                  )}
+                </DetailsGrid>
+              )}
+
+              <DetailsSection>
+                <h3>Status</h3>
+                <p>
+                  {selectedOffer.is_active ? (
+                    <span style={{ color: '#065f46' }}>Active</span>
+                  ) : (
+                    <span style={{ color: '#991b1b' }}>Inactive</span>
+                  )}
+                </p>
+              </DetailsSection>
+
+              <DetailsCloseButton onClick={handleCloseDetails}>
+                Close
+              </DetailsCloseButton>
+            </>
+          )}
+        </DetailsModalContent>
+      </DetailsModalOverlay>
     </>
   );
 };
