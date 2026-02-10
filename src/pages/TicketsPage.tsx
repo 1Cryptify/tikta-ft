@@ -386,7 +386,7 @@ interface ThermalTicketProps {
     ticket: Ticket;
 }
 
-const ThermalTicket: React.FC<ThermalTicketProps> = ({ ticket }) => {
+const ThermalTicket: React.FC<ThermalTicketProps> = ({ ticket }: ThermalTicketProps) => {
     const qrValue = JSON.stringify({
         id: ticket.id || '',
         code: ticket.ticket_code || '',
@@ -468,7 +468,6 @@ export const TicketsPage: React.FC = () => {
     const error = ticketData?.error || null;
     const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-    const [editingTicketId, setEditingTicketId] = useState<string | null>(null);
     const printRef = useRef<HTMLDivElement>(null);
 
     const handleCreateTicket = async (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }) => {
@@ -481,11 +480,11 @@ export const TicketsPage: React.FC = () => {
         }
     };
 
-    const validateTicket = async (ticketId: string, ticketCode: string, ticketSecret: string) => {
+    const handleValidateTicket = async (ticketId: string, ticketCode: string, ticketSecret: string) => {
         await ticketData.validateTicket(ticketId, ticketCode, ticketSecret);
     };
 
-    const useTicket = async (ticketId: string, ticketCode: string, ticketSecret: string) => {
+    const handleUseTicket = async (ticketId: string, ticketCode: string, ticketSecret: string) => {
         await ticketData.useTicket(ticketId, ticketCode, ticketSecret);
     };
 
@@ -813,14 +812,14 @@ export const TicketsPage: React.FC = () => {
                                 {ticket.is_valid && !ticket.is_used && (
                                     <>
                                         <ActionButton 
-                                            title="Validate ticket"
-                                            onClick={() => validateTicket(ticket.id, ticket.ticket_code, ticket.ticket_secret)}
-                                        >
-                                            <FiCheck /> Validate
-                                        </ActionButton>
-                                        <ActionButton 
-                                            title="Mark as used"
-                                            onClick={() => useTicket(ticket.id, ticket.ticket_code, ticket.ticket_secret)}
+                                             title="Validate ticket"
+                                             onClick={() => handleValidateTicket(ticket.id, ticket.ticket_code, ticket.ticket_secret)}
+                                         >
+                                             <FiCheck /> Validate
+                                         </ActionButton>
+                                         <ActionButton 
+                                             title="Mark as used"
+                                             onClick={() => handleUseTicket(ticket.id, ticket.ticket_code, ticket.ticket_secret)}
                                         >
                                             <FiX /> Use
                                         </ActionButton>
@@ -839,8 +838,8 @@ export const TicketsPage: React.FC = () => {
             )}
 
             <PrintContainer ref={printRef}>
-                {tickets.map(ticket => (
-                    <ThermalTicket key={ticket.id} ticket={ticket} />
+                 {tickets.map((ticket: Ticket) => (
+                     <ThermalTicket key={ticket.id} ticket={ticket} />
                 ))}
             </PrintContainer>
         </ContentSection>
