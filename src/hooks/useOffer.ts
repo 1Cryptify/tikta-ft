@@ -81,39 +81,28 @@ export const useOffer = (): UseOfferReturn => {
     const getOffers = useCallback(async () => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.get('/offers/');
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({
-                    ...prev,
-                    offers: response.data.offers || [],
-                    isLoading: false,
-                    successMessage: response.data.message || null,
-                    successStatus: response.data.status || null,
-                }));
-            }
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to fetch offers'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.get('/offers/');
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({
+                ...prev,
+                offers: response.data.offers || [],
+                isLoading: false,
+                successMessage: response.data.message || null,
+                successStatus: response.data.status || null,
+            }));
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to fetch offers',
             }));
         }
     }, []);
@@ -122,333 +111,240 @@ export const useOffer = (): UseOfferReturn => {
     const getOfferById = useCallback(async (id: string): Promise<Offer | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.get(`/offers/${id}/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({ ...prev, isLoading: false }));
-                return response.data.offer;
-            }
-            return null;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to fetch offer'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.get(`/offers/${id}/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({ ...prev, isLoading: false }));
+            return response.data.offer;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to fetch offer',
             }));
-            return null;
         }
+        return null;
     }, []);
 
     // Create new offer (auto-selects active company for non-superusers)
     const createOffer = useCallback(async (data: Partial<Offer>): Promise<Offer | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            // Auto-add company_id from active company if not a superuser
-            const offerData = { ...data };
-            if (user && !user.is_superuser && user.active_company) {
-                offerData.company_id = user.active_company.id;
-            }
+        
+        // Auto-add company_id from active company if not a superuser
+        const offerData = { ...data };
+        if (user && !user.is_superuser && user.active_company) {
+            offerData.company_id = user.active_company.id;
+        }
 
-            const response = await axiosInstance.post('/offers/create/', offerData);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                const newOffer = response.data.offer;
-                setState(prev => ({
-                    ...prev,
-                    offers: [...prev.offers, newOffer],
-                    isLoading: false,
-                }));
-                return newOffer;
-            }
-            return null;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to create offer'
-                : 'An error occurred';
+        const response = await axiosInstance.post('/offers/create/', offerData);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            const newOffer = response.data.offer;
+            setState(prev => ({
+                ...prev,
+                offers: [...prev.offers, newOffer],
+                isLoading: false,
+            }));
+            return newOffer;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to create offer',
             }));
-            return null;
         }
+        return null;
     }, [user]);
 
     // Update offer
     const updateOffer = useCallback(async (id: string, data: Partial<Offer>): Promise<Offer | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.post(`/offers/${id}/update/`, data);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                const updatedOffer = response.data.offer;
-                setState(prev => ({
-                    ...prev,
-                    offers: prev.offers.map(o => o.id === id ? updatedOffer : o),
-                    isLoading: false,
-                }));
-                return updatedOffer;
-            }
-            return null;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to update offer'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.post(`/offers/${id}/update/`, data);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            const updatedOffer = response.data.offer;
+            setState(prev => ({
+                ...prev,
+                offers: prev.offers.map(o => o.id === id ? updatedOffer : o),
+                isLoading: false,
+            }));
+            return updatedOffer;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to update offer',
             }));
-            return null;
         }
+        return null;
     }, []);
 
     // Delete offer
     const deleteOffer = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.post(`/offers/${id}/delete/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({
-                    ...prev,
-                    offers: prev.offers.filter(o => o.id !== id),
-                    isLoading: false,
-                }));
-                return true;
-            }
-            return false;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to delete offer'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.post(`/offers/${id}/delete/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({
+                ...prev,
+                offers: prev.offers.filter(o => o.id !== id),
+                isLoading: false,
+            }));
+            return true;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to delete offer',
             }));
-            return false;
         }
+        return false;
     }, []);
 
     // Activate offer
     const activateOffer = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.post(`/offers/${id}/activate/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                const updatedOffer = response.data.offer;
-                setState(prev => ({
-                    ...prev,
-                    offers: prev.offers.map(o => o.id === id ? updatedOffer : o),
-                    isLoading: false,
-                }));
-                return true;
-            }
-            return false;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to activate offer'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.post(`/offers/${id}/activate/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            const updatedOffer = response.data.offer;
+            setState(prev => ({
+                ...prev,
+                offers: prev.offers.map(o => o.id === id ? updatedOffer : o),
+                isLoading: false,
+            }));
+            return true;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to activate offer',
             }));
-            return false;
         }
+        return false;
     }, []);
 
     // Deactivate offer
     const deactivateOffer = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.post(`/offers/${id}/deactivate/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                const updatedOffer = response.data.offer;
-                setState(prev => ({
-                    ...prev,
-                    offers: prev.offers.map(o => o.id === id ? updatedOffer : o),
-                    isLoading: false,
-                }));
-                return true;
-            }
-            return false;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to deactivate offer'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.post(`/offers/${id}/deactivate/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            const updatedOffer = response.data.offer;
+            setState(prev => ({
+                ...prev,
+                offers: prev.offers.map(o => o.id === id ? updatedOffer : o),
+                isLoading: false,
+            }));
+            return true;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to deactivate offer',
             }));
-            return false;
         }
+        return false;
     }, []);
 
     // Get company offers
     const getCompanyOffers = useCallback(async (companyId: string): Promise<Offer[]> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.get(`/companies/${companyId}/offers/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({ ...prev, isLoading: false }));
-                return response.data.offers || [];
-            }
-            return [];
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to fetch company offers'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.get(`/companies/${companyId}/offers/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({ ...prev, isLoading: false }));
+            return response.data.offers || [];
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to fetch company offers',
             }));
-            return [];
         }
+        return [];
     }, []);
 
     // Get all offer groups
     const getOfferGroups = useCallback(async () => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.get('/offer-groups/');
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({
-                    ...prev,
-                    offerGroups: response.data.offer_groups || [],
-                    isLoading: false,
-                }));
-            }
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to fetch offer groups'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.get('/offer-groups/');
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({
+                ...prev,
+                offerGroups: response.data.offer_groups || [],
+                isLoading: false,
+                successMessage: response.data.message || null,
+                successStatus: response.data.status || null,
+            }));
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to fetch offer groups',
             }));
         }
     }, []);
@@ -457,210 +353,150 @@ export const useOffer = (): UseOfferReturn => {
     const getOfferGroupById = useCallback(async (id: string): Promise<OfferGroup | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.get(`/offer-groups/${id}/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({ ...prev, isLoading: false }));
-                return response.data.offer_group;
-            }
-            return null;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to fetch offer group'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.get(`/offer-groups/${id}/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({ ...prev, isLoading: false }));
+            return response.data.offer_group;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to fetch offer group',
             }));
-            return null;
         }
+        return null;
     }, []);
 
     // Create new offer group (auto-selects active company for non-superusers)
     const createOfferGroup = useCallback(async (data: Partial<OfferGroup>): Promise<OfferGroup | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            // Auto-add company_id from active company if not a superuser
-            const groupData = { ...data };
-            if (user && !user.is_superuser && user.active_company) {
-                groupData.company_id = user.active_company.id;
-            }
+        
+        // Auto-add company_id from active company if not a superuser
+        const groupData = { ...data };
+        if (user && !user.is_superuser && user.active_company) {
+            groupData.company_id = user.active_company.id;
+        }
 
-            const response = await axiosInstance.post('/offer-groups/create/', groupData);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                const newGroup = response.data.offer_group;
-                setState(prev => ({
-                    ...prev,
-                    offerGroups: [...prev.offerGroups, newGroup],
-                    isLoading: false,
-                }));
-                return newGroup;
-            }
-            return null;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to create offer group'
-                : 'An error occurred';
+        const response = await axiosInstance.post('/offer-groups/create/', groupData);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            const newGroup = response.data.offer_group;
+            setState(prev => ({
+                ...prev,
+                offerGroups: [...prev.offerGroups, newGroup],
+                isLoading: false,
+            }));
+            return newGroup;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to create offer group',
             }));
-            return null;
         }
+        return null;
     }, [user]);
 
     // Update offer group
     const updateOfferGroup = useCallback(async (id: string, data: Partial<OfferGroup>): Promise<OfferGroup | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.post(`/offer-groups/${id}/update/`, data);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                const updatedGroup = response.data.offer_group;
-                setState(prev => ({
-                    ...prev,
-                    offerGroups: prev.offerGroups.map(g => g.id === id ? updatedGroup : g),
-                    isLoading: false,
-                }));
-                return updatedGroup;
-            }
-            return null;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to update offer group'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.post(`/offer-groups/${id}/update/`, data);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            const updatedGroup = response.data.offer_group;
+            setState(prev => ({
+                ...prev,
+                offerGroups: prev.offerGroups.map(g => g.id === id ? updatedGroup : g),
+                isLoading: false,
+            }));
+            return updatedGroup;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to update offer group',
             }));
-            return null;
         }
+        return null;
     }, []);
 
     // Delete offer group
     const deleteOfferGroup = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.post(`/offer-groups/${id}/delete/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({
-                    ...prev,
-                    offerGroups: prev.offerGroups.filter(g => g.id !== id),
-                    isLoading: false,
-                }));
-                return true;
-            }
-            return false;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to delete offer group'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.post(`/offer-groups/${id}/delete/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({
+                ...prev,
+                offerGroups: prev.offerGroups.filter(g => g.id !== id),
+                isLoading: false,
+            }));
+            return true;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to delete offer group',
             }));
-            return false;
         }
+        return false;
     }, []);
 
     // Get company offer groups
     const getCompanyOfferGroups = useCallback(async (companyId: string): Promise<OfferGroup[]> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.get(`/companies/${companyId}/offer-groups/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({ ...prev, isLoading: false }));
-                return response.data.offer_groups || [];
-            }
-            return [];
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to fetch company offer groups'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.get(`/companies/${companyId}/offer-groups/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({ ...prev, isLoading: false }));
+            return response.data.offer_groups || [];
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to fetch company offer groups',
             }));
-            return [];
         }
+        return [];
     }, []);
 
     // Initialize - fetch offers on mount
