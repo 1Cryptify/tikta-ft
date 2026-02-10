@@ -256,9 +256,8 @@ export const LogsPanel: React.FC = () => {
             <thead>
               <tr>
                 <th>Action</th>
-                <th>User</th>
-                <th>Company</th>
                 <th>Date</th>
+                <th>Additional Details</th>
                 <th>Details</th>
               </tr>
             </thead>
@@ -268,9 +267,14 @@ export const LogsPanel: React.FC = () => {
                   <td>
                     <ActionBadge>{log.action}</ActionBadge>
                   </td>
-                  <td>{log.user_id?.substring(0, 8)}...</td>
-                  <td>{log.company_id?.substring(0, 8)}...</td>
                   <td>{log.created_at ? new Date(log.created_at).toLocaleString() : '-'}</td>
+                  <td>
+                    {log.details ? (
+                      typeof log.details === 'string'
+                        ? log.details.substring(0, 50) + (log.details.length > 50 ? '...' : '')
+                        : JSON.stringify(log.details).substring(0, 50) + (JSON.stringify(log.details).length > 50 ? '...' : '')
+                    ) : '-'}
+                  </td>
                   <td>
                     <DetailButton onClick={() => setSelectedLog(log)}>
                       View
