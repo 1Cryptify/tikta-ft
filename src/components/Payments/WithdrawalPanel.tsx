@@ -145,29 +145,29 @@ const StatusBadge = styled.span<{ status: string }>`
   font-weight: 600;
   width: fit-content;
   background-color: ${props => {
-    switch (props.status) {
-      case 'verified':
-        return `${colors.success}20`;
-      case 'pending':
-        return `${colors.warning}20`;
-      case 'rejected':
-        return `${colors.error}20`;
-      default:
-        return colors.backgroundSecondary;
-    }
-  }};
+        switch (props.status) {
+            case 'verified':
+                return `${colors.success}20`;
+            case 'pending':
+                return `${colors.warning}20`;
+            case 'rejected':
+                return `${colors.error}20`;
+            default:
+                return colors.backgroundSecondary;
+        }
+    }};
   color: ${props => {
-    switch (props.status) {
-      case 'verified':
-        return colors.success;
-      case 'pending':
-        return colors.warning;
-      case 'rejected':
-        return colors.error;
-      default:
-        return colors.textPrimary;
-    }
-  }};
+        switch (props.status) {
+            case 'verified':
+                return colors.success;
+            case 'pending':
+                return colors.warning;
+            case 'rejected':
+                return colors.error;
+            default:
+                return colors.textPrimary;
+        }
+    }};
 `;
 
 const CardActions = styled.div`
@@ -283,284 +283,247 @@ const CancelButton = styled.button`
 `;
 
 interface WithdrawalStats {
-  balance: number;
-  totalPayments: number;
-  lastWithdrawal: string | null;
+    balance: number;
+    totalPayments: number;
+    lastWithdrawal: string | null;
 }
 
 export const WithdrawalPanel: React.FC = () => {
-  const { user } = useAuth();
-  const {
-    withdrawalAccounts,
-    isLoading,
-    error,
-    successMessage,
-    getWithdrawalAccounts,
-    createWithdrawalAccount,
-    deleteWithdrawalAccount,
-    verifyWithdrawalAccount,
-  } = useWithdrawal();
+    const { user } = useAuth();
+    const {
+        withdrawalAccounts,
+        isLoading,
+        error,
+        successMessage,
+        getWithdrawalAccounts,
+        createWithdrawalAccount,
+        deleteWithdrawalAccount,
+        verifyWithdrawalAccount,
+    } = useWithdrawal();
 
-  const [showForm, setShowForm] = useState(false);
-  const [stats, setStats] = useState<WithdrawalStats>({
-    balance: 100000,
-    totalPayments: 0,
-    lastWithdrawal: null,
-  });
-  const [formData, setFormData] = useState({
-    account_holder_name: '',
-    account_number: '',
-    bank_name: '',
-    bank_code: '',
-    branch_code: '',
-    swift_code: '',
-    iban: '',
-    currency_code: '',
-  });
-
-  useEffect(() => {
-    getWithdrawalAccounts();
-    
-    // Calculate stats
-    if (withdrawalAccounts.length > 0) {
-      // Find last withdrawal (most recent created_at)
-      const sortedByDate = [...withdrawalAccounts].sort((a, b) => {
-        const dateA = new Date(a.created_at || 0).getTime();
-        const dateB = new Date(b.created_at || 0).getTime();
-        return dateB - dateA;
-      });
-      
-      const lastDate = sortedByDate[0]?.created_at;
-      
-      setStats(prev => ({
-        ...prev,
-        totalPayments: withdrawalAccounts.length,
-        lastWithdrawal: lastDate ? new Date(lastDate).toLocaleDateString() : null,
-      }));
-    }
-  }, [withdrawalAccounts.length]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const result = await createWithdrawalAccount(formData);
-    if (result) {
-      setFormData({
-        account_holder_name: '',
+    const [showForm, setShowForm] = useState(false);
+    const [stats, setStats] = useState<WithdrawalStats>({
+        balance: 100000,
+        totalPayments: 0,
+        lastWithdrawal: null,
+    });
+    const [formData, setFormData] = useState({
+        account_type: 'bank_account',
+        provider: '',
         account_number: '',
-        bank_name: '',
-        bank_code: '',
-        branch_code: '',
-        swift_code: '',
-        iban: '',
-        currency_code: '',
-      });
-      setShowForm(false);
-    }
-  };
+        account_name: '',
+        details: {},
+    });
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Are you sure you want to delete this withdrawal account?')) {
-      await deleteWithdrawalAccount(id);
-    }
-  };
+    useEffect(() => {
+        getWithdrawalAccounts();
 
-  const handleVerify = async (id: string) => {
-    const result = await verifyWithdrawalAccount(id);
-    if (result) {
-      await getWithdrawalAccounts();
-    }
-  };
+        // Calculate stats
+        if (withdrawalAccounts.length > 0) {
+            // Find last withdrawal (most recent created_at)
+            const sortedByDate = [...withdrawalAccounts].sort((a, b) => {
+                const dateA = new Date(a.created_at || 0).getTime();
+                const dateB = new Date(b.created_at || 0).getTime();
+                return dateB - dateA;
+            });
 
-  return (
-    <PanelContainer>
-      <StatsSection>
-        <StatCard>
-          <div className="stat-label">Balance</div>
-          <div className="stat-value">${stats.balance.toLocaleString()}</div>
-          <div className="stat-subtext">Available balance</div>
-        </StatCard>
-        <StatCard>
-          <div className="stat-label">Total Payments</div>
-          <div className="stat-value">{stats.totalPayments}</div>
-          <div className="stat-subtext">Withdrawal accounts</div>
-        </StatCard>
-        <StatCard>
-          <div className="stat-label">Last Withdrawal</div>
-          <div className="stat-value">{stats.lastWithdrawal || 'N/A'}</div>
-          <div className="stat-subtext">Most recent account</div>
-        </StatCard>
-      </StatsSection>
+            const lastDate = sortedByDate[0]?.created_at;
 
-      {error && <ErrorMessage>{error}</ErrorMessage>}
-      {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
+            setStats(prev => ({
+                ...prev,
+                totalPayments: withdrawalAccounts.length,
+                lastWithdrawal: lastDate ? new Date(lastDate).toLocaleDateString() : null,
+            }));
+        }
+    }, [withdrawalAccounts.length]);
 
-      {showForm && (
-        <FormContainer>
-          <Title>Add Withdrawal Account</Title>
-          <form onSubmit={handleSubmit}>
-            <FormGroup>
-              <label>Account Holder Name *</label>
-              <input
-                type="text"
-                name="account_holder_name"
-                value={formData.account_holder_name}
-                onChange={handleInputChange}
-                required
-              />
-            </FormGroup>
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setFormData(prev => ({
+            ...prev,
+            [name]: value,
+        }));
+    };
 
-            <FormGroup>
-              <label>Account Number *</label>
-              <input
-                type="text"
-                name="account_number"
-                value={formData.account_number}
-                onChange={handleInputChange}
-                required
-              />
-            </FormGroup>
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const result = await createWithdrawalAccount(formData);
+        if (result) {
+            setFormData({
+                account_type: 'bank_account',
+                provider: '',
+                account_number: '',
+                account_name: '',
+                details: {},
+            });
+            setShowForm(false);
+        }
+    };
 
-            <FormGroup>
-              <label>Bank Name *</label>
-              <input
-                type="text"
-                name="bank_name"
-                value={formData.bank_name}
-                onChange={handleInputChange}
-                required
-              />
-            </FormGroup>
+    const handleDelete = async (id: string) => {
+        if (confirm('Are you sure you want to delete this withdrawal account?')) {
+            await deleteWithdrawalAccount(id);
+        }
+    };
 
-            <FormGroup>
-              <label>Bank Code</label>
-              <input
-                type="text"
-                name="bank_code"
-                value={formData.bank_code}
-                onChange={handleInputChange}
-              />
-            </FormGroup>
+    const handleVerify = async (id: string) => {
+        const result = await verifyWithdrawalAccount(id);
+        if (result) {
+            await getWithdrawalAccounts();
+        }
+    };
 
-            <FormGroup>
-              <label>Branch Code</label>
-              <input
-                type="text"
-                name="branch_code"
-                value={formData.branch_code}
-                onChange={handleInputChange}
-              />
-            </FormGroup>
+    return (
+        <PanelContainer>
+            <StatsSection>
+                <StatCard>
+                    <div className="stat-label">Balance</div>
+                    <div className="stat-value">${stats.balance.toLocaleString()}</div>
+                    <div className="stat-subtext">Available balance</div>
+                </StatCard>
+                <StatCard>
+                    <div className="stat-label">Total Payments</div>
+                    <div className="stat-value">{stats.totalPayments}</div>
+                    <div className="stat-subtext">Withdrawal accounts</div>
+                </StatCard>
+                <StatCard>
+                    <div className="stat-label">Last Withdrawal</div>
+                    <div className="stat-value">{stats.lastWithdrawal || 'N/A'}</div>
+                    <div className="stat-subtext">Most recent account</div>
+                </StatCard>
+            </StatsSection>
 
-            <FormGroup>
-              <label>SWIFT Code</label>
-              <input
-                type="text"
-                name="swift_code"
-                value={formData.swift_code}
-                onChange={handleInputChange}
-              />
-            </FormGroup>
+            {error && <ErrorMessage>{error}</ErrorMessage>}
+            {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
 
-            <FormGroup>
-              <label>IBAN</label>
-              <input
-                type="text"
-                name="iban"
-                value={formData.iban}
-                onChange={handleInputChange}
-              />
-            </FormGroup>
+            {showForm && (
+                <FormContainer>
+                    <Title>Add Withdrawal Account</Title>
+                    <form onSubmit={handleSubmit}>
+                        <FormGroup>
+                            <label>Account Type *</label>
+                            <select
+                                name="account_type"
+                                value={formData.account_type}
+                                onChange={handleInputChange}
+                                required
+                            >
+                                <option value="mobile_money">Mobile Money</option>
+                                <option value="bank_account">Bank Account</option>
+                                <option value="wallet">Wallet</option>
+                                <option value="other">Other</option>
+                            </select>
+                        </FormGroup>
 
-            <FormGroup>
-              <label>Currency Code</label>
-              <input
-                type="text"
-                name="currency_code"
-                value={formData.currency_code}
-                onChange={handleInputChange}
-              />
-            </FormGroup>
+                        <FormGroup>
+                            <label>Provider/Bank Name *</label>
+                            <input
+                                type="text"
+                                name="provider"
+                                value={formData.provider}
+                                onChange={handleInputChange}
+                                placeholder="e.g., MTN Mobile Money, Orange Money, Bank Name"
+                                required
+                            />
+                        </FormGroup>
 
-            <FormActions>
-              <SubmitButton type="submit" disabled={isLoading}>
-                {isLoading ? 'Creating...' : 'Create Account'}
-              </SubmitButton>
-              <CancelButton type="button" onClick={() => setShowForm(false)}>
-                Cancel
-              </CancelButton>
-            </FormActions>
-          </form>
-        </FormContainer>
-      )}
+                        <FormGroup>
+                            <label>Account Number *</label>
+                            <input
+                                type="text"
+                                name="account_number"
+                                value={formData.account_number}
+                                onChange={handleInputChange}
+                                required
+                            />
+                        </FormGroup>
 
-      <HeaderSection>
-        <Title>Withdrawal Accounts</Title>
-        {!showForm && (
-          <AddButton onClick={() => setShowForm(true)}>
-            + Add Account
-          </AddButton>
-        )}
-      </HeaderSection>
+                        <FormGroup>
+                            <label>Account Name</label>
+                            <input
+                                type="text"
+                                name="account_name"
+                                value={formData.account_name}
+                                onChange={handleInputChange}
+                            />
+                        </FormGroup>
 
-      {isLoading ? (
-        <LoadingSpinner />
-      ) : withdrawalAccounts.length === 0 ? (
-        <EmptyState>No withdrawal accounts found</EmptyState>
-      ) : (
-        <CardContainer>
-          {withdrawalAccounts.map(account => (
-            <Card key={account.id}>
-              <CardTitle>{account.account_holder_name}</CardTitle>
-              <CardInfo>
-                <InfoRow>
-                  <span>Account:</span>
-                  <strong>{account.account_number}</strong>
-                </InfoRow>
-                <InfoRow>
-                  <span>Bank:</span>
-                  <strong>{account.bank_name}</strong>
-                </InfoRow>
-                <InfoRow>
-                  <span>Status:</span>
-                  <StatusBadge status={account.status}>
-                    {account.status}
-                  </StatusBadge>
-                </InfoRow>
-                {account.currency_code && (
-                  <InfoRow>
-                    <span>Currency:</span>
-                    <strong>{account.currency_code}</strong>
-                  </InfoRow>
+                        <FormActions>
+                            <SubmitButton type="submit" disabled={isLoading}>
+                                {isLoading ? 'Creating...' : 'Create Account'}
+                            </SubmitButton>
+                            <CancelButton type="button" onClick={() => setShowForm(false)}>
+                                Cancel
+                            </CancelButton>
+                        </FormActions>
+                    </form>
+                </FormContainer>
+            )}
+
+            <HeaderSection>
+                <Title>Withdrawal Accounts</Title>
+                {!showForm && (
+                    <AddButton onClick={() => setShowForm(true)}>
+                        + Add Account
+                    </AddButton>
                 )}
-              </CardInfo>
-              <CardActions>
-                {account.status === 'pending' && user?.is_superuser && (
-                  <ActionButton
-                    className="success"
-                    onClick={() => handleVerify(account.id)}
-                  >
-                    Verify
-                  </ActionButton>
-                )}
-                <ActionButton
-                  className="danger"
-                  onClick={() => handleDelete(account.id)}
-                >
-                  Delete
-                </ActionButton>
-              </CardActions>
-            </Card>
-          ))}
-        </CardContainer>
-      )}
-    </PanelContainer>
-  );
+            </HeaderSection>
+
+            {isLoading ? (
+                <LoadingSpinner />
+            ) : withdrawalAccounts.length === 0 ? (
+                <EmptyState>No withdrawal accounts found</EmptyState>
+            ) : (
+                <CardContainer>
+                    {withdrawalAccounts.map(account => (
+                        <Card key={account.id}>
+                            <CardTitle>{account.account_name || account.provider}</CardTitle>
+                            <CardInfo>
+                                <InfoRow>
+                                    <span>Type:</span>
+                                    <strong>{account.account_type}</strong>
+                                </InfoRow>
+                                <InfoRow>
+                                    <span>Provider:</span>
+                                    <strong>{account.provider}</strong>
+                                </InfoRow>
+                                <InfoRow>
+                                    <span>Account:</span>
+                                    <strong>{account.account_number}</strong>
+                                </InfoRow>
+                                <InfoRow>
+                                    <span>Status:</span>
+                                    <StatusBadge status={account.verification_status}>
+                                        {account.verification_status}
+                                    </StatusBadge>
+                                </InfoRow>
+                                {account.is_verified && (
+                                    <InfoRow>
+                                        <span>Verified:</span>
+                                        <strong>✓</strong>
+                                    </InfoRow>
+                                )}
+                            </CardInfo>
+                            <CardActions>
+                                {account.verification_status === 'pending' && user?.is_superuser && (
+                                    <ActionButton
+                                        className="success"
+                                        onClick={() => handleVerify(account.id)}
+                                    >
+                                        Verify
+                                    </ActionButton>
+                                )}
+                                <ActionButton
+                                    className="danger"
+                                    onClick={() => handleDelete(account.id)}
+                                >
+                                    Delete
+                                </ActionButton>
+                            </CardActions>
+                        </Card>
+                    ))}
+                </CardContainer>
+            )}
+        </PanelContainer>
+    );
 };
