@@ -22,6 +22,20 @@ const StatsSection = styled.div`
   }
 `;
 
+const StatsAction = styled.div`
+  display: flex;
+  justify-content: flex-start;
+  margin-top: ${spacing.lg};
+  margin-bottom: ${spacing.xl};
+`;
+
+const WithdrawalButton = styled(AddButton)`
+  padding: ${spacing.md} ${spacing.lg};
+  font-size: 1rem;
+  font-weight: 600;
+  min-width: 250px;
+`;
+
 const StatCard = styled.div`
   background: linear-gradient(135deg, ${colors.primary}15 0%, ${colors.primary}05 100%);
   border: 1px solid ${colors.primary}30;
@@ -155,7 +169,7 @@ const StatusBadge = styled.span<{ status: string }>`
             case 'rejected':
                 return `${colors.error}20`;
             default:
-                return colors.backgroundSecondary;
+                return colors.neutral;
         }
     }};
   color: ${props => {
@@ -170,7 +184,7 @@ const StatusBadge = styled.span<{ status: string }>`
                 return colors.textPrimary;
         }
     }};
-`;
+  `;
 
 const CardActions = styled.div`
    display: flex;
@@ -209,26 +223,94 @@ const ActionButton = styled.button`
   transition: all 0.3s ease;
 
   &:hover {
-    background-color: ${colors.backgroundSecondary};
+    background-color: ${colors.neutral};
   }
 
-  &.danger {
-    border-color: ${colors.error};
-    color: ${colors.error};
+   &.danger {
+     border-color: ${colors.error};
+     color: ${colors.error};
 
-    &:hover {
-      background-color: ${colors.error}10;
-    }
-  }
+     &:hover {
+       background-color: ${colors.error}10;
+     }
+   }
 
-  &.success {
-    border-color: ${colors.success};
-    color: ${colors.success};
+   &.success {
+     border-color: ${colors.success};
+     color: ${colors.success};
 
-    &:hover {
-      background-color: ${colors.success}10;
-    }
-  }
+     &:hover {
+       background-color: ${colors.success}10;
+     }
+   }
+
+   &.primary {
+     border-color: ${colors.primary};
+     background-color: ${colors.primary};
+     color: white;
+
+     &:hover {
+       background-color: ${colors.primaryDark || colors.primary}99;
+     }
+   }
+`;
+
+const ModalOverlay = styled.div`
+   position: fixed;
+   top: 0;
+   left: 0;
+   right: 0;
+   bottom: 0;
+   background-color: rgba(0, 0, 0, 0.5);
+   display: flex;
+   align-items: center;
+   justify-content: center;
+   z-index: 1000;
+`;
+
+const ModalContent = styled.div`
+   background: white;
+   border-radius: 12px;
+   padding: ${spacing.xl};
+   max-width: 500px;
+   width: 90%;
+   max-height: 80vh;
+   overflow-y: auto;
+   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+`;
+
+const ModalHeader = styled.div`
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+   margin-bottom: ${spacing.lg};
+   border-bottom: 1px solid ${colors.border};
+   padding-bottom: ${spacing.md};
+
+   h2 {
+     margin: 0;
+     font-size: 1.25rem;
+     color: ${colors.textPrimary};
+   }
+`;
+
+const CloseButton = styled.button`
+   background: none;
+   border: none;
+   font-size: 1.5rem;
+   cursor: pointer;
+   color: ${colors.textSecondary};
+
+   &:hover {
+     color: ${colors.textPrimary};
+   }
+`;
+
+const ModalFooter = styled.div`
+   display: flex;
+   gap: ${spacing.md};
+   margin-top: ${spacing.lg};
+   justify-content: flex-end;
 `;
 
 const EmptyState = styled.div`
@@ -301,9 +383,9 @@ const CancelButton = styled.button`
   font-weight: 600;
 
   &:hover {
-    background-color: ${colors.backgroundSecondary};
+    background-color: ${colors.neutral};
   }
-`;
+  `;
 
 interface WithdrawalStats {
     balance: number;
@@ -319,6 +401,12 @@ interface FormDataType {
     payment_method: string;
     company_id?: string;
     details: Record<string, any>;
+}
+
+interface WithdrawalRequestData {
+    account_id: string;
+    amount: number;
+    currency: string;
 }
 
 export const WithdrawalPanel: React.FC = () => {
@@ -360,6 +448,13 @@ export const WithdrawalPanel: React.FC = () => {
         company_id: undefined,
         details: {},
     });
+    const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
+    const [withdrawalData, setWithdrawalData] = useState<WithdrawalRequestData>({
+        account_id: '',
+        amount: 0,
+        currency: 'USD',
+    });
+    const [isProcessingWithdrawal, setIsProcessingWithdrawal] = useState(false);
 
     // Fetch available payment methods
     useEffect(() => {
@@ -540,6 +635,55 @@ export const WithdrawalPanel: React.FC = () => {
         }
     };
 
+    const handleWithdrawalInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const { name, value } = e.target;
+        setWithdrawalData(prev => ({
+            ...prev,
+            [name]: name === 'amount' ? parseFloat(value) || 0 : value,
+        }));
+    };
+
+    const handleProcessWithdrawal = async (e: React.FormEvent) => {
+        e.preventDefault();
+        
+        if (!withdrawalData.account_id || withdrawalData.amount <= 0) {
+            alert('Please select an account and enter a valid amount');
+            return;
+        }
+
+        setIsProcessingWithdrawal(true);
+        try {
+            const axiosInstance = axios.create({
+                baseURL: API_PAYMENTS_BASE_URL,
+                withCredentials: true,
+            });
+            
+            const response = await axiosInstance.post('/withdrawals/', {
+                account_id: withdrawalData.account_id,
+                amount: withdrawalData.amount,
+                currency: withdrawalData.currency,
+            });
+
+            if (response.data.status === 'success') {
+                // Reset form
+                setWithdrawalData({
+                    account_id: '',
+                    amount: 0,
+                    currency: 'USD',
+                });
+                setShowWithdrawalModal(false);
+                // Refresh withdrawal accounts and balance
+                await getWithdrawalAccounts();
+                await getBalance();
+            }
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to process withdrawal');
+            console.error('Withdrawal error:', err);
+        } finally {
+            setIsProcessingWithdrawal(false);
+        }
+    };
+
     return (
         <PanelContainer>
             <StatsSection>
@@ -559,6 +703,11 @@ export const WithdrawalPanel: React.FC = () => {
                     <div className="stat-subtext">Most recent account</div>
                 </StatCard>
             </StatsSection>
+            <StatsAction>
+                <AddButton onClick={() => setShowWithdrawalModal(true)}>
+                    ↓ Effectuer un retrait
+                </AddButton>
+            </StatsAction>
 
             {error && <ErrorMessage>{error}</ErrorMessage>}
             {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
@@ -771,6 +920,106 @@ export const WithdrawalPanel: React.FC = () => {
                         </Card>
                     ))}
                 </CardContainer>
+            )}
+
+            {showWithdrawalModal && (
+                <ModalOverlay onClick={() => setShowWithdrawalModal(false)}>
+                    <ModalContent onClick={(e) => e.stopPropagation()}>
+                        <ModalHeader>
+                            <h2>Effectuer un retrait</h2>
+                            <CloseButton onClick={() => setShowWithdrawalModal(false)}>
+                                ×
+                            </CloseButton>
+                        </ModalHeader>
+
+                        <form onSubmit={handleProcessWithdrawal}>
+                            <FormGroup>
+                                <label>Compte de retrait *</label>
+                                <select
+                                    name="account_id"
+                                    value={withdrawalData.account_id}
+                                    onChange={handleWithdrawalInputChange}
+                                    required
+                                >
+                                    <option value="">Sélectionner un compte...</option>
+                                    {withdrawalAccounts.map(account => (
+                                        <option key={account.id} value={account.id}>
+                                            {account.account_name || account.provider} - {account.account_number}
+                                        </option>
+                                    ))}
+                                </select>
+                            </FormGroup>
+
+                            <FormGroup>
+                                <label>Montant *</label>
+                                <input
+                                    type="number"
+                                    name="amount"
+                                    value={withdrawalData.amount || ''}
+                                    onChange={handleWithdrawalInputChange}
+                                    placeholder="Entrez le montant"
+                                    step="0.01"
+                                    min="0"
+                                    required
+                                />
+                            </FormGroup>
+
+                            <FormGroup>
+                                <label>Devise *</label>
+                                <select
+                                    name="currency"
+                                    value={withdrawalData.currency}
+                                    onChange={handleWithdrawalInputChange}
+                                    required
+                                >
+                                    <option value="USD">USD - Dollar américain</option>
+                                    <option value="EUR">EUR - Euro</option>
+                                    <option value="GBP">GBP - Livre sterling</option>
+                                    <option value="XOF">XOF - Franc CFA (Afrique de l'Ouest)</option>
+                                    <option value="XAF">XAF - Franc CFA (Afrique centrale)</option>
+                                    <option value="ZAR">ZAR - Rand sud-africain</option>
+                                    <option value="NGN">NGN - Naira nigérian</option>
+                                    <option value="KES">KES - Shilling kényan</option>
+                                    <option value="GHS">GHS - Cedi ghanéen</option>
+                                    <option value="TZS">TZS - Shilling tanzanien</option>
+                                </select>
+                            </FormGroup>
+
+                            <ModalFooter>
+                                <CancelButton 
+                                    type="button" 
+                                    onClick={() => setShowWithdrawalModal(false)}
+                                    style={{
+                                        padding: `${spacing.sm} ${spacing.md}`,
+                                        border: `1px solid ${colors.border}`,
+                                        background: 'white',
+                                        borderRadius: '4px',
+                                        cursor: 'pointer',
+                                        fontSize: '0.875rem',
+                                    }}
+                                >
+                                    Annuler
+                                </CancelButton>
+                                <SubmitButton 
+                                    type="submit" 
+                                    disabled={isProcessingWithdrawal}
+                                    style={{
+                                        padding: `${spacing.sm} ${spacing.md}`,
+                                        backgroundColor: colors.primary,
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '4px',
+                                        cursor: isProcessingWithdrawal ? 'not-allowed' : 'pointer',
+                                        fontSize: '0.875rem',
+                                        fontWeight: '600',
+                                    }}
+                                >
+                                    {isProcessingWithdrawal ? 'Traitement...' : 'Effectuer le retrait'}
+                                </SubmitButton>
+                            </ModalFooter>
+                        </form>
+                    </ModalContent>
+                </ModalOverlay>
             )}
         </PanelContainer>
     );
