@@ -233,9 +233,6 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
     const [formData, setFormData] = useState({
         ticket_id: '',
         password: '',
-        ticket_code: '',
-        ticket_type: 'standard',
-        description: '',
         valid_until: '',
         offer_id: '',
         payment_id: '',
@@ -276,10 +273,6 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             setError('Password is required');
             return;
         }
-        if (!formData.ticket_code.trim()) {
-            setError('Ticket code is required');
-            return;
-        }
         if (!formData.valid_until) {
             setError('Valid until date is required');
             return;
@@ -291,9 +284,6 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             setFormData({
                 ticket_id: '',
                 password: '',
-                ticket_code: '',
-                ticket_type: 'standard',
-                description: '',
                 valid_until: '',
                 offer_id: '',
                 payment_id: '',
@@ -350,34 +340,6 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                         </FormGroup>
 
                         <FormGroup>
-                            <Label htmlFor="ticket_code">Ticket Code *</Label>
-                            <Input
-                                id="ticket_code"
-                                type="text"
-                                name="ticket_code"
-                                value={formData.ticket_code}
-                                onChange={handleChange}
-                                placeholder="Enter ticket code"
-                                disabled={isLoading}
-                            />
-                        </FormGroup>
-
-                        <FormGroup>
-                            <Label htmlFor="ticket_type">Ticket Type</Label>
-                            <Select
-                                id="ticket_type"
-                                name="ticket_type"
-                                value={formData.ticket_type}
-                                onChange={handleChange}
-                                disabled={isLoading}
-                            >
-                                <option value="standard">Standard</option>
-                                <option value="premium">Premium</option>
-                                <option value="vip">VIP</option>
-                            </Select>
-                        </FormGroup>
-
-                        <FormGroup>
                             <Label htmlFor="valid_until">Valid Until Date *</Label>
                             <Input
                                 id="valid_until"
@@ -415,18 +377,6 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                                 value={formData.offer_id}
                                 onChange={handleChange}
                                 placeholder="Or enter Offer ID manually"
-                                disabled={isLoading}
-                            />
-                        </FormGroup>
-
-                        <FormGroup>
-                            <Label htmlFor="description">Description (Optional)</Label>
-                            <TextArea
-                                id="description"
-                                name="description"
-                                value={formData.description}
-                                onChange={handleChange}
-                                placeholder="Ticket description"
                                 disabled={isLoading}
                             />
                         </FormGroup>
