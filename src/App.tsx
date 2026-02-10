@@ -58,27 +58,7 @@ function App() {
                 }
             />
 
-            {/* Root redirect */}
-            <Route
-                path="/"
-                element={
-                    <Navigate
-                        to={isAuthenticated ? '/dashboard/overview' : '/login'}
-                        replace
-                    />
-                }
-            />
 
-            {/* Catch-all redirect */}
-            <Route
-                path="*"
-                element={
-                    <Navigate
-                        to={isAuthenticated ? '/dashboard/overview' : '/login'}
-                        replace
-                    />
-                }
-            />
             </Routes>
         </>
     );

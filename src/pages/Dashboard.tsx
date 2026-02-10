@@ -108,7 +108,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
             activeCompany={activeCompany}
         >
             <Routes>
-                <Route path="/" element={<Navigate to="/overview" replace />} />
+                <Route path="/" element={<Navigate to="overview" replace />} />
                 <Route path="/overview" element={<OverviewPage user={user} />} />
                 <Route path="/business" element={<Business userRole={userRole} onCompanyActivated={setActiveCompany} />} />
                 <Route path="/offers" element={<OffersPage />} />
