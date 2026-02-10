@@ -102,6 +102,45 @@ const DetailButton = styled.button`
   }
 `;
 
+const TooltipContainer = styled.div`
+  position: relative;
+  display: inline-block;
+  cursor: help;
+`;
+
+const Tooltip = styled.div`
+  visibility: hidden;
+  background-color: ${colors.textPrimary};
+  color: white;
+  text-align: left;
+  border-radius: 4px;
+  padding: ${spacing.sm};
+  position: absolute;
+  z-index: 1;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: normal;
+  max-width: 300px;
+  word-break: break-word;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: ${colors.textPrimary} transparent transparent transparent;
+  }
+
+  ${TooltipContainer}:hover & {
+    visibility: visible;
+  }
+`;
+
 const EmptyState = styled.div`
   padding: ${spacing.xl};
   text-align: center;
@@ -270,10 +309,19 @@ export const LogsPanel: React.FC = () => {
                   <td>{log.created_at ? new Date(log.created_at).toLocaleString() : '-'}</td>
                   <td>
                     {log.details ? (
-                      typeof log.details === 'string'
-                        ? log.details.substring(0, 50) + (log.details.length > 50 ? '...' : '')
-                        : JSON.stringify(log.details).substring(0, 50) + (JSON.stringify(log.details).length > 50 ? '...' : '')
-                    ) : '-'}
+                      <TooltipContainer>
+                        {typeof log.details === 'string'
+                          ? log.details.substring(0, 50) + (log.details.length > 50 ? '...' : '')
+                          : JSON.stringify(log.details).substring(0, 50) + (JSON.stringify(log.details).length > 50 ? '...' : '')}
+                        <Tooltip>
+                          {typeof log.details === 'string'
+                            ? log.details
+                            : JSON.stringify(log.details, null, 2)}
+                        </Tooltip>
+                      </TooltipContainer>
+                    ) : (
+                      '-'
+                    )}
                   </td>
                   <td>
                     <DetailButton onClick={() => setSelectedLog(log)}>
