@@ -325,6 +325,7 @@ export const WithdrawalPanel: React.FC = () => {
     const { user } = useAuth();
     const {
         withdrawalAccounts,
+        balance,
         isLoading,
         error,
         successMessage,
@@ -335,6 +336,8 @@ export const WithdrawalPanel: React.FC = () => {
         linkPaymentMethod,
         unlinkPaymentMethod,
         getCompanies,
+        getBalance,
+        getCompanyBalance,
     } = useWithdrawal();
 
     const [showForm, setShowForm] = useState(false);
@@ -344,7 +347,7 @@ export const WithdrawalPanel: React.FC = () => {
     const [loadingCompanies, setLoadingCompanies] = useState(false);
     const [linkedPaymentMethod, setLinkedPaymentMethod] = useState<Record<string, string | null>>({});
     const [stats, setStats] = useState<WithdrawalStats>({
-        balance: 100000,
+        balance: 0,
         totalPayments: 0,
         lastWithdrawal: null,
     });
@@ -401,9 +404,7 @@ export const WithdrawalPanel: React.FC = () => {
     }, [user?.is_superuser, getCompanies]);
 
     useEffect(() => {
-        getWithdrawalAccounts();
-
-        // Calculate stats
+        // Calculate stats from withdrawal accounts and balance data
         if (withdrawalAccounts.length > 0) {
             // Find last withdrawal (most recent created_at)
             const sortedByDate = [...withdrawalAccounts].sort((a, b) => {
@@ -438,6 +439,16 @@ export const WithdrawalPanel: React.FC = () => {
             setLinkedPaymentMethod(linked);
         }
     }, [withdrawalAccounts.length]);
+
+    // Update balance from API data
+    useEffect(() => {
+        if (balance) {
+            setStats(prev => ({
+                ...prev,
+                balance: balance.available_balance || 0,
+            }));
+        }
+    }, [balance]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;

@@ -71,8 +71,21 @@ export interface Company {
     updated_at?: string;
 }
 
+export interface PaymentBalance {
+    id: string;
+    company: string;
+    available_balance: number;
+    total_deposits: number;
+    total_withdrawals: number;
+    pending_withdrawals: number;
+    last_transaction_date?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
 interface WithdrawalState {
     withdrawalAccounts: WithdrawalAccount[];
+    balance: PaymentBalance | null;
     isLoading: boolean;
     error: string | null;
     successMessage: string | null;
@@ -91,12 +104,15 @@ interface UseWithdrawalReturn extends WithdrawalState {
     getCompanies: () => Promise<Company[]>;
     linkPaymentMethod: (withdrawalId: string, paymentMethodName: string) => Promise<WithdrawalAccount | null>;
     unlinkPaymentMethod: (withdrawalId: string) => Promise<WithdrawalAccount | null>;
+    getBalance: () => Promise<PaymentBalance | null>;
+    getCompanyBalance: (companyId: string) => Promise<PaymentBalance | null>;
 }
 
 export const useWithdrawal = (): UseWithdrawalReturn => {
     const { user } = useAuth();
     const [state, setState] = useState<WithdrawalState>({
         withdrawalAccounts: [],
+        balance: null,
         isLoading: false,
         error: null,
         successMessage: null,
@@ -544,10 +560,92 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
         }
     }, []);
 
+    // Get payment balance for active company
+    const getBalance = useCallback(async (): Promise<PaymentBalance | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.get('/balances/');
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const balances = response.data.balances || [];
+                const balance = balances.length > 0 ? balances[0] : null;
+                setState(prev => ({
+                    ...prev,
+                    balance,
+                    isLoading: false,
+                }));
+                return balance;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to fetch balance',
+                }));
+            }
+            return null;
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to fetch balance',
+            }));
+            return null;
+        }
+    }, []);
+
+    // Get payment balance for specific company
+    const getCompanyBalance = useCallback(async (companyId: string): Promise<PaymentBalance | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.get(`/balances/${companyId}/`);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const balance = response.data.balance;
+                setState(prev => ({
+                    ...prev,
+                    balance,
+                    isLoading: false,
+                }));
+                return balance;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to fetch balance',
+                }));
+            }
+            return null;
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to fetch balance',
+            }));
+            return null;
+        }
+    }, []);
+
     // Initialize - fetch data on mount
     useEffect(() => {
         getWithdrawalAccounts();
-    }, [getWithdrawalAccounts]);
+        getBalance();
+    }, [getWithdrawalAccounts, getBalance]);
 
     return {
         ...state,
@@ -563,5 +661,7 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
         getCompanies,
         linkPaymentMethod,
         unlinkPaymentMethod,
+        getBalance,
+        getCompanyBalance,
     };
 };
