@@ -312,7 +312,7 @@ export const useTicket = (): UseTicketReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
-            const response = await axiosInstance.patch(`/tickets/${id}/`, data);
+            const response = await axiosInstance.patch(`/tickets/${id}/update/`, data);
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
 
@@ -358,7 +358,7 @@ export const useTicket = (): UseTicketReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
-            const response = await axiosInstance.delete(`/tickets/${id}/`);
+            const response = await axiosInstance.delete(`/tickets/${id}/delete/`);
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
 
