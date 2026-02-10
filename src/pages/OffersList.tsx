@@ -121,16 +121,7 @@ const LoadingSpinner = styled.div`
   color: ${colors.textSecondary};
 
   div {
-    animation: spin 1s linear infinite;
-  }
-
-  @keyframes spin {
-    from {
-      transform: rotate(0deg);
-    }
-    to {
-      transform: rotate(360deg);
-    }
+    font-size: 0.875rem;
   }
 `;
 
