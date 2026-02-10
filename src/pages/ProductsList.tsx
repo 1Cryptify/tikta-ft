@@ -10,7 +10,7 @@ import {
     FiX,
     FiEye,
 } from 'react-icons/fi';
-import { useProduct, Product } from '../hooks/useProduct';
+import { useProduct, Product, Currency } from '../hooks/useProduct';
 import { ProductModal } from '../components/ProductModal';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 
@@ -371,6 +371,7 @@ const DetailsCloseButton = styled.button`
 export const ProductsList: React.FC = () => {
     const {
         products,
+        currencies,
         isLoading,
         error,
         createProduct,
@@ -570,6 +571,7 @@ export const ProductsList: React.FC = () => {
                 onClose={handleCloseModal}
                 onSubmit={handleSubmit}
                 isLoading={isSaving}
+                currencies={currencies}
             />
 
             <DetailsModalOverlay isOpen={detailsModalOpen} onClick={handleCloseDetails}>
@@ -599,15 +601,33 @@ export const ProductsList: React.FC = () => {
                             <DetailsGrid>
                                 <DetailItem>
                                     <h3>Price</h3>
-                                    <p>${selectedProduct.price?.toFixed(2) || '0.00'}</p>
+                                    <p>
+                                        {selectedProduct.currency?.symbol || '$'}
+                                        {selectedProduct.price?.toFixed(
+                                            selectedProduct.currency?.decimal_places || 2
+                                        ) || '0.00'}
+                                    </p>
                                 </DetailItem>
-                                {selectedProduct.currency_code && (
+                                {selectedProduct.currency && (
                                     <DetailItem>
                                         <h3>Currency</h3>
-                                        <p>{selectedProduct.currency_code}</p>
+                                        <p>{selectedProduct.currency.code}</p>
                                     </DetailItem>
                                 )}
                             </DetailsGrid>
+
+                            {selectedProduct.currency && (
+                                <DetailsGrid>
+                                    <DetailItem>
+                                        <h3>Currency Name</h3>
+                                        <p>{selectedProduct.currency.name}</p>
+                                    </DetailItem>
+                                    <DetailItem>
+                                        <h3>Decimal Places</h3>
+                                        <p>{selectedProduct.currency.decimal_places}</p>
+                                    </DetailItem>
+                                </DetailsGrid>
+                            )}
 
                             <DetailsGrid>
                                 <DetailItem>

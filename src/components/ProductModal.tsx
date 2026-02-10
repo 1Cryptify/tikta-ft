@@ -6,12 +6,15 @@ import { useAuth } from '../hooks/useAuth';
 import { useBusiness } from '../hooks/useBusiness';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 
+import { Currency } from '../hooks/useProduct';
+
 interface ProductModalProps {
     isOpen: boolean;
     product: Product | null;
     onClose: () => void;
     onSubmit: (data: Partial<Product>) => Promise<void>;
     isLoading?: boolean;
+    currencies?: Currency[];
 }
 
 const ModalOverlay = styled.div<{ isOpen: boolean }>`
@@ -248,6 +251,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     onClose,
     onSubmit,
     isLoading = false,
+    currencies = [],
 }) => {
     const { user } = useAuth();
     const { businesses } = useBusiness();
@@ -255,6 +259,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         name: '',
         description: '',
         price: 0,
+        currency_id: '',
         is_active: true,
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
@@ -267,6 +272,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 name: '',
                 description: '',
                 price: 0,
+                currency_id: '',
                 company_id: user?.active_company?.id || '',
                 is_active: true,
             });
@@ -287,6 +293,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
         if (formData.price === undefined || formData.price === null || formData.price < 0) {
             newErrors.price = 'Price must be a positive number';
+        }
+
+        if (!formData.currency_id) {
+            newErrors.currency_id = 'Currency is required';
         }
 
         setErrors(newErrors);
@@ -420,24 +430,48 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                     </FormGroup>
 
                     {/* Pricing */}
-                    <FormGroup>
-                        <Label>Price *</Label>
-                        <Input
-                            type="number"
-                            name="price"
-                            value={formData.price || 0}
-                            onChange={handleChange}
-                            placeholder="0.00"
-                            step="0.01"
-                            min="0"
-                            disabled={isLoading}
-                        />
-                        {errors.price && (
-                            <p style={{ color: colors.error, fontSize: '0.75rem', marginTop: spacing.sm }}>
-                                {errors.price}
-                            </p>
-                        )}
-                    </FormGroup>
+                    <RowGrid>
+                        <FormGroup>
+                            <Label>Price *</Label>
+                            <Input
+                                type="number"
+                                name="price"
+                                value={formData.price || 0}
+                                onChange={handleChange}
+                                placeholder="0.00"
+                                step="0.01"
+                                min="0"
+                                disabled={isLoading}
+                            />
+                            {errors.price && (
+                                <p style={{ color: colors.error, fontSize: '0.75rem', marginTop: spacing.sm }}>
+                                    {errors.price}
+                                </p>
+                            )}
+                        </FormGroup>
+
+                        <FormGroup>
+                            <Label>Currency *</Label>
+                            <Select
+                                name="currency_id"
+                                value={formData.currency_id || ''}
+                                onChange={handleChange}
+                                disabled={isLoading || currencies.length === 0}
+                            >
+                                <option value="">Select a currency</option>
+                                {currencies.map((currency) => (
+                                    <option key={currency.id} value={currency.id}>
+                                        {currency.name} ({currency.symbol})
+                                    </option>
+                                ))}
+                            </Select>
+                            {errors.currency_id && (
+                                <p style={{ color: colors.error, fontSize: '0.75rem', marginTop: spacing.sm }}>
+                                    {errors.currency_id}
+                                </p>
+                            )}
+                        </FormGroup>
+                    </RowGrid>
 
                     {/* Status */}
                     <FormGroup>

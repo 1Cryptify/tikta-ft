@@ -14,6 +14,19 @@ const axiosInstance = axios.create({
     },
 });
 
+export interface Currency {
+    id: string;
+    code: string;
+    name: string;
+    symbol: string;
+    value_in_usd: number;
+    decimal_places: number;
+    is_active: boolean;
+    is_default: boolean;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface Product {
     id: string;
     company_id: string;
@@ -21,7 +34,7 @@ export interface Product {
     description?: string;
     price: number;
     currency_id?: string;
-    currency_code?: string;
+    currency?: Currency;
     is_active: boolean;
     is_deleted: boolean;
     created_at?: string;
@@ -30,11 +43,13 @@ export interface Product {
 
 interface ProductState {
     products: Product[];
+    currencies: Currency[];
     isLoading: boolean;
     error: string | null;
 }
 
 interface UseProductReturn extends ProductState {
+    getCurrencies: () => Promise<void>;
     getProducts: () => Promise<void>;
     getProductById: (id: string) => Promise<Product | null>;
     createProduct: (data: Partial<Product>) => Promise<Product | null>;
@@ -49,9 +64,46 @@ export const useProduct = (): UseProductReturn => {
     const { user } = useAuth();
     const [state, setState] = useState<ProductState>({
         products: [],
+        currencies: [],
         isLoading: false,
         error: null,
     });
+
+    // Get all currencies
+    const getCurrencies = useCallback(async () => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.get('/currencies/');
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    currencies: response.data.currencies || [],
+                    isLoading: false,
+                }));
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to fetch currencies',
+                }));
+            }
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to fetch currencies',
+            }));
+        }
+    }, []);
 
     // Get all products
     const getProducts = useCallback(async () => {
@@ -293,13 +345,15 @@ export const useProduct = (): UseProductReturn => {
         return [];
     }, []);
 
-    // Initialize - fetch products on mount
+    // Initialize - fetch products and currencies on mount
     useEffect(() => {
+        getCurrencies();
         getProducts();
-    }, [getProducts]);
+    }, [getCurrencies, getProducts]);
 
     return {
         ...state,
+        getCurrencies,
         getProducts,
         getProductById,
         createProduct,
