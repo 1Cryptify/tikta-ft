@@ -42,7 +42,6 @@ function App() {
 
     return (
         <>
-            <DebugInfo />
             <Routes>
             {/* Auth Routes */}
             <Route path="/login" element={<LoginPage />} />

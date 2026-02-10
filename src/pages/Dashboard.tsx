@@ -27,7 +27,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
     // Get active section from URL path
     const getActiveSection = () => {
         const path = location.pathname;
-        if (path.includes('overview') || path === '/dashboard' || path === '/dashboard/') return 'overview';
+        // if (path.includes('overview') || path === '/dashboard' || path === '/dashboard/') return 'overview';
         if (path.includes('business')) return 'business';
         if (path.includes('offers')) return 'offers_produits';
         if (path.includes('payment-api')) return 'payment_api';
