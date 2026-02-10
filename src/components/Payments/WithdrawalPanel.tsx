@@ -9,6 +9,46 @@ const PanelContainer = styled.div`
   padding: ${spacing.lg} 0;
 `;
 
+const StatsSection = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: ${spacing.lg};
+  margin-bottom: ${spacing.xl};
+
+  @media (max-width: 768px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const StatCard = styled.div`
+  background: linear-gradient(135deg, ${colors.primary}15 0%, ${colors.primary}05 100%);
+  border: 1px solid ${colors.primary}30;
+  border-radius: 12px;
+  padding: ${spacing.lg};
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+
+  .stat-label {
+    font-size: 0.85rem;
+    color: ${colors.textSecondary};
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: ${spacing.sm};
+    font-weight: 600;
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: ${colors.primary};
+    margin-bottom: ${spacing.xs};
+  }
+
+  .stat-subtext {
+    font-size: 0.75rem;
+    color: ${colors.textSecondary};
+  }
+`;
+
 const HeaderSection = styled.div`
   display: flex;
   justify-content: space-between;
@@ -242,6 +282,12 @@ const CancelButton = styled.button`
   }
 `;
 
+interface WithdrawalStats {
+  balance: number;
+  totalPayments: number;
+  lastWithdrawal: string | null;
+}
+
 export const WithdrawalPanel: React.FC = () => {
   const { user } = useAuth();
   const {
@@ -256,6 +302,11 @@ export const WithdrawalPanel: React.FC = () => {
   } = useWithdrawal();
 
   const [showForm, setShowForm] = useState(false);
+  const [stats, setStats] = useState<WithdrawalStats>({
+    balance: 100000,
+    totalPayments: 0,
+    lastWithdrawal: null,
+  });
   const [formData, setFormData] = useState({
     account_holder_name: '',
     account_number: '',
@@ -269,7 +320,25 @@ export const WithdrawalPanel: React.FC = () => {
 
   useEffect(() => {
     getWithdrawalAccounts();
-  }, []);
+    
+    // Calculate stats
+    if (withdrawalAccounts.length > 0) {
+      // Find last withdrawal (most recent created_at)
+      const sortedByDate = [...withdrawalAccounts].sort((a, b) => {
+        const dateA = new Date(a.created_at || 0).getTime();
+        const dateB = new Date(b.created_at || 0).getTime();
+        return dateB - dateA;
+      });
+      
+      const lastDate = sortedByDate[0]?.created_at;
+      
+      setStats(prev => ({
+        ...prev,
+        totalPayments: withdrawalAccounts.length,
+        lastWithdrawal: lastDate ? new Date(lastDate).toLocaleDateString() : null,
+      }));
+    }
+  }, [withdrawalAccounts.length]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -312,6 +381,24 @@ export const WithdrawalPanel: React.FC = () => {
 
   return (
     <PanelContainer>
+      <StatsSection>
+        <StatCard>
+          <div className="stat-label">💰 Balance</div>
+          <div className="stat-value">${stats.balance.toLocaleString()}</div>
+          <div className="stat-subtext">Available balance</div>
+        </StatCard>
+        <StatCard>
+          <div className="stat-label">📊 Total Payments</div>
+          <div className="stat-value">{stats.totalPayments}</div>
+          <div className="stat-subtext">Withdrawal accounts</div>
+        </StatCard>
+        <StatCard>
+          <div className="stat-label">📅 Last Withdrawal</div>
+          <div className="stat-value">{stats.lastWithdrawal || 'N/A'}</div>
+          <div className="stat-subtext">Most recent account</div>
+        </StatCard>
+      </StatsSection>
+
       {error && <ErrorMessage>{error}</ErrorMessage>}
       {successMessage && <SuccessMessage>{successMessage}</SuccessMessage>}
 
