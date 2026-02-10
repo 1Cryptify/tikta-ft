@@ -3,7 +3,7 @@ import axios from 'axios';
 import { API_USERS_BASE_URL } from '../services/api';
 
 // Délai minimum du loader en millisecondes
-const LOADER_DURATION = 2000;
+const LOADER_DURATION = 1000;
 
 const axiosInstance = axios.create({
     baseURL: API_USERS_BASE_URL,
