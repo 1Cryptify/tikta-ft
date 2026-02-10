@@ -406,12 +406,19 @@ export const WithdrawalPanel: React.FC = () => {
     }, [withdrawalAccounts.length]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setFormData(prev => ({
-            ...prev,
-            [name]: value,
-        }));
-    };
+         const { name, value } = e.target;
+         setFormData(prev => {
+             const updated = {
+                 ...prev,
+                 [name]: value,
+             };
+             // Synchronize payment_method value to provider
+             if (name === 'payment_method') {
+                 updated.provider = value;
+             }
+             return updated;
+         });
+     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -518,6 +525,23 @@ export const WithdrawalPanel: React.FC = () => {
                         </FormGroup>
 
                         <FormGroup>
+                            <label>Link Payment Method (Optional)</label>
+                            <select
+                                name="payment_method"
+                                value={formData.payment_method}
+                                onChange={handleInputChange}
+                                disabled={loadingPaymentMethods}
+                            >
+                                <option value="">Select a payment method...</option>
+                                {paymentMethods.map(method => (
+                                    <option key={method.id} value={method.name}>
+                                        {method.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </FormGroup>
+
+                        <FormGroup>
                             <label>Provider/Bank Name *</label>
                             <input
                                 type="text"
@@ -548,23 +572,6 @@ export const WithdrawalPanel: React.FC = () => {
                                 value={formData.account_name}
                                 onChange={handleInputChange}
                             />
-                        </FormGroup>
-
-                        <FormGroup>
-                            <label>Link Payment Method (Optional)</label>
-                            <select
-                                name="payment_method"
-                                value={formData.payment_method}
-                                onChange={handleInputChange}
-                                disabled={loadingPaymentMethods}
-                            >
-                                <option value="">Select a payment method...</option>
-                                {paymentMethods.map(method => (
-                                    <option key={method.id} value={method.name}>
-                                        {method.name}
-                                    </option>
-                                ))}
-                            </select>
                         </FormGroup>
 
                         <FormActions>
