@@ -672,6 +672,12 @@ export const WithdrawalPanel: React.FC = () => {
                         <Card key={account.id}>
                             <CardTitle>{account.account_name || account.provider}</CardTitle>
                             <CardInfo>
+                                {account.company && (
+                                    <InfoRow>
+                                        <span>Company:</span>
+                                        <strong>{account.company.name}</strong>
+                                    </InfoRow>
+                                )}
                                 <InfoRow>
                                     <span>Type:</span>
                                     <strong>{account.account_type}</strong>
