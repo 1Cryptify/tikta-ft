@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import { colors, spacing } from '../../config/theme';
-import { useWithdrawal, PaymentMethod } from '../../hooks/useWithdrawal';
+import { useWithdrawal, PaymentMethod, Company } from '../../hooks/useWithdrawal';
 import { useAuth } from '../../hooks/useAuth';
 import { API_PAYMENTS_BASE_URL } from '../../services/api';
 import LoadingSpinner from '../LoadingSpinner';
@@ -317,6 +317,7 @@ interface FormDataType {
     account_number: string;
     account_name: string;
     payment_method: string;
+    company_id?: string;
     details: Record<string, any>;
 }
 
@@ -333,11 +334,14 @@ export const WithdrawalPanel: React.FC = () => {
         verifyWithdrawalAccount,
         linkPaymentMethod,
         unlinkPaymentMethod,
+        getCompanies,
     } = useWithdrawal();
 
     const [showForm, setShowForm] = useState(false);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+    const [companies, setCompanies] = useState<Company[]>([]);
     const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
+    const [loadingCompanies, setLoadingCompanies] = useState(false);
     const [linkedPaymentMethod, setLinkedPaymentMethod] = useState<Record<string, string | null>>({});
     const [stats, setStats] = useState<WithdrawalStats>({
         balance: 100000,
@@ -350,6 +354,7 @@ export const WithdrawalPanel: React.FC = () => {
         account_number: '',
         account_name: '',
         payment_method: '',
+        company_id: undefined,
         details: {},
     });
 
@@ -375,6 +380,25 @@ export const WithdrawalPanel: React.FC = () => {
 
         fetchPaymentMethods();
     }, []);
+
+    // Fetch available companies for superusers
+    useEffect(() => {
+        if (user?.is_superuser) {
+            const fetchCompanies = async () => {
+                setLoadingCompanies(true);
+                try {
+                    const companiesList = await getCompanies();
+                    setCompanies(companiesList);
+                } catch (err) {
+                    console.error('Failed to fetch companies:', err);
+                } finally {
+                    setLoadingCompanies(false);
+                }
+            };
+
+            fetchCompanies();
+        }
+    }, [user?.is_superuser, getCompanies]);
 
     useEffect(() => {
         getWithdrawalAccounts();
@@ -406,19 +430,19 @@ export const WithdrawalPanel: React.FC = () => {
     }, [withdrawalAccounts.length]);
 
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-         const { name, value } = e.target;
-         setFormData(prev => {
-             const updated = {
-                 ...prev,
-                 [name]: value,
-             };
-             // Synchronize payment_method value to provider
-             if (name === 'payment_method') {
-                 updated.provider = value;
-             }
-             return updated;
-         });
-     };
+        const { name, value } = e.target;
+        setFormData(prev => {
+            const updated = {
+                ...prev,
+                [name]: value,
+            };
+            // Synchronize payment_method value to provider
+            if (name === 'payment_method') {
+                updated.provider = value;
+            }
+            return updated;
+        });
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -509,6 +533,26 @@ export const WithdrawalPanel: React.FC = () => {
                 <FormContainer>
                     <Title>Add Withdrawal Account</Title>
                     <form onSubmit={handleSubmit}>
+                        {user?.is_superuser && (
+                            <FormGroup>
+                                <label>Company *</label>
+                                <select
+                                    name="company_id"
+                                    value={formData.company_id || ''}
+                                    onChange={handleInputChange}
+                                    disabled={loadingCompanies}
+                                    required
+                                >
+                                    <option value="">Select a company...</option>
+                                    {companies.map(company => (
+                                        <option key={company.id} value={company.id}>
+                                            {company.name}
+                                        </option>
+                                    ))}
+                                </select>
+                            </FormGroup>
+                        )}
+
                         <FormGroup>
                             <label>Account Type *</label>
                             <select

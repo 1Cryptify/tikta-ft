@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
-import { API_PAYMENTS_BASE_URL } from '../services/api';
+import { API_PAYMENTS_BASE_URL, API_USERS_BASE_URL } from '../services/api';
 import { useAuth } from './useAuth';
 
 // Délai minimum du loader en millisecondes
@@ -8,6 +8,14 @@ const LOADER_DURATION = 1000;
 
 const axiosInstance = axios.create({
     baseURL: API_PAYMENTS_BASE_URL,
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+const usersAxiosInstance = axios.create({
+    baseURL: API_USERS_BASE_URL,
     withCredentials: true,
     headers: {
         'Content-Type': 'application/json',
@@ -43,6 +51,15 @@ export interface WithdrawalAccount {
     updated_at?: string;
 }
 
+export interface Company {
+    id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    created_at?: string;
+    updated_at?: string;
+}
+
 interface WithdrawalState {
     withdrawalAccounts: WithdrawalAccount[];
     isLoading: boolean;
@@ -60,6 +77,7 @@ interface UseWithdrawalReturn extends WithdrawalState {
     rejectWithdrawalAccount: (id: string, reason?: string) => Promise<boolean>;
     getCompanyWithdrawalAccounts: (companyId: string) => Promise<WithdrawalAccount[]>;
     getPaymentMethods: () => Promise<PaymentMethod[]>;
+    getCompanies: () => Promise<Company[]>;
     linkPaymentMethod: (withdrawalId: string, paymentMethodName: string) => Promise<WithdrawalAccount | null>;
     unlinkPaymentMethod: (withdrawalId: string) => Promise<WithdrawalAccount | null>;
 }
@@ -411,6 +429,28 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
         }
     }, []);
 
+    // Get all companies (for superusers)
+    const getCompanies = useCallback(async (): Promise<Company[]> => {
+        try {
+            const response = await usersAxiosInstance.get('/list-companies/');
+            if (response.data.status === 'success') {
+                return response.data.companies || [];
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    error: response.data.message || 'Failed to fetch companies',
+                }));
+            }
+            return [];
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                error: 'Failed to fetch companies',
+            }));
+            return [];
+        }
+    }, []);
+
     // Link payment method to withdrawal account
     const linkPaymentMethod = useCallback(async (withdrawalId: string, paymentMethodName: string): Promise<WithdrawalAccount | null> => {
         const startTime = Date.now();
@@ -509,6 +549,7 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
         rejectWithdrawalAccount,
         getCompanyWithdrawalAccounts,
         getPaymentMethods,
+        getCompanies,
         linkPaymentMethod,
         unlinkPaymentMethod,
     };
