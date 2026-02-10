@@ -383,9 +383,9 @@ const ThermalTicket: React.FC<ThermalTicketProps> = ({ ticket }) => {
             )}
 
             <ThermalFooter>
-                Status: {ticket.status.toUpperCase()}
-                <br />
-                {new Date().toLocaleString()}
+              Status: {(ticket.status || 'UNKNOWN').toUpperCase()}
+              <br />
+              {new Date().toLocaleString()}
             </ThermalFooter>
         </ThermalTicketTemplate>
     );
@@ -535,7 +535,7 @@ export const TicketsPage: React.FC = () => {
             ` : ''}
 
             <div class="footer">
-              Status: ${ticket.status.toUpperCase()}
+              Status: ${(ticket.status || 'UNKNOWN').toUpperCase()}
               <br/>
               ${new Date().toLocaleString()}
             </div>
@@ -580,10 +580,12 @@ export const TicketsPage: React.FC = () => {
                     {tickets.map(ticket => (
                         <TicketCard key={ticket.id}>
                             <TicketHeader>
-                                <TicketTitle>{ticket.ticket_code}</TicketTitle>
+                              <TicketTitle>{ticket.ticket_code}</TicketTitle>
+                              {ticket.status && (
                                 <StatusBadge status={ticket.status}>
-                                    {ticket.status}
+                                  {ticket.status}
                                 </StatusBadge>
+                              )}
                             </TicketHeader>
 
                             <TicketContent>
