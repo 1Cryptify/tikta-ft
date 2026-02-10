@@ -45,6 +45,8 @@ interface OfferState {
     offerGroups: OfferGroup[];
     isLoading: boolean;
     error: string | null;
+    successMessage: string | null;
+    successStatus: string | null;
 }
 
 interface UseOfferReturn extends OfferState {
@@ -71,6 +73,8 @@ export const useOffer = (): UseOfferReturn => {
         offerGroups: [],
         isLoading: false,
         error: null,
+        successMessage: null,
+        successStatus: null,
     });
 
     // Get all offers
@@ -91,6 +95,8 @@ export const useOffer = (): UseOfferReturn => {
                     ...prev,
                     offers: response.data.offers || [],
                     isLoading: false,
+                    successMessage: response.data.message || null,
+                    successStatus: response.data.status || null,
                 }));
             }
         } catch (error) {
