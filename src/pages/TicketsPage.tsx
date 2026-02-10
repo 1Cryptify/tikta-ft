@@ -469,6 +469,12 @@ export const TicketsPage: React.FC = () => {
     const handlePrintThermal = (ticket: Ticket) => {
         const printWindow = window.open('', '', 'width=600,height=800');
         if (printWindow) {
+            const qrValue = JSON.stringify({
+                id: ticket.id || '',
+                code: ticket.ticket_code || '',
+                secret: ticket.ticket_secret || '',
+            });
+
             const html = `
         <!DOCTYPE html>
         <html>
@@ -509,14 +515,25 @@ export const TicketsPage: React.FC = () => {
               border-bottom: 1px dashed black;
               padding-bottom: 1.5mm;
             }
+            .main-content {
+              display: flex;
+              gap: 2mm;
+              flex: 1;
+              overflow: hidden;
+            }
+            .content {
+              flex: 1;
+              overflow: hidden;
+            }
             .qr {
-              text-align: center;
-              margin: 2mm 0;
+              display: flex;
+              align-items: flex-start;
+              justify-content: center;
               flex-shrink: 0;
             }
             .qr img {
-              width: 38mm;
-              height: 38mm;
+              width: 22mm;
+              height: 22mm;
             }
             .field {
               margin: 1mm 0;
@@ -528,10 +545,6 @@ export const TicketsPage: React.FC = () => {
             }
             .value {
               font-size: 8pt;
-            }
-            .content {
-              flex: 1;
-              overflow: hidden;
             }
             .footer {
               text-align: center;
@@ -555,43 +568,49 @@ export const TicketsPage: React.FC = () => {
           <div class="ticket">
               <div class="header">${ticket.offer_name || ticket.ticket_code}</div>
 
-              <div class="content">
-               <div class="field">
-                 <div class="label">ID:</div>
-                 <div class="value">${ticket.id || 'N/A'}</div>
-               </div>
+              <div class="main-content">
+                <div class="content">
+                  <div class="field">
+                    <div class="label">ID:</div>
+                    <div class="value">${ticket.id || 'N/A'}</div>
+                  </div>
 
-               <div class="field">
-                 <div class="label">Code:</div>
-                 <div class="value">${ticket.ticket_code || 'N/A'}</div>
-               </div>
+                  <div class="field">
+                    <div class="label">Code:</div>
+                    <div class="value">${ticket.ticket_code || 'N/A'}</div>
+                  </div>
 
-               <div class="field">
-                 <div class="label">Secret:</div>
-                 <div class="value">${ticket.ticket_secret || 'N/A'}</div>
-               </div>
+                  <div class="field">
+                    <div class="label">Secret:</div>
+                    <div class="value">${ticket.ticket_secret || 'N/A'}</div>
+                  </div>
 
-               ${ticket.offer_name ? `
-                 <div class="field">
-                   <div class="label">Offer:</div>
-                   <div class="value">${ticket.offer_name}</div>
-                 </div>
-               ` : ''}
+                  ${ticket.offer_name ? `
+                    <div class="field">
+                      <div class="label">Offer:</div>
+                      <div class="value">${ticket.offer_name}</div>
+                    </div>
+                  ` : ''}
 
-               ${ticket.valid_from ? `
-                 <div class="field">
-                   <div class="label">Valid From:</div>
-                   <div class="value">${new Date(ticket.valid_from).toLocaleDateString()}</div>
-                 </div>
-               ` : ''}
+                  ${ticket.valid_from ? `
+                    <div class="field">
+                      <div class="label">Valid From:</div>
+                      <div class="value">${new Date(ticket.valid_from).toLocaleDateString()}</div>
+                    </div>
+                  ` : ''}
 
-               ${ticket.valid_until ? `
-                 <div class="field">
-                   <div class="label">Valid Until:</div>
-                   <div class="value">${new Date(ticket.valid_until).toLocaleDateString()}</div>
-                 </div>
-               ` : ''}
-             </div>
+                  ${ticket.valid_until ? `
+                    <div class="field">
+                      <div class="label">Valid Until:</div>
+                      <div class="value">${new Date(ticket.valid_until).toLocaleDateString()}</div>
+                    </div>
+                  ` : ''}
+                </div>
+
+                <div class="qr">
+                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(qrValue)}" />
+                </div>
+              </div>
 
              <div class="footer">
                Status: ${(ticket.status || 'UNKNOWN').toUpperCase()}
