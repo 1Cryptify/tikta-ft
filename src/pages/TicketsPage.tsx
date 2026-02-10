@@ -1,6 +1,12 @@
-import React from 'react';
+import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
+import QRCode from 'qrcode.react';
+import { FiPrinter, FiEye, FiEyeOff, FiCheck, FiX, FiCopy } from 'react-icons/fi';
 import { colors, spacing } from '../config/theme';
+import { useTicket, Ticket } from '../hooks/useTicket';
+import  LoadingSpinner  from '../components/LoadingSpinner';
+
+// ========== STYLED COMPONENTS ==========
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -24,13 +30,669 @@ const PageHeader = styled.div`
   }
 `;
 
+const TicketsContainer = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: ${spacing.lg};
+  margin-bottom: ${spacing.xl};
+`;
+
+const TicketCard = styled.div`
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: ${spacing.lg};
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+
+  &:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+  }
+`;
+
+const TicketHeader = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: ${spacing.md};
+`;
+
+const TicketTitle = styled.h3`
+  margin: 0;
+  color: ${colors.textPrimary};
+  font-size: 1.125rem;
+  word-break: break-all;
+`;
+
+const StatusBadge = styled.span<{ status: string }>`
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+  margin-left: ${spacing.sm};
+
+  ${props => {
+    switch (props.status) {
+      case 'active':
+        return `background: #d4edda; color: #155724;`;
+      case 'used':
+        return `background: #cfe2ff; color: #084298;`;
+      case 'expired':
+        return `background: #f8d7da; color: #842029;`;
+      case 'cancelled':
+        return `background: #e2e3e5; color: #383d41;`;
+      default:
+        return `background: #e7e7e7; color: #383d41;`;
+    }
+  }}
+`;
+
+const TicketContent = styled.div`
+  display: flex;
+  gap: ${spacing.lg};
+  margin-bottom: ${spacing.md};
+`;
+
+const QRContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: ${spacing.sm};
+
+  canvas {
+    border: 2px solid #f0f0f0;
+    border-radius: 4px;
+    padding: 4px;
+  }
+`;
+
+const TicketDetails = styled.div`
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: ${spacing.sm};
+  font-size: 0.875rem;
+`;
+
+const DetailRow = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+`;
+
+const DetailLabel = styled.span`
+  color: ${colors.textSecondary};
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+`;
+
+const DetailValue = styled.span<{ secret?: boolean }>`
+  color: ${colors.textPrimary};
+  word-break: break-all;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  background: ${props => (props.secret ? '#f5f5f5' : 'transparent')};
+  padding: ${props => (props.secret ? '4px 8px' : '0')};
+  border-radius: 4px;
+  position: relative;
+`;
+
+const SecretField = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${spacing.sm};
+  position: relative;
+`;
+
+const SecretValue = styled.span`
+  flex: 1;
+  word-break: break-all;
+  font-family: 'Courier New', monospace;
+  font-size: 0.875rem;
+  background: #f5f5f5;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: text;
+  user-select: all;
+`;
+
+const IconButton = styled.button`
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: ${colors.textSecondary};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f0f0f0;
+    color: ${colors.textPrimary};
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const TicketActions = styled.div`
+  display: flex;
+  gap: ${spacing.sm};
+  margin-top: ${spacing.md};
+  padding-top: ${spacing.md};
+  border-top: 1px solid #e0e0e0;
+`;
+
+const ActionButton = styled.button`
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: ${colors.textPrimary};
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: #f5f5f5;
+    border-color: #999;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+`;
+
+const PrintButton = styled(ActionButton)`
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+
+  &:hover {
+    background: #0056b3;
+    border-color: #0056b3;
+  }
+`;
+
+const EmptyState = styled.div`
+  text-align: center;
+  padding: ${spacing.xxl};
+  color: ${colors.textSecondary};
+
+  p {
+    margin: 0;
+  }
+`;
+
+const PrintContainer = styled.div`
+  display: none;
+
+  @media print {
+    display: block;
+  }
+`;
+
+const ThermalTicketTemplate = styled.div`
+  width: 58mm;
+  padding: 5mm;
+  font-family: 'Courier New', monospace;
+  font-size: 9pt;
+  line-height: 1.4;
+  background: white;
+  color: black;
+  page-break-after: always;
+
+  @media print {
+    margin: 0;
+    padding: 5mm;
+  }
+`;
+
+const ThermalHeader = styled.div`
+  text-align: center;
+  font-weight: bold;
+  margin-bottom: 3mm;
+  font-size: 10pt;
+  border-bottom: 1px dashed black;
+  padding-bottom: 2mm;
+`;
+
+const ThermalQR = styled.div`
+  text-align: center;
+  margin: 3mm 0;
+
+  img {
+    width: 40mm;
+    height: 40mm;
+  }
+`;
+
+const ThermalField = styled.div`
+  margin: 2mm 0;
+  word-break: break-all;
+`;
+
+const ThermalLabel = styled.span`
+  font-weight: bold;
+  display: block;
+  font-size: 8pt;
+`;
+
+const ThermalValue = styled.span`
+  display: block;
+  font-size: 9pt;
+`;
+
+const ThermalFooter = styled.div`
+  text-align: center;
+  margin-top: 3mm;
+  padding-top: 2mm;
+  border-top: 1px dashed black;
+  font-size: 8pt;
+`;
+
+// ========== THERMAL PRINT COMPONENT ==========
+
+interface ThermalTicketProps {
+  ticket: Ticket;
+}
+
+const ThermalTicket: React.FC<ThermalTicketProps> = ({ ticket }) => {
+  const qrValue = JSON.stringify({
+    id: ticket.id,
+    code: ticket.ticket_code,
+    secret: ticket.ticket_secret,
+  });
+
+  return (
+    <ThermalTicketTemplate>
+      <ThermalHeader>
+        {ticket.offer_name || ticket.ticket_code}
+      </ThermalHeader>
+
+      <ThermalQR>
+        <QRCode
+          value={qrValue}
+          size={128}
+          level="H"
+          includeMargin={true}
+        />
+      </ThermalQR>
+
+      <ThermalField>
+        <ThermalLabel>Ticket ID:</ThermalLabel>
+        <ThermalValue>{ticket.id}</ThermalValue>
+      </ThermalField>
+
+      <ThermalField>
+        <ThermalLabel>Code:</ThermalLabel>
+        <ThermalValue>{ticket.ticket_code}</ThermalValue>
+      </ThermalField>
+
+      <ThermalField>
+        <ThermalLabel>Secret:</ThermalLabel>
+        <ThermalValue>{ticket.ticket_secret}</ThermalValue>
+      </ThermalField>
+
+      {ticket.offer_name && (
+        <ThermalField>
+          <ThermalLabel>Offer:</ThermalLabel>
+          <ThermalValue>{ticket.offer_name}</ThermalValue>
+        </ThermalField>
+      )}
+
+      {ticket.valid_from && (
+        <ThermalField>
+          <ThermalLabel>Valid From:</ThermalLabel>
+          <ThermalValue>
+            {new Date(ticket.valid_from).toLocaleDateString()}
+          </ThermalValue>
+        </ThermalField>
+      )}
+
+      {ticket.valid_until && (
+        <ThermalField>
+          <ThermalLabel>Valid Until:</ThermalLabel>
+          <ThermalValue>
+            {new Date(ticket.valid_until).toLocaleDateString()}
+          </ThermalValue>
+        </ThermalField>
+      )}
+
+      <ThermalFooter>
+        Status: {ticket.status.toUpperCase()}
+        <br />
+        {new Date().toLocaleString()}
+      </ThermalFooter>
+    </ThermalTicketTemplate>
+  );
+};
+
+// ========== MAIN COMPONENT ==========
+
 export const TicketsPage: React.FC = () => {
+  const { tickets, isLoading, error } = useTicket();
+  const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
+  const printRef = useRef<HTMLDivElement>(null);
+
+  const toggleSecretVisibility = (ticketId: string) => {
+    setRevealedSecrets(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(ticketId)) {
+        newSet.delete(ticketId);
+      } else {
+        newSet.add(ticketId);
+      }
+      return newSet;
+    });
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+  };
+
+  const handlePrintThermal = (ticket: Ticket) => {
+    const printWindow = window.open('', '', 'width=600,height=800');
+    if (printWindow) {
+      const qrValue = JSON.stringify({
+        id: ticket.id,
+        code: ticket.ticket_code,
+        secret: ticket.ticket_secret,
+      });
+
+      const html = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="UTF-8">
+          <title>Print Ticket</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+            }
+            body {
+              font-family: 'Courier New', monospace;
+              width: 58mm;
+            }
+            @page {
+              size: 58mm auto;
+              margin: 0;
+            }
+            .ticket {
+              width: 58mm;
+              padding: 5mm;
+              font-size: 9pt;
+              line-height: 1.4;
+              background: white;
+              color: black;
+              page-break-after: always;
+            }
+            .header {
+              text-align: center;
+              font-weight: bold;
+              margin-bottom: 3mm;
+              font-size: 10pt;
+              border-bottom: 1px dashed black;
+              padding-bottom: 2mm;
+            }
+            .qr {
+              text-align: center;
+              margin: 3mm 0;
+            }
+            .qr img {
+              width: 40mm;
+              height: 40mm;
+            }
+            .field {
+              margin: 2mm 0;
+              word-break: break-all;
+            }
+            .label {
+              font-weight: bold;
+              font-size: 8pt;
+            }
+            .value {
+              font-size: 9pt;
+            }
+            .footer {
+              text-align: center;
+              margin-top: 3mm;
+              padding-top: 2mm;
+              border-top: 1px dashed black;
+              font-size: 8pt;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="ticket">
+            <div class="header">${ticket.offer_name || ticket.ticket_code}</div>
+            
+            <div class="qr">
+              <img src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(qrValue)}" />
+            </div>
+
+            <div class="field">
+              <div class="label">Ticket ID:</div>
+              <div class="value">${ticket.id}</div>
+            </div>
+
+            <div class="field">
+              <div class="label">Code:</div>
+              <div class="value">${ticket.ticket_code}</div>
+            </div>
+
+            <div class="field">
+              <div class="label">Secret:</div>
+              <div class="value">${ticket.ticket_secret}</div>
+            </div>
+
+            ${ticket.offer_name ? `
+              <div class="field">
+                <div class="label">Offer:</div>
+                <div class="value">${ticket.offer_name}</div>
+              </div>
+            ` : ''}
+
+            ${ticket.valid_from ? `
+              <div class="field">
+                <div class="label">Valid From:</div>
+                <div class="value">${new Date(ticket.valid_from).toLocaleDateString()}</div>
+              </div>
+            ` : ''}
+
+            ${ticket.valid_until ? `
+              <div class="field">
+                <div class="label">Valid Until:</div>
+                <div class="value">${new Date(ticket.valid_until).toLocaleDateString()}</div>
+              </div>
+            ` : ''}
+
+            <div class="footer">
+              Status: ${ticket.status.toUpperCase()}
+              <br/>
+              ${new Date().toLocaleString()}
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      printWindow.document.write(html);
+      printWindow.document.close();
+      setTimeout(() => {
+        printWindow.print();
+      }, 500);
+    }
+  };
+
+  if (isLoading && tickets.length === 0) {
+    return <LoadingSpinner />;
+  }
+
   return (
     <ContentSection>
       <PageHeader>
         <h1>Tickets & Coupons</h1>
         <p>View and manage your tickets and discount coupons</p>
       </PageHeader>
+
+      {error && (
+        <EmptyState>
+          <p style={{ color: '#d32f2f' }}>Error: {error}</p>
+        </EmptyState>
+      )}
+
+      {!error && tickets.length === 0 && (
+        <EmptyState>
+          <p>No tickets found. Create your first ticket to get started.</p>
+        </EmptyState>
+      )}
+
+      {tickets.length > 0 && (
+        <TicketsContainer>
+          {tickets.map(ticket => (
+            <TicketCard key={ticket.id}>
+              <TicketHeader>
+                <TicketTitle>{ticket.ticket_code}</TicketTitle>
+                <StatusBadge status={ticket.status}>
+                  {ticket.status}
+                </StatusBadge>
+              </TicketHeader>
+
+              <TicketContent>
+                <QRContainer>
+                  <QRCode
+                    value={JSON.stringify({
+                      id: ticket.id,
+                      code: ticket.ticket_code,
+                      secret: ticket.ticket_secret,
+                    })}
+                    size={100}
+                    level="H"
+                    includeMargin={true}
+                  />
+                  <span style={{ fontSize: '0.75rem', color: colors.textSecondary }}>QR Code</span>
+                </QRContainer>
+
+                <TicketDetails>
+                  <DetailRow>
+                    <DetailLabel>Ticket ID</DetailLabel>
+                    <DetailValue>{ticket.id}</DetailValue>
+                  </DetailRow>
+
+                  <DetailRow>
+                    <DetailLabel>Code</DetailLabel>
+                    <DetailValue>{ticket.ticket_code}</DetailValue>
+                  </DetailRow>
+
+                  <DetailRow>
+                    <DetailLabel>Secret Key</DetailLabel>
+                    <SecretField>
+                      <SecretValue>
+                        {revealedSecrets.has(ticket.id) 
+                          ? ticket.ticket_secret 
+                          : '•'.repeat(ticket.ticket_secret.length)}
+                      </SecretValue>
+                      <IconButton
+                        title={revealedSecrets.has(ticket.id) ? 'Hide' : 'Show'}
+                        onClick={() => toggleSecretVisibility(ticket.id)}
+                      >
+                        {revealedSecrets.has(ticket.id) ? <FiEyeOff /> : <FiEye />}
+                      </IconButton>
+                      <IconButton
+                        title="Copy"
+                        onClick={() => copyToClipboard(ticket.ticket_secret)}
+                      >
+                        <FiCopy />
+                      </IconButton>
+                    </SecretField>
+                  </DetailRow>
+
+                  {ticket.offer_name && (
+                    <DetailRow>
+                      <DetailLabel>Offer</DetailLabel>
+                      <DetailValue>{ticket.offer_name}</DetailValue>
+                    </DetailRow>
+                  )}
+
+                  {ticket.valid_from && (
+                    <DetailRow>
+                      <DetailLabel>Valid From</DetailLabel>
+                      <DetailValue>
+                        {new Date(ticket.valid_from).toLocaleDateString()}
+                      </DetailValue>
+                    </DetailRow>
+                  )}
+
+                  {ticket.valid_until && (
+                    <DetailRow>
+                      <DetailLabel>Valid Until</DetailLabel>
+                      <DetailValue>
+                        {new Date(ticket.valid_until).toLocaleDateString()}
+                      </DetailValue>
+                    </DetailRow>
+                  )}
+
+                  {ticket.is_used && ticket.used_at && (
+                    <DetailRow>
+                      <DetailLabel>Used At</DetailLabel>
+                      <DetailValue>
+                        {new Date(ticket.used_at).toLocaleString()}
+                      </DetailValue>
+                    </DetailRow>
+                  )}
+                </TicketDetails>
+              </TicketContent>
+
+              <TicketActions>
+                <PrintButton
+                  onClick={() => handlePrintThermal(ticket)}
+                  title="Print on 58mm thermal printer"
+                >
+                  <FiPrinter /> Print
+                </PrintButton>
+                {ticket.is_valid && !ticket.is_used && (
+                  <>
+                    <ActionButton title="Validate ticket">
+                      <FiCheck /> Validate
+                    </ActionButton>
+                    <ActionButton title="Mark as used">
+                      <FiX /> Use
+                    </ActionButton>
+                  </>
+                )}
+              </TicketActions>
+            </TicketCard>
+          ))}
+        </TicketsContainer>
+      )}
+
+      <PrintContainer ref={printRef}>
+        {tickets.map(ticket => (
+          <ThermalTicket key={ticket.id} ticket={ticket} />
+        ))}
+      </PrintContainer>
     </ContentSection>
   );
 };
