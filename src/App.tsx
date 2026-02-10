@@ -5,6 +5,9 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './components/Auth/LoginPage';
 import { ConfirmationPage } from './components/Auth/ConfirmationPage';
 import { Dashboard } from './pages/Dashboard';
+import { PaymentCheckoutPage } from './pages/PaymentCheckoutPage';
+import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
+import { PaymentFailedPage } from './pages/PaymentFailedPage';
 import { UserRole } from './config/menuPermissions';
 import './styles/global.css';
 
@@ -42,21 +45,26 @@ function App() {
     return (
         <>
             <Routes>
-            {/* Auth Routes */}
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/confirm" element={<ConfirmationPage email="" onSuccess={() => { }} onBack={() => { }} />} />
+                {/* Auth Routes */}
+                <Route path="/login" element={<LoginPage />} />
+                <Route path="/confirm" element={<ConfirmationPage email="" onSuccess={() => { }} onBack={() => { }} />} />
 
-            {/* Dashboard Route - Protected */}
-            <Route
-                path="/dashboard/*"
-                element={
-                    <ProtectedRoute isAuthenticated={isAuthenticated} isLoading={isLoading}>
-                        {user ? <Dashboard user={user} onLogout={logout} userRole={getUserRole(user)} /> : null}
-                    </ProtectedRoute>
-                }
-            />
+                {/* Payment Routes - Public */}
+                <Route path="/pay/:groupId" element={<PaymentCheckoutPage />} />
+                <Route path="/pay/offer/:offerId" element={<PaymentCheckoutPage />} />
+                <Route path="/pay/product/:productId" element={<PaymentCheckoutPage />} />
+                <Route path="/pay/success" element={<PaymentSuccessPage />} />
+                <Route path="/pay/failed" element={<PaymentFailedPage />} />
 
-
+                {/* Dashboard Route - Protected */}
+                <Route
+                    path="/dashboard/*"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated} isLoading={isLoading}>
+                            {user ? <Dashboard user={user} onLogout={logout} userRole={getUserRole(user)} /> : null}
+                        </ProtectedRoute>
+                    }
+                />
             </Routes>
         </>
     );

@@ -2,6 +2,9 @@ import { ReactNode } from 'react';
 import { LoginPage } from '../components/Auth/LoginPage';
 import { ConfirmationPage } from '../components/Auth/ConfirmationPage';
 import { Dashboard } from '../pages/Dashboard';
+import { PaymentCheckoutPage } from '../pages/PaymentCheckoutPage';
+import { PaymentSuccessPage } from '../pages/PaymentSuccessPage';
+import { PaymentFailedPage } from '../pages/PaymentFailedPage';
 
 export interface RouteConfig {
     path: string;
@@ -19,6 +22,32 @@ export const routes: RouteConfig[] = [
     {
         path: '/confirm',
         element: <ConfirmationPage email="" onSuccess={() => {}} onBack={() => {}} />,
+        protected: false,
+    },
+    // Payment Routes
+    {
+        path: '/pay/:groupId',
+        element: <PaymentCheckoutPage />,
+        protected: false,
+    },
+    {
+        path: '/pay/offer/:offerId',
+        element: <PaymentCheckoutPage />,
+        protected: false,
+    },
+    {
+        path: '/pay/product/:productId',
+        element: <PaymentCheckoutPage />,
+        protected: false,
+    },
+    {
+        path: '/pay/success',
+        element: <PaymentSuccessPage />,
+        protected: false,
+    },
+    {
+        path: '/pay/failed',
+        element: <PaymentFailedPage />,
         protected: false,
     },
     {

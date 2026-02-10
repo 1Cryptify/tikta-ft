@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { colors, spacing } from '../../config/theme';
-import { LoadingSpinner } from '../LoadingSpinner';
+import  LoadingSpinner  from '../LoadingSpinner';
 
 const Container = styled.div`
   padding: ${spacing.xl};
