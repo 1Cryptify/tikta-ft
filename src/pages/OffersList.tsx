@@ -458,7 +458,7 @@ export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
                  <div>
                    <label>Price</label>
                    <span>
-                     {offer.currency?.symbol || '$'}{offer.price?.toFixed(offer.currency?.decimal_places || 2) || '0.00'}
+                     {offer.currency?.symbol || '$'}{parseFloat(String(offer.price || 0)).toFixed(offer.currency?.decimal_places || 2)}
                    </span>
                  </div>
                  <div>
