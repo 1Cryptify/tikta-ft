@@ -2,6 +2,9 @@ import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import { API_USERS_BASE_URL } from '../services/api';
 
+// Délai minimum du loader en millisecondes
+const LOADER_DURATION = 2000;
+
 const axiosInstance = axios.create({
     baseURL: API_USERS_BASE_URL,
     withCredentials: true,
@@ -97,9 +100,17 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Get all businesses for current company
     const getBusinesses = useCallback(async () => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.get('/list-companies/');
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 setState(prev => ({
                     ...prev,
@@ -108,6 +119,13 @@ export const useBusiness = (): UseBusinessReturn => {
                 }));
             }
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to fetch businesses'
                 : 'An error occurred';
@@ -121,15 +139,30 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Get single business by ID
     const getBusinessById = useCallback(async (id: string): Promise<Business | null> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.get(`/${id}/`);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 setState(prev => ({ ...prev, isLoading: false }));
                 return response.data.company;
             }
             return null;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to fetch business'
                 : 'An error occurred';
@@ -144,9 +177,17 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Create new business
     const createBusiness = useCallback(async (data: Partial<Business>): Promise<Business | null> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/create/', data);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 const newBusiness = response.data.company;
                 setState(prev => ({
@@ -158,6 +199,13 @@ export const useBusiness = (): UseBusinessReturn => {
             }
             return null;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to create business'
                 : 'An error occurred';
@@ -172,9 +220,17 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Update business
     const updateBusiness = useCallback(async (id: string, data: Partial<Business>): Promise<Business | null> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post(`/${id}/update/`, data);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
@@ -186,6 +242,13 @@ export const useBusiness = (): UseBusinessReturn => {
             }
             return null;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to update business'
                 : 'An error occurred';
@@ -200,9 +263,17 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Delete business
     const deleteBusiness = useCallback(async (id: string): Promise<boolean> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.delete(`/${id}/delete/`);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 setState(prev => ({
                     ...prev,
@@ -213,6 +284,13 @@ export const useBusiness = (): UseBusinessReturn => {
             }
             return false;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to delete business'
                 : 'An error occurred';
@@ -227,14 +305,29 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Block business
     const blockBusiness = useCallback(async (id: string, reason?: string): Promise<boolean> => {
+        const startTime = Date.now();
         setState(prev => ({
             ...prev,
             businesses: prev.businesses.map(b => b.id === id ? { ...b, is_blocked: true } : b),
         }));
         try {
             await axiosInstance.post('/block-company/', { company_id: id, is_blocked: true, reason });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             return true;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to block business'
                 : 'An error occurred';
@@ -248,14 +341,29 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Unblock business
     const unblockBusiness = useCallback(async (id: string): Promise<boolean> => {
+        const startTime = Date.now();
         setState(prev => ({
             ...prev,
             businesses: prev.businesses.map(b => b.id === id ? { ...b, is_blocked: false } : b),
         }));
         try {
             await axiosInstance.post('/block-company/', { company_id: id, is_blocked: false });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             return true;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to unblock business'
                 : 'An error occurred';
@@ -269,15 +377,30 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Mark company as active
     const markActiveCompany = useCallback(async (id: string): Promise<boolean> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/set-active-company/', { company_id: id });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 setState(prev => ({ ...prev, isLoading: false }));
                 return true;
             }
             return false;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to set active company'
                 : 'An error occurred';
@@ -292,10 +415,18 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Upload business documents
     const uploadDocuments = useCallback(async (id: string, documents: FormData): Promise<boolean> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             documents.append('company_id', id);
             const response = await axiosInstance.post('/upload-documents/', documents);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
@@ -314,6 +445,13 @@ export const useBusiness = (): UseBusinessReturn => {
             }
             return false;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             let errorMessage = 'Failed to upload documents';
             if (error instanceof axios.AxiosError) {
                 errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || errorMessage;
@@ -331,6 +469,7 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Upload business logo
     const uploadLogo = useCallback(async (id: string, file: File): Promise<boolean> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const formData = new FormData();
@@ -338,6 +477,13 @@ export const useBusiness = (): UseBusinessReturn => {
             formData.append('logo', file);
 
             const response = await axiosInstance.post('/upload-documents/', formData);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
@@ -356,6 +502,13 @@ export const useBusiness = (): UseBusinessReturn => {
             }
             return false;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             let errorMessage = 'Failed to upload logo';
             if (error instanceof axios.AxiosError) {
                 errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || errorMessage;
@@ -406,18 +559,33 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Associate user to business
     const associateUserToBusiness = useCallback(async (userId: string, companyId: string): Promise<boolean> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/associate-user-business/', {
                 user_id: userId,
                 company_id: companyId
             });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 setState(prev => ({ ...prev, isLoading: false }));
                 return true;
             }
             return false;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to associate user to business'
                 : 'An error occurred';
@@ -432,18 +600,33 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Disassociate user from business
     const disassociateUserFromBusiness = useCallback(async (userId: string, companyId: string): Promise<boolean> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/disassociate-user-business/', {
                 user_id: userId,
                 company_id: companyId
             });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 setState(prev => ({ ...prev, isLoading: false }));
                 return true;
             }
             return false;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to disassociate user from business'
                 : 'An error occurred';
@@ -458,15 +641,30 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // List user business associations
     const listUserBusinessAssociations = useCallback(async (): Promise<BusinessAssociation[]> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.get('/list-user-business-associations/');
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 setState(prev => ({ ...prev, isLoading: false }));
                 return response.data.associations || [];
             }
             return [];
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to fetch business associations'
                 : 'An error occurred';
@@ -481,15 +679,30 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // List business users
     const listBusinessUsers = useCallback(async (companyId: string): Promise<BusinessUser[]> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.get(`/list-business-users/?company_id=${companyId}`);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 setState(prev => ({ ...prev, isLoading: false }));
                 return response.data.users || [];
             }
             return [];
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to fetch business users'
                 : 'An error occurred';
@@ -504,6 +717,7 @@ export const useBusiness = (): UseBusinessReturn => {
 
     // Update company status message
     const updateCompanyStatusMessage = useCallback(async (id: string, message: string, type: 'positive' | 'negative'): Promise<Business | null> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/update-company-status-message/', {
@@ -511,6 +725,13 @@ export const useBusiness = (): UseBusinessReturn => {
                 status_message: message,
                 status_type: type
             });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 const updatedBusiness = response.data.company;
                 setState(prev => ({
@@ -522,6 +743,13 @@ export const useBusiness = (): UseBusinessReturn => {
             }
             return null;
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Failed to update status message'
                 : 'An error occurred';

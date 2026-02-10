@@ -2,6 +2,9 @@ import { useState, useCallback, useEffect } from 'react';
 import axios from 'axios';
 import { API_USERS_BASE_URL } from '../services/api';
 
+// Délai minimum du loader en millisecondes
+const LOADER_DURATION = 2000;
+
 const axiosInstance = axios.create({
     baseURL: API_USERS_BASE_URL,
     withCredentials: true,
@@ -65,9 +68,17 @@ export const useAuth = (): UseAuthReturn => {
 
     // Get current authenticated user
     const getCurrentUser = useCallback(async () => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.get('/me/');
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             if (response.data.status === 'success') {
                 setState(prev => ({
                     ...prev,
@@ -77,6 +88,13 @@ export const useAuth = (): UseAuthReturn => {
                 }));
             }
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             setState(prev => ({
                 ...prev,
                 isAuthenticated: false,
@@ -130,9 +148,16 @@ export const useAuth = (): UseAuthReturn => {
 
     // Confirm login with email and confirmation code
     const confirmLogin = useCallback(async (email: string, code: string) => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/confirm/', { email, code });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
 
             if (response.data.status === 'error') {
                 const errorMessage = response.data.message || 'Confirmation failed';
@@ -151,6 +176,13 @@ export const useAuth = (): UseAuthReturn => {
             }
             return { success: false, error: 'Unknown response' };
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || error.message
                 : error instanceof Error
@@ -167,9 +199,17 @@ export const useAuth = (): UseAuthReturn => {
 
     // Logout user
     const logout = useCallback(async () => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             await axiosInstance.post('/logout/');
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             setState({
                 user: null,
                 isAuthenticated: false,
@@ -177,6 +217,13 @@ export const useAuth = (): UseAuthReturn => {
                 error: null,
             });
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || 'Logout failed'
                 : 'An error occurred during logout';
@@ -190,9 +237,16 @@ export const useAuth = (): UseAuthReturn => {
 
     // Resend confirmation code
     const resendCode = useCallback(async (email: string) => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/resend-code/', { email });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
 
             if (response.data.status === 'error') {
                 const errorMessage = response.data.message || 'Failed to resend code';
@@ -214,6 +268,13 @@ export const useAuth = (): UseAuthReturn => {
             }
             return { success: false, error: 'Unknown response' };
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || error.message
                 : error instanceof Error
@@ -230,9 +291,16 @@ export const useAuth = (): UseAuthReturn => {
 
     // Set active company for user
     const setActiveCompany = useCallback(async (companyId: string): Promise<Company> => {
+        const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/set-active-company/', { company_id: companyId });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
 
             if (response.data.status === 'error') {
                 throw new Error(response.data.message || 'Failed to set active company');
@@ -251,6 +319,13 @@ export const useAuth = (): UseAuthReturn => {
 
             throw new Error('Unexpected response from server');
         } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || error.message
                 : error instanceof Error
