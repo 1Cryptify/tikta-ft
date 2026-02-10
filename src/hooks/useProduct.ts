@@ -57,37 +57,26 @@ export const useProduct = (): UseProductReturn => {
     const getProducts = useCallback(async () => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.get('/products/');
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({
-                    ...prev,
-                    products: response.data.products || [],
-                    isLoading: false,
-                }));
-            }
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to fetch products'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.get('/products/');
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({
+                ...prev,
+                products: response.data.products || [],
+                isLoading: false,
+            }));
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to fetch products',
             }));
         }
     }, []);
@@ -96,296 +85,212 @@ export const useProduct = (): UseProductReturn => {
     const getProductById = useCallback(async (id: string): Promise<Product | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.get(`/products/${id}/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({ ...prev, isLoading: false }));
-                return response.data.product;
-            }
-            return null;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to fetch product'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.get(`/products/${id}/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({ ...prev, isLoading: false }));
+            return response.data.product;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to fetch product',
             }));
-            return null;
         }
+        return null;
     }, []);
 
     // Create new product (auto-selects active company for non-superusers)
     const createProduct = useCallback(async (data: Partial<Product>): Promise<Product | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            // Auto-add company_id from active company if not a superuser
-            const productData = { ...data };
-            if (user && !user.is_superuser && user.active_company) {
-                productData.company_id = user.active_company.id;
-            }
+        
+        // Auto-add company_id from active company if not a superuser
+        const productData = { ...data };
+        if (user && !user.is_superuser && user.active_company) {
+            productData.company_id = user.active_company.id;
+        }
 
-            const response = await axiosInstance.post('/products/create/', productData);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                const newProduct = response.data.product;
-                setState(prev => ({
-                    ...prev,
-                    products: [...prev.products, newProduct],
-                    isLoading: false,
-                }));
-                return newProduct;
-            }
-            return null;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to create product'
-                : 'An error occurred';
+        const response = await axiosInstance.post('/products/create/', productData);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            const newProduct = response.data.product;
+            setState(prev => ({
+                ...prev,
+                products: [...prev.products, newProduct],
+                isLoading: false,
+            }));
+            return newProduct;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to create product',
             }));
-            return null;
         }
+        return null;
     }, [user]);
 
     // Update product
     const updateProduct = useCallback(async (id: string, data: Partial<Product>): Promise<Product | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.post(`/products/${id}/update/`, data);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                const updatedProduct = response.data.product;
-                setState(prev => ({
-                    ...prev,
-                    products: prev.products.map(p => p.id === id ? updatedProduct : p),
-                    isLoading: false,
-                }));
-                return updatedProduct;
-            }
-            return null;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to update product'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.post(`/products/${id}/update/`, data);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            const updatedProduct = response.data.product;
+            setState(prev => ({
+                ...prev,
+                products: prev.products.map(p => p.id === id ? updatedProduct : p),
+                isLoading: false,
+            }));
+            return updatedProduct;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to update product',
             }));
-            return null;
         }
+        return null;
     }, []);
 
     // Delete product
     const deleteProduct = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.post(`/products/${id}/delete/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({
-                    ...prev,
-                    products: prev.products.filter(p => p.id !== id),
-                    isLoading: false,
-                }));
-                return true;
-            }
-            return false;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to delete product'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.post(`/products/${id}/delete/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({
+                ...prev,
+                products: prev.products.filter(p => p.id !== id),
+                isLoading: false,
+            }));
+            return true;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to delete product',
             }));
-            return false;
         }
+        return false;
     }, []);
 
     // Activate product
     const activateProduct = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.post(`/products/${id}/activate/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                const updatedProduct = response.data.product;
-                setState(prev => ({
-                    ...prev,
-                    products: prev.products.map(p => p.id === id ? updatedProduct : p),
-                    isLoading: false,
-                }));
-                return true;
-            }
-            return false;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to activate product'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.post(`/products/${id}/activate/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            const updatedProduct = response.data.product;
+            setState(prev => ({
+                ...prev,
+                products: prev.products.map(p => p.id === id ? updatedProduct : p),
+                isLoading: false,
+            }));
+            return true;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to activate product',
             }));
-            return false;
         }
+        return false;
     }, []);
 
     // Deactivate product
     const deactivateProduct = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.post(`/products/${id}/deactivate/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                const updatedProduct = response.data.product;
-                setState(prev => ({
-                    ...prev,
-                    products: prev.products.map(p => p.id === id ? updatedProduct : p),
-                    isLoading: false,
-                }));
-                return true;
-            }
-            return false;
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to deactivate product'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.post(`/products/${id}/deactivate/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            const updatedProduct = response.data.product;
+            setState(prev => ({
+                ...prev,
+                products: prev.products.map(p => p.id === id ? updatedProduct : p),
+                isLoading: false,
+            }));
+            return true;
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to deactivate product',
             }));
-            return false;
         }
+        return false;
     }, []);
 
     // Get company products
     const getCompanyProducts = useCallback(async (companyId: string): Promise<Product[]> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        try {
-            const response = await axiosInstance.get(`/companies/${companyId}/products/`);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            if (response.data.status === 'success') {
-                setState(prev => ({ ...prev, isLoading: false }));
-                return response.data.products || [];
-            }
-            return [];
-        } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Failed to fetch company products'
-                : 'An error occurred';
+        
+        const response = await axiosInstance.get(`/companies/${companyId}/products/`);
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+        
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+        
+        if (response.data.status === 'success') {
+            setState(prev => ({ ...prev, isLoading: false }));
+            return response.data.products || [];
+        } else if (response.data.status === 'error') {
             setState(prev => ({
                 ...prev,
                 isLoading: false,
-                error: errorMessage,
+                error: response.data.message || 'Failed to fetch company products',
             }));
-            return [];
         }
+        return [];
     }, []);
 
     // Initialize - fetch products on mount
