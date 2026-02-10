@@ -383,17 +383,17 @@ export const WithdrawalPanel: React.FC = () => {
     <PanelContainer>
       <StatsSection>
         <StatCard>
-          <div className="stat-label">💰 Balance</div>
+          <div className="stat-label">Balance</div>
           <div className="stat-value">${stats.balance.toLocaleString()}</div>
           <div className="stat-subtext">Available balance</div>
         </StatCard>
         <StatCard>
-          <div className="stat-label">📊 Total Payments</div>
+          <div className="stat-label">Total Payments</div>
           <div className="stat-value">{stats.totalPayments}</div>
           <div className="stat-subtext">Withdrawal accounts</div>
         </StatCard>
         <StatCard>
-          <div className="stat-label">📅 Last Withdrawal</div>
+          <div className="stat-label">Last Withdrawal</div>
           <div className="stat-value">{stats.lastWithdrawal || 'N/A'}</div>
           <div className="stat-subtext">Most recent account</div>
         </StatCard>

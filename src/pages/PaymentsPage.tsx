@@ -189,19 +189,19 @@ export const PaymentsPage: React.FC = () => {
           isActive={activeTab === 'withdrawal'}
           onClick={() => setActiveTab('withdrawal')}
         >
-          💳 Withdrawal
+          Withdrawal
         </MenuButton>
         <MenuButton
           isActive={activeTab === 'transactions'}
           onClick={() => setActiveTab('transactions')}
         >
-          📊 Transactions
+          Transactions
         </MenuButton>
         <MenuButton
           isActive={activeTab === 'logs'}
           onClick={() => setActiveTab('logs')}
         >
-          📋 Logs
+          Logs
         </MenuButton>
       </MenuNav>
 
