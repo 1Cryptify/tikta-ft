@@ -705,6 +705,11 @@ export const WithdrawalPanel: React.FC = () => {
             return;
         }
 
+        if (withdrawalData.amount % 50 !== 0) {
+            alert('Le montant du retrait doit être un multiple de 50');
+            return;
+        }
+
         setIsProcessingWithdrawal(true);
         try {
             const axiosInstance = axios.create({
@@ -1017,15 +1022,15 @@ export const WithdrawalPanel: React.FC = () => {
 
                             <FormRow>
                                 <FormGroup>
-                                    <label>Montant *</label>
+                                    <label>Montant * (multiple de 50)</label>
                                     <input
                                         type="number"
                                         name="amount"
                                         value={withdrawalData.amount || ''}
                                         onChange={handleWithdrawalInputChange}
                                         placeholder="Entrez le montant"
-                                        step="0.01"
-                                        min="0"
+                                        step="50"
+                                        min="50"
                                         required
                                     />
                                 </FormGroup>
