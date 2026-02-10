@@ -14,18 +14,38 @@ const axiosInstance = axios.create({
     },
 });
 
+export interface Currency {
+    id: string;
+    code: string;
+    name: string;
+    symbol: string;
+    value_in_usd: number;
+    decimal_places: number;
+    is_active: boolean;
+    is_default: boolean;
+    created_at?: string;
+    updated_at?: string;
+}
+
 export interface Offer {
     id: string;
     group_id?: string;
     company_id: string;
     name: string;
     description?: string;
+    price?: number;
+    currency_id?: string;
+    currency?: Currency;
     discount_type?: 'percentage' | 'fixed';
     discount_value?: number;
+    discount_currency_id?: string;
     original_price?: number;
     final_price?: number;
     is_active: boolean;
-    is_deleted: boolean;
+    is_deleted?: boolean;
+    offer_type?: 'ticket' | 'digital_product';
+    category?: string;
+    tags?: string[];
     created_at?: string;
     updated_at?: string;
 }
@@ -43,6 +63,7 @@ export interface OfferGroup {
 interface OfferState {
     offers: Offer[];
     offerGroups: OfferGroup[];
+    currencies: Currency[];
     isLoading: boolean;
     error: string | null;
     successMessage: string | null;
@@ -50,6 +71,7 @@ interface OfferState {
 }
 
 interface UseOfferReturn extends OfferState {
+    getCurrencies: () => Promise<void>;
     getOffers: () => Promise<void>;
     getOfferById: (id: string) => Promise<Offer | null>;
     createOffer: (data: Partial<Offer>) => Promise<Offer | null>;
@@ -71,25 +93,62 @@ export const useOffer = (): UseOfferReturn => {
     const [state, setState] = useState<OfferState>({
         offers: [],
         offerGroups: [],
+        currencies: [],
         isLoading: false,
         error: null,
         successMessage: null,
         successStatus: null,
     });
 
+    // Get all currencies
+    const getCurrencies = useCallback(async () => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.get('/currencies/');
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    currencies: response.data.currencies || [],
+                    isLoading: false,
+                }));
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to fetch currencies',
+                }));
+            }
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to fetch currencies',
+            }));
+        }
+    }, []);
+
     // Get all offers
     const getOffers = useCallback(async () => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.get('/offers/');
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             setState(prev => ({
                 ...prev,
@@ -111,15 +170,15 @@ export const useOffer = (): UseOfferReturn => {
     const getOfferById = useCallback(async (id: string): Promise<Offer | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.get(`/offers/${id}/`);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             setState(prev => ({ ...prev, isLoading: false }));
             return response.data.offer;
@@ -137,7 +196,7 @@ export const useOffer = (): UseOfferReturn => {
     const createOffer = useCallback(async (data: Partial<Offer>): Promise<Offer | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         // Auto-add company_id from active company if not a superuser
         const offerData = { ...data };
         if (user && !user.is_superuser && user.active_company) {
@@ -147,11 +206,11 @@ export const useOffer = (): UseOfferReturn => {
         const response = await axiosInstance.post('/offers/create/', offerData);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             const newOffer = response.data.offer;
             setState(prev => ({
@@ -174,15 +233,15 @@ export const useOffer = (): UseOfferReturn => {
     const updateOffer = useCallback(async (id: string, data: Partial<Offer>): Promise<Offer | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.post(`/offers/${id}/update/`, data);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             const updatedOffer = response.data.offer;
             setState(prev => ({
@@ -205,15 +264,15 @@ export const useOffer = (): UseOfferReturn => {
     const deleteOffer = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.post(`/offers/${id}/delete/`);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             setState(prev => ({
                 ...prev,
@@ -235,15 +294,15 @@ export const useOffer = (): UseOfferReturn => {
     const activateOffer = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.post(`/offers/${id}/activate/`);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             const updatedOffer = response.data.offer;
             setState(prev => ({
@@ -266,15 +325,15 @@ export const useOffer = (): UseOfferReturn => {
     const deactivateOffer = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.post(`/offers/${id}/deactivate/`);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             const updatedOffer = response.data.offer;
             setState(prev => ({
@@ -297,15 +356,15 @@ export const useOffer = (): UseOfferReturn => {
     const getCompanyOffers = useCallback(async (companyId: string): Promise<Offer[]> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.get(`/companies/${companyId}/offers/`);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             setState(prev => ({ ...prev, isLoading: false }));
             return response.data.offers || [];
@@ -323,15 +382,15 @@ export const useOffer = (): UseOfferReturn => {
     const getOfferGroups = useCallback(async () => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.get('/offer-groups/');
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             setState(prev => ({
                 ...prev,
@@ -353,15 +412,15 @@ export const useOffer = (): UseOfferReturn => {
     const getOfferGroupById = useCallback(async (id: string): Promise<OfferGroup | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.get(`/offer-groups/${id}/`);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             setState(prev => ({ ...prev, isLoading: false }));
             return response.data.offer_group;
@@ -379,7 +438,7 @@ export const useOffer = (): UseOfferReturn => {
     const createOfferGroup = useCallback(async (data: Partial<OfferGroup>): Promise<OfferGroup | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         // Auto-add company_id from active company if not a superuser
         const groupData = { ...data };
         if (user && !user.is_superuser && user.active_company) {
@@ -389,11 +448,11 @@ export const useOffer = (): UseOfferReturn => {
         const response = await axiosInstance.post('/offer-groups/create/', groupData);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             const newGroup = response.data.offer_group;
             setState(prev => ({
@@ -416,15 +475,15 @@ export const useOffer = (): UseOfferReturn => {
     const updateOfferGroup = useCallback(async (id: string, data: Partial<OfferGroup>): Promise<OfferGroup | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.post(`/offer-groups/${id}/update/`, data);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             const updatedGroup = response.data.offer_group;
             setState(prev => ({
@@ -447,15 +506,15 @@ export const useOffer = (): UseOfferReturn => {
     const deleteOfferGroup = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.post(`/offer-groups/${id}/delete/`);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             setState(prev => ({
                 ...prev,
@@ -477,15 +536,15 @@ export const useOffer = (): UseOfferReturn => {
     const getCompanyOfferGroups = useCallback(async (companyId: string): Promise<OfferGroup[]> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
-        
+
         const response = await axiosInstance.get(`/companies/${companyId}/offer-groups/`);
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-        
+
         if (delayNeeded > 0) {
             await new Promise(resolve => setTimeout(resolve, delayNeeded));
         }
-        
+
         if (response.data.status === 'success') {
             setState(prev => ({ ...prev, isLoading: false }));
             return response.data.offer_groups || [];
@@ -499,14 +558,16 @@ export const useOffer = (): UseOfferReturn => {
         return [];
     }, []);
 
-    // Initialize - fetch offers on mount
+    // Initialize - fetch data on mount
     useEffect(() => {
+        getCurrencies();
         getOffers();
         getOfferGroups();
-    }, [getOffers, getOfferGroups]);
+    }, [getCurrencies, getOffers, getOfferGroups]);
 
     return {
         ...state,
+        getCurrencies,
         getOffers,
         getOfferById,
         createOffer,
