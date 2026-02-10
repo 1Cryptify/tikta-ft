@@ -229,6 +229,8 @@ const SuccessMessage = styled.div`
 
 const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, onSubmit, isLoading }) => {
     const [formData, setFormData] = useState({
+        ticket_id: '',
+        password: '',
         ticket_code: '',
         ticket_type: 'standard',
         description: '',
@@ -250,6 +252,14 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
         setSuccess(null);
 
         // Validation
+        if (!formData.ticket_id.trim()) {
+            setError('Ticket ID is required');
+            return;
+        }
+        if (!formData.password.trim()) {
+            setError('Password is required');
+            return;
+        }
         if (!formData.ticket_code.trim()) {
             setError('Ticket code is required');
             return;
@@ -263,6 +273,8 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             await onSubmit(formData);
             setSuccess('Ticket created successfully');
             setFormData({
+                ticket_id: '',
+                password: '',
                 ticket_code: '',
                 ticket_type: 'standard',
                 description: '',
@@ -294,6 +306,32 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                     {success && <SuccessMessage>{success}</SuccessMessage>}
 
                     <Form onSubmit={handleSubmit}>
+                        <FormGroup>
+                            <Label htmlFor="ticket_id">Ticket ID (User Identifier) *</Label>
+                            <Input
+                                id="ticket_id"
+                                type="text"
+                                name="ticket_id"
+                                value={formData.ticket_id}
+                                onChange={handleChange}
+                                placeholder="Enter user identifier"
+                                disabled={isLoading}
+                            />
+                        </FormGroup>
+
+                        <FormGroup>
+                            <Label htmlFor="password">Password *</Label>
+                            <Input
+                                id="password"
+                                type="password"
+                                name="password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                placeholder="Enter password"
+                                disabled={isLoading}
+                            />
+                        </FormGroup>
+
                         <FormGroup>
                             <Label htmlFor="ticket_code">Ticket Code *</Label>
                             <Input
