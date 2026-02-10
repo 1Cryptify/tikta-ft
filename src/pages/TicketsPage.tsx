@@ -2,7 +2,7 @@ import React, { useState, useRef } from 'react';
 import styled from 'styled-components';
 // @ts-ignore
 import QRCode from 'qrcode.react';
-import { FiPrinter, FiEye, FiEyeOff, FiCheck, FiX, FiCopy, FiPlus, FiTrash2, FiEdit2 } from 'react-icons/fi';
+import { FiPrinter, FiEye, FiEyeOff, FiCheck, FiX, FiCopy, FiPlus, FiTrash2 } from 'react-icons/fi';
 import { colors, spacing } from '../config/theme';
 import { useTicket, Ticket } from '../hooks/useTicket';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -288,17 +288,6 @@ const DeleteButton = styled(ActionButton)`
   &:hover {
     background: #c82333;
     border-color: #c82333;
-  }
-`;
-
-const EditButton = styled(ActionButton)`
-  background: #ffc107;
-  color: #000;
-  border-color: #ffc107;
-
-  &:hover {
-    background: #e0a800;
-    border-color: #e0a800;
   }
 `;
 
@@ -814,9 +803,6 @@ export const TicketsPage: React.FC = () => {
                                         </ActionButton>
                                     </>
                                 )}
-                                <EditButton title="Edit ticket">
-                                    <FiEdit2 /> Edit
-                                </EditButton>
                                 <DeleteButton 
                                     title="Delete ticket"
                                     onClick={() => handleDeleteTicket(ticket.id)}
