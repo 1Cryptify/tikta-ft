@@ -29,14 +29,14 @@ export interface Currency {
 
 export interface Product {
     id: string;
-    company_id: string;
+    company: string;
     name: string;
     description?: string;
     price: number;
     currency_id?: string;
     currency?: Currency;
     is_active: boolean;
-    is_deleted: boolean;
+    is_deleted?: boolean;
     created_at?: string;
     updated_at?: string;
 }

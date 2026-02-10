@@ -259,6 +259,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         name: '',
         description: '',
         price: 0,
+        company: '',
         currency_id: '',
         is_active: true,
     });
@@ -273,7 +274,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 description: '',
                 price: 0,
                 currency_id: '',
-                company_id: user?.active_company?.id || '',
+                company: user?.active_company?.id || '',
                 is_active: true,
             });
         }
@@ -287,8 +288,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             newErrors.name = 'Product name is required';
         }
 
-        if (!formData.company_id) {
-            newErrors.company_id = 'Company is required';
+        if (!formData.company) {
+            newErrors.company = 'Company is required';
         }
 
         if (formData.price === undefined || formData.price === null || formData.price < 0) {
@@ -385,8 +386,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                         <Label>Company *</Label>
                         {user?.is_superuser ? (
                             <Select
-                                name="company_id"
-                                value={formData.company_id || ''}
+                                name="company"
+                                value={formData.company || ''}
                                 onChange={handleChange}
                                 disabled={isLoading || businesses.length === 0}
                             >
@@ -411,9 +412,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                                 style={{ backgroundColor: colors.neutral, cursor: 'not-allowed' }}
                             />
                         )}
-                        {errors.company_id && (
+                        {errors.company && (
                             <p style={{ color: colors.error, fontSize: '0.75rem', marginTop: spacing.sm }}>
-                                {errors.company_id}
+                                {errors.company}
                             </p>
                         )}
                     </FormGroup>

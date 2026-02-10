@@ -10,7 +10,7 @@ import {
     FiX,
     FiEye,
 } from 'react-icons/fi';
-import { useProduct, Product, Currency } from '../hooks/useProduct';
+import { useProduct, Product } from '../hooks/useProduct';
 import { ProductModal } from '../components/ProductModal';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 
@@ -529,7 +529,7 @@ export const ProductsList: React.FC = () => {
 
                             <PriceSection>
                                 <label>Price</label>
-                                <span>${product.price?.toFixed(2) || '0.00'}</span>
+                                <span>${Number(product.price)?.toFixed(2) || '0.00'}</span>
                             </PriceSection>
 
                             <CardActions>
@@ -594,7 +594,7 @@ export const ProductsList: React.FC = () => {
                                 </DetailItem>
                                 <DetailItem>
                                     <h3>Company ID</h3>
-                                    <p style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>{selectedProduct.company_id}</p>
+                                    <p style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>{selectedProduct.company}</p>
                                 </DetailItem>
                             </DetailsGrid>
 
@@ -602,8 +602,8 @@ export const ProductsList: React.FC = () => {
                                 <DetailItem>
                                     <h3>Price</h3>
                                     <p>
-                                        {selectedProduct.currency?.symbol || '$'}
-                                        {selectedProduct.price?.toFixed(
+                                        {selectedProduct.currency?.symbol}
+                                        {Number(selectedProduct.price)?.toFixed(
                                             selectedProduct.currency?.decimal_places || 2
                                         ) || '0.00'}
                                     </p>
