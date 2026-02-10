@@ -354,6 +354,13 @@ const FormGroup = styled.div`
   }
 `;
 
+const FormRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${spacing.md};
+  margin-bottom: ${spacing.md};
+`;
+
 const FormActions = styled.div`
   display: flex;
   gap: ${spacing.md};
@@ -950,40 +957,42 @@ export const WithdrawalPanel: React.FC = () => {
                                 </select>
                             </FormGroup>
 
-                            <FormGroup>
-                                <label>Montant *</label>
-                                <input
-                                    type="number"
-                                    name="amount"
-                                    value={withdrawalData.amount || ''}
-                                    onChange={handleWithdrawalInputChange}
-                                    placeholder="Entrez le montant"
-                                    step="0.01"
-                                    min="0"
-                                    required
-                                />
-                            </FormGroup>
+                            <FormRow>
+                                <FormGroup>
+                                    <label>Montant *</label>
+                                    <input
+                                        type="number"
+                                        name="amount"
+                                        value={withdrawalData.amount || ''}
+                                        onChange={handleWithdrawalInputChange}
+                                        placeholder="Entrez le montant"
+                                        step="0.01"
+                                        min="0"
+                                        required
+                                    />
+                                </FormGroup>
 
-                            <FormGroup>
-                                <label>Devise *</label>
-                                <select
-                                    name="currency"
-                                    value={withdrawalData.currency}
-                                    onChange={handleWithdrawalInputChange}
-                                    required
-                                >
-                                    <option value="USD">USD - Dollar américain</option>
-                                    <option value="EUR">EUR - Euro</option>
-                                    <option value="GBP">GBP - Livre sterling</option>
-                                    <option value="XOF">XOF - Franc CFA (Afrique de l'Ouest)</option>
-                                    <option value="XAF">XAF - Franc CFA (Afrique centrale)</option>
-                                    <option value="ZAR">ZAR - Rand sud-africain</option>
-                                    <option value="NGN">NGN - Naira nigérian</option>
-                                    <option value="KES">KES - Shilling kényan</option>
-                                    <option value="GHS">GHS - Cedi ghanéen</option>
-                                    <option value="TZS">TZS - Shilling tanzanien</option>
-                                </select>
-                            </FormGroup>
+                                <FormGroup>
+                                    <label>Devise *</label>
+                                    <select
+                                        name="currency"
+                                        value={withdrawalData.currency}
+                                        onChange={handleWithdrawalInputChange}
+                                        required
+                                    >
+                                        <option value="USD">USD - Dollar américain</option>
+                                        <option value="EUR">EUR - Euro</option>
+                                        <option value="GBP">GBP - Livre sterling</option>
+                                        <option value="XOF">XOF - Franc CFA (Afrique de l'Ouest)</option>
+                                        <option value="XAF">XAF - Franc CFA (Afrique centrale)</option>
+                                        <option value="ZAR">ZAR - Rand sud-africain</option>
+                                        <option value="NGN">NGN - Naira nigérian</option>
+                                        <option value="KES">KES - Shilling kényan</option>
+                                        <option value="GHS">GHS - Cedi ghanéen</option>
+                                        <option value="TZS">TZS - Shilling tanzanien</option>
+                                    </select>
+                                </FormGroup>
+                            </FormRow>
 
                             <ModalFooter>
                                 <CancelButton 
