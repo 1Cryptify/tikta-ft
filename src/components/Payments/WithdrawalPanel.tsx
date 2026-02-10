@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import { colors, spacing } from '../../config/theme';
-import { useWithdrawal, PaymentMethod, Company } from '../../hooks/useWithdrawal';
+import { useWithdrawal, PaymentMethod, Company, PaymentBalance, Currency } from '../../hooks/useWithdrawal';
 import { useAuth } from '../../hooks/useAuth';
 import { API_PAYMENTS_BASE_URL } from '../../services/api';
 import LoadingSpinner from '../LoadingSpinner';
@@ -395,7 +395,12 @@ const CancelButton = styled.button`
   `;
 
 interface WithdrawalStats {
-    balance: number;
+    availableBalance: number;
+    totalDeposits: number;
+    totalWithdrawals: number;
+    currency: Currency | null;
+    currencyCode: string | null;
+    currencySymbol: string | null;
     totalPayments: number;
     lastWithdrawal: string | null;
 }
@@ -438,11 +443,18 @@ export const WithdrawalPanel: React.FC = () => {
     const [showForm, setShowForm] = useState(false);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
     const [companies, setCompanies] = useState<Company[]>([]);
+    const [currencies, setCurrencies] = useState<Currency[]>([]);
     const [loadingPaymentMethods, setLoadingPaymentMethods] = useState(false);
     const [loadingCompanies, setLoadingCompanies] = useState(false);
+    const [loadingCurrencies, setLoadingCurrencies] = useState(false);
     const [linkedPaymentMethod, setLinkedPaymentMethod] = useState<Record<string, string | null>>({});
     const [stats, setStats] = useState<WithdrawalStats>({
-        balance: 0,
+        availableBalance: 0,
+        totalDeposits: 0,
+        totalWithdrawals: 0,
+        currency: null,
+        currencyCode: null,
+        currencySymbol: null,
         totalPayments: 0,
         lastWithdrawal: null,
     });
@@ -463,7 +475,17 @@ export const WithdrawalPanel: React.FC = () => {
     });
     const [isProcessingWithdrawal, setIsProcessingWithdrawal] = useState(false);
 
-    // Fetch available payment methods
+    // Update withdrawal currency when balance currency changes
+    useEffect(() => {
+        if (stats.currencyCode && withdrawalData.currency === 'USD') {
+            setWithdrawalData(prev => ({
+                ...prev,
+                currency: stats.currencyCode || 'USD',
+            }));
+        }
+    }, [stats.currencyCode]);
+
+    // Fetch available payment methods and currencies
     useEffect(() => {
         const fetchPaymentMethods = async () => {
             setLoadingPaymentMethods(true);
@@ -483,7 +505,27 @@ export const WithdrawalPanel: React.FC = () => {
             }
         };
 
+        const fetchCurrencies = async () => {
+            setLoadingCurrencies(true);
+            try {
+                const axiosInstance = axios.create({
+                    baseURL: API_PAYMENTS_BASE_URL,
+                    withCredentials: true,
+                });
+                const response = await axiosInstance.get('/currencies/');
+                if (response.data.status === 'success') {
+                    const activeCurrencies = (response.data.currencies || []).filter((c: Currency) => c.is_active);
+                    setCurrencies(activeCurrencies);
+                }
+            } catch (err) {
+                console.error('Failed to fetch currencies:', err);
+            } finally {
+                setLoadingCurrencies(false);
+            }
+        };
+
         fetchPaymentMethods();
+        fetchCurrencies();
     }, []);
 
     // Fetch available companies for superusers
@@ -542,12 +584,17 @@ export const WithdrawalPanel: React.FC = () => {
         }
     }, [withdrawalAccounts.length]);
 
-    // Update balance from API data
+    // Update balance and currency from API data
     useEffect(() => {
         if (balance) {
             setStats(prev => ({
                 ...prev,
-                balance: balance.available_balance || 0,
+                availableBalance: balance.available_balance || 0,
+                totalDeposits: balance.total_deposits || 0,
+                totalWithdrawals: balance.total_withdrawals || 0,
+                currency: balance.currency || null,
+                currencyCode: balance.currency_code || balance.currency?.code || null,
+                currencySymbol: balance.currency?.symbol || null,
             }));
         }
     }, [balance]);
@@ -652,7 +699,7 @@ export const WithdrawalPanel: React.FC = () => {
 
     const handleProcessWithdrawal = async (e: React.FormEvent) => {
         e.preventDefault();
-        
+
         if (!withdrawalData.account_id || withdrawalData.amount <= 0) {
             alert('Please select an account and enter a valid amount');
             return;
@@ -664,7 +711,7 @@ export const WithdrawalPanel: React.FC = () => {
                 baseURL: API_PAYMENTS_BASE_URL,
                 withCredentials: true,
             });
-            
+
             const response = await axiosInstance.post('/withdrawals/', {
                 account_id: withdrawalData.account_id,
                 amount: withdrawalData.amount,
@@ -695,19 +742,30 @@ export const WithdrawalPanel: React.FC = () => {
         <PanelContainer>
             <StatsSection>
                 <StatCard>
-                    <div className="stat-label">Balance</div>
-                    <div className="stat-value">{stats.balance.toLocaleString()}</div>
-                    <div className="stat-subtext">Available balance</div>
+                    <div className="stat-label">Available Balance</div>
+                    <div className="stat-value">
+                        {stats.currencySymbol || ''} {stats.availableBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className="stat-subtext">{stats.currencyCode || 'N/A'}</div>
                 </StatCard>
                 <StatCard>
-                    <div className="stat-label">Total Payments</div>
+                    <div className="stat-label">Total Deposits</div>
+                    <div className="stat-value">
+                        {stats.currencySymbol || ''} {stats.totalDeposits.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className="stat-subtext">Cumulative deposits</div>
+                </StatCard>
+                <StatCard>
+                    <div className="stat-label">Total Withdrawals</div>
+                    <div className="stat-value">
+                        {stats.currencySymbol || ''} {stats.totalWithdrawals.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </div>
+                    <div className="stat-subtext">Cumulative withdrawals</div>
+                </StatCard>
+                <StatCard>
+                    <div className="stat-label">Withdrawal Accounts</div>
                     <div className="stat-value">{stats.totalPayments}</div>
-                    <div className="stat-subtext">Withdrawal accounts</div>
-                </StatCard>
-                <StatCard>
-                    <div className="stat-label">Last Withdrawal</div>
-                    <div className="stat-value">{stats.lastWithdrawal || 'N/A'}</div>
-                    <div className="stat-subtext">Most recent account</div>
+                    <div className="stat-subtext">Active accounts</div>
                 </StatCard>
             </StatsSection>
             <StatsAction>
@@ -978,25 +1036,26 @@ export const WithdrawalPanel: React.FC = () => {
                                         name="currency"
                                         value={withdrawalData.currency}
                                         onChange={handleWithdrawalInputChange}
+                                        disabled={loadingCurrencies}
                                         required
                                     >
-                                        <option value="USD">USD - Dollar américain</option>
-                                        <option value="EUR">EUR - Euro</option>
-                                        <option value="GBP">GBP - Livre sterling</option>
-                                        <option value="XOF">XOF - Franc CFA (Afrique de l'Ouest)</option>
-                                        <option value="XAF">XAF - Franc CFA (Afrique centrale)</option>
-                                        <option value="ZAR">ZAR - Rand sud-africain</option>
-                                        <option value="NGN">NGN - Naira nigérian</option>
-                                        <option value="KES">KES - Shilling kényan</option>
-                                        <option value="GHS">GHS - Cedi ghanéen</option>
-                                        <option value="TZS">TZS - Shilling tanzanien</option>
+                                        <option value="">Select a currency...</option>
+                                        {currencies.length > 0 ? (
+                                            currencies.map(curr => (
+                                                <option key={curr.id} value={curr.code}>
+                                                    {curr.symbol} {curr.code} - {curr.name}
+                                                </option>
+                                            ))
+                                        ) : (
+                                            <option value="USD">USD - Dollar américain</option>
+                                        )}
                                     </select>
                                 </FormGroup>
                             </FormRow>
 
                             <ModalFooter>
-                                <CancelButton 
-                                    type="button" 
+                                <CancelButton
+                                    type="button"
                                     onClick={() => setShowWithdrawalModal(false)}
                                     style={{
                                         padding: `${spacing.sm} ${spacing.md}`,
@@ -1009,8 +1068,8 @@ export const WithdrawalPanel: React.FC = () => {
                                 >
                                     Annuler
                                 </CancelButton>
-                                <SubmitButton 
-                                    type="submit" 
+                                <SubmitButton
+                                    type="submit"
                                     disabled={isProcessingWithdrawal}
                                     style={{
                                         padding: `${spacing.sm} ${spacing.md}`,
