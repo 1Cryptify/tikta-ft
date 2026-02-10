@@ -1,0 +1,344 @@
+import { useState, useCallback, useEffect } from 'react';
+import axios from 'axios';
+import { API_PAYMENTS_BASE_URL } from '../services/api';
+import { useAuth } from './useAuth';
+
+const LOADER_DURATION = 1000;
+
+const axiosInstance = axios.create({
+    baseURL: API_PAYMENTS_BASE_URL,
+    withCredentials: true,
+    headers: {
+        'Content-Type': 'application/json',
+    },
+});
+
+export interface Ticket {
+    id: string;
+    company: string;
+    company_name?: string;
+    offer?: string;
+    offer_name?: string;
+    ticket_code: string;
+    ticket_secret: string;
+    gateway_transaction_id?: string;
+    payment?: string;
+    ticket_type?: string;
+    description?: string;
+    valid_from: string;
+    valid_until: string;
+    is_valid: boolean;
+    status: 'active' | 'used' | 'expired' | 'cancelled';
+    is_used: boolean;
+    used_at?: string;
+    used_by?: string;
+    used_by_name?: string;
+    metadata?: Record<string, any>;
+    created_at?: string;
+    updated_at?: string;
+}
+
+interface TicketState {
+    tickets: Ticket[];
+    isLoading: boolean;
+    error: string | null;
+    successMessage: string | null;
+}
+
+interface UseTicketReturn extends TicketState {
+    getTickets: () => Promise<void>;
+    getTicketById: (id: string) => Promise<Ticket | null>;
+    createTicket: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }) => Promise<Ticket | null>;
+    validateTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
+    useTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
+    getCompanyTickets: (companyId: string, filters?: { status?: string; offer_id?: string }) => Promise<Ticket[]>;
+}
+
+export const useTicket = (): UseTicketReturn => {
+    const { user } = useAuth();
+    const [state, setState] = useState<TicketState>({
+        tickets: [],
+        isLoading: false,
+        error: null,
+        successMessage: null,
+    });
+
+    // Get all tickets
+    const getTickets = useCallback(async () => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.get('/tickets/');
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    tickets: response.data.tickets || [],
+                    isLoading: false,
+                }));
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to fetch tickets',
+                }));
+            }
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to fetch tickets',
+            }));
+        }
+    }, []);
+
+    // Get single ticket by ID
+    const getTicketById = useCallback(async (id: string): Promise<Ticket | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.get(`/tickets/${id}/`);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({ ...prev, isLoading: false }));
+                return response.data.ticket;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to fetch ticket',
+                }));
+            }
+            return null;
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to fetch ticket',
+            }));
+            return null;
+        }
+    }, []);
+
+    // Create new ticket
+    const createTicket = useCallback(async (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }): Promise<Ticket | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            // Auto-add company_id from active company if not a superuser
+            const ticketData = { ...data };
+            if (user && !user.is_superuser && user.active_company) {
+                ticketData.company = user.active_company.id;
+            }
+
+            const response = await axiosInstance.post('/tickets/create/', ticketData);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const newTicket = response.data.ticket;
+                setState(prev => ({
+                    ...prev,
+                    tickets: [...prev.tickets, newTicket],
+                    isLoading: false,
+                    successMessage: response.data.message || 'Ticket created successfully',
+                }));
+                return newTicket;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to create ticket',
+                }));
+            }
+            return null;
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || error.message
+                : error instanceof Error
+                    ? error.message
+                    : 'Failed to create ticket';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return null;
+        }
+    }, [user]);
+
+    // Validate ticket
+    const validateTicket = useCallback(async (id: string, ticket_code: string, ticket_secret: string): Promise<Ticket | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.post(`/tickets/${id}/validate/`, {
+                ticket_code,
+                ticket_secret,
+            });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    successMessage: response.data.message || 'Ticket is valid',
+                }));
+                return response.data.ticket;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Ticket validation failed',
+                }));
+            }
+            return null;
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || error.message
+                : error instanceof Error
+                    ? error.message
+                    : 'Ticket validation failed';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return null;
+        }
+    }, []);
+
+    // Use ticket (mark as used)
+    const useTicket = useCallback(async (id: string, ticket_code: string, ticket_secret: string): Promise<Ticket | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.post(`/tickets/${id}/use/`, {
+                ticket_code,
+                ticket_secret,
+            });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const updatedTicket = response.data.ticket;
+                setState(prev => ({
+                    ...prev,
+                    tickets: prev.tickets.map(t => t.id === id ? updatedTicket : t),
+                    isLoading: false,
+                    successMessage: response.data.message || 'Ticket marked as used',
+                }));
+                return updatedTicket;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to use ticket',
+                }));
+            }
+            return null;
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || error.message
+                : error instanceof Error
+                    ? error.message
+                    : 'Failed to use ticket';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return null;
+        }
+    }, []);
+
+    // Get company tickets
+    const getCompanyTickets = useCallback(async (companyId: string, filters?: { status?: string; offer_id?: string }): Promise<Ticket[]> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            let url = `/companies/${companyId}/tickets/`;
+            if (filters) {
+                const params = new URLSearchParams();
+                if (filters.status) params.append('status', filters.status);
+                if (filters.offer_id) params.append('offer_id', filters.offer_id);
+                if (params.toString()) {
+                    url += '?' + params.toString();
+                }
+            }
+
+            const response = await axiosInstance.get(url);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({ ...prev, isLoading: false }));
+                return response.data.tickets || [];
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to fetch company tickets',
+                }));
+            }
+            return [];
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to fetch company tickets',
+            }));
+            return [];
+        }
+    }, []);
+
+    // Initialize - fetch data on mount
+    useEffect(() => {
+        getTickets();
+    }, [getTickets]);
+
+    return {
+        ...state,
+        getTickets,
+        getTicketById,
+        createTicket,
+        validateTicket,
+        useTicket,
+        getCompanyTickets,
+    };
+};
