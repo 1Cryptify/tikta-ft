@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import { colors, spacing } from '../../config/theme';
 import { useTransaction } from '../../hooks/useTransaction';
-import { LoadingSpinner } from '../LoadingSpinner';
+import LoadingSpinner from '../LoadingSpinner';
 
 const PanelContainer = styled.div`
   padding: ${spacing.lg} 0;

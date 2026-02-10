@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { colors, spacing } from '../../config/theme';
 import { usePaymentLogs } from '../../hooks/usePaymentLogs';
 import { useAuth } from '../../hooks/useAuth';
-import { LoadingSpinner } from '../LoadingSpinner';
+import LoadingSpinner from '../LoadingSpinner';
 
 const PanelContainer = styled.div`
   padding: ${spacing.lg} 0;
