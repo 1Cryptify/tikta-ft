@@ -32,23 +32,33 @@ export interface PaymentMethod {
     updated_at?: string;
 }
 
+export interface LinkedPaymentMethod {
+    id: string;
+    name: string;
+    type: string;
+    is_primary: boolean;
+    is_active: boolean;
+}
+
 export interface WithdrawalAccount {
     id: string;
-    company_id: string;
-    account_holder_name: string;
+    company: string;
+    company_id?: string;
+    account_type: string;
+    provider: string;
     account_number: string;
-    bank_name: string;
-    bank_code?: string;
-    branch_code?: string;
-    swift_code?: string;
-    iban?: string;
-    currency_code?: string;
-    payment_method?: string; // payment method name
+    account_name?: string;
+    details?: Record<string, any>;
+    is_active: boolean;
+    is_verified: boolean;
+    verification_status: 'pending' | 'verified' | 'rejected';
+    verification_notes?: string;
+    linked_payment_methods?: LinkedPaymentMethod[];
+    payment_method?: string; // fallback for backward compatibility
     payment_method_id?: string;
-    status: 'pending' | 'verified' | 'rejected';
-    verification_details?: Record<string, any>;
     created_at?: string;
     updated_at?: string;
+    verified_at?: string;
 }
 
 export interface Company {

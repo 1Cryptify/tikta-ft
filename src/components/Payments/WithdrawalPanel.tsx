@@ -420,10 +420,20 @@ export const WithdrawalPanel: React.FC = () => {
                 lastWithdrawal: lastDate ? new Date(lastDate).toLocaleDateString() : null,
             }));
 
-            // Initialize linked payment methods state
+            // Initialize linked payment methods state from API response
             const linked: Record<string, string | null> = {};
             withdrawalAccounts.forEach(account => {
-                linked[account.id] = account.payment_method || null;
+                // Check for linked_payment_methods array from API
+                if (account.linked_payment_methods && account.linked_payment_methods.length > 0) {
+                    // Get the primary method or the first one
+                    const primaryMethod = account.linked_payment_methods.find((m: any) => m.is_primary);
+                    linked[account.id] = (primaryMethod || account.linked_payment_methods[0]).name;
+                } else if (account.payment_method) {
+                    // Fallback to old payment_method field for backwards compatibility
+                    linked[account.id] = account.payment_method;
+                } else {
+                    linked[account.id] = null;
+                }
             });
             setLinkedPaymentMethod(linked);
         }
@@ -485,10 +495,21 @@ export const WithdrawalPanel: React.FC = () => {
         }
         const result = await linkPaymentMethod(accountId, paymentMethodName);
         if (result) {
-            setLinkedPaymentMethod(prev => ({
-                ...prev,
-                [accountId]: paymentMethodName,
-            }));
+            // Update state with the returned withdrawal account data
+            if (result.linked_payment_methods && result.linked_payment_methods.length > 0) {
+                const primaryMethod = result.linked_payment_methods.find((m: any) => m.is_primary);
+                const methodName = (primaryMethod || result.linked_payment_methods[0]).name;
+                setLinkedPaymentMethod(prev => ({
+                    ...prev,
+                    [accountId]: methodName,
+                }));
+            } else {
+                setLinkedPaymentMethod(prev => ({
+                    ...prev,
+                    [accountId]: paymentMethodName,
+                }));
+            }
+            // Refresh to ensure state is in sync
             await getWithdrawalAccounts();
         }
     };
@@ -497,10 +518,12 @@ export const WithdrawalPanel: React.FC = () => {
         if (confirm('Are you sure you want to unlink the payment method from this account?')) {
             const result = await unlinkPaymentMethod(accountId);
             if (result) {
+                // Clear the linked payment method
                 setLinkedPaymentMethod(prev => ({
                     ...prev,
                     [accountId]: null,
                 }));
+                // Refresh to ensure state is in sync
                 await getWithdrawalAccounts();
             }
         }
