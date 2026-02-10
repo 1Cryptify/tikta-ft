@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { MainLayout } from '../components/Layout/MainLayout';
 import { User } from '../hooks/useAuth';
@@ -23,6 +23,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
     const navigate = useNavigate();
     const location = useLocation();
     const [activeCompany, setActiveCompany] = React.useState<{ id: string; name: string; logo?: string } | null>(null);
+
+    // Synchronize active company from auth user on mount and when user changes
+    useEffect(() => {
+        if (user?.active_company) {
+            setActiveCompany({
+                id: user.active_company.id,
+                name: user.active_company.name,
+                logo: user.active_company.logo,
+            });
+        }
+    }, [user?.active_company?.id]);
 
     // Get active section from URL path
     const getActiveSection = () => {
