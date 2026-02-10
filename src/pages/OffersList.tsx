@@ -650,6 +650,17 @@ export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
 
               <DetailsGrid>
                 <DetailItem>
+                  <h3>Offer ID</h3>
+                  <p style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>{selectedOffer.id}</p>
+                </DetailItem>
+                <DetailItem>
+                  <h3>Company ID</h3>
+                  <p style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>{selectedOffer.company_id}</p>
+                </DetailItem>
+              </DetailsGrid>
+
+              <DetailsGrid>
+                <DetailItem>
                   <h3>Price</h3>
                   <p>
                     {selectedOffer.currency?.symbol || '$'}
@@ -664,45 +675,180 @@ export const OffersList: React.FC<OffersListProps> = ({ onTabChange }) => {
                 </DetailItem>
               </DetailsGrid>
 
-              {selectedOffer.discount_value && selectedOffer.discount_value > 0 && (
+              {selectedOffer.currency && (
                 <DetailsGrid>
                   <DetailItem>
-                    <h3>
-                      {selectedOffer.discount_type === 'percentage'
-                        ? 'Discount'
-                        : 'Discount Amount'}
-                    </h3>
+                    <h3>Currency Name</h3>
+                    <p>{selectedOffer.currency.name}</p>
+                  </DetailItem>
+                  <DetailItem>
+                    <h3>Decimal Places</h3>
+                    <p>{selectedOffer.currency.decimal_places}</p>
+                  </DetailItem>
+                </DetailsGrid>
+              )}
+
+              {selectedOffer.discount_value && selectedOffer.discount_value > 0 && (
+                <>
+                  <DetailsGrid>
+                    <DetailItem>
+                      <h3>
+                        {selectedOffer.discount_type === 'percentage'
+                          ? 'Discount Percentage'
+                          : 'Discount Amount'}
+                      </h3>
+                      <p>
+                        {selectedOffer.discount_value}
+                        {selectedOffer.discount_type === 'percentage' ? '%' : selectedOffer.currency?.symbol || '$'}
+                      </p>
+                    </DetailItem>
+                    <DetailItem>
+                      <h3>Discount Type</h3>
+                      <p style={{ textTransform: 'capitalize' }}>
+                        {selectedOffer.discount_type === 'percentage' ? 'Percentage' : 'Fixed'}
+                      </p>
+                    </DetailItem>
+                  </DetailsGrid>
+
+                  {selectedOffer.discount_type === 'percentage' && (
+                    <DetailsGrid>
+                      <DetailItem>
+                        <h3>Discounted Price</h3>
+                        <p>
+                          {selectedOffer.currency?.symbol || '$'}
+                          {(
+                            (parseFloat(String(selectedOffer.price || 0)) *
+                              (100 - selectedOffer.discount_value)) /
+                            100
+                          ).toFixed(selectedOffer.currency?.decimal_places || 2)}
+                        </p>
+                      </DetailItem>
+                      {selectedOffer.discount_currency_id && (
+                        <DetailItem>
+                          <h3>Discount Currency ID</h3>
+                          <p style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>{selectedOffer.discount_currency_id}</p>
+                        </DetailItem>
+                      )}
+                    </DetailsGrid>
+                  )}
+                </>
+              )}
+
+              {selectedOffer.original_price && (
+                <DetailsGrid>
+                  <DetailItem>
+                    <h3>Original Price</h3>
                     <p>
-                      {selectedOffer.discount_value}
-                      {selectedOffer.discount_type === 'percentage' ? '%' : '$'}
+                      {selectedOffer.currency?.symbol || '$'}
+                      {parseFloat(String(selectedOffer.original_price)).toFixed(
+                        selectedOffer.currency?.decimal_places || 2
+                      )}
                     </p>
                   </DetailItem>
-                  {selectedOffer.discount_type === 'percentage' && (
+                  {selectedOffer.final_price && (
                     <DetailItem>
-                      <h3>Discounted Price</h3>
+                      <h3>Final Price</h3>
                       <p>
                         {selectedOffer.currency?.symbol || '$'}
-                        {(
-                          (parseFloat(String(selectedOffer.price || 0)) *
-                            (100 - selectedOffer.discount_value)) /
-                          100
-                        ).toFixed(selectedOffer.currency?.decimal_places || 2)}
+                        {parseFloat(String(selectedOffer.final_price)).toFixed(
+                          selectedOffer.currency?.decimal_places || 2
+                        )}
                       </p>
                     </DetailItem>
                   )}
                 </DetailsGrid>
               )}
 
-              <DetailsSection>
-                <h3>Status</h3>
-                <p>
-                  {selectedOffer.is_active ? (
-                    <span style={{ color: '#065f46' }}>Active</span>
-                  ) : (
-                    <span style={{ color: '#991b1b' }}>Inactive</span>
+              <DetailsGrid>
+                <DetailItem>
+                  <h3>Status</h3>
+                  <p>
+                    {selectedOffer.is_active ? (
+                      <span style={{ color: '#065f46', fontWeight: '600' }}>Active</span>
+                    ) : (
+                      <span style={{ color: '#991b1b', fontWeight: '600' }}>Inactive</span>
+                    )}
+                  </p>
+                </DetailItem>
+                {selectedOffer.is_deleted !== undefined && (
+                  <DetailItem>
+                    <h3>Deleted</h3>
+                    <p>
+                      {selectedOffer.is_deleted ? (
+                        <span style={{ color: '#991b1b' }}>Yes</span>
+                      ) : (
+                        <span style={{ color: '#065f46' }}>No</span>
+                      )}
+                    </p>
+                  </DetailItem>
+                )}
+              </DetailsGrid>
+
+              {selectedOffer.offer_type && (
+                <DetailsGrid>
+                  <DetailItem>
+                    <h3>Offer Type</h3>
+                    <p style={{ textTransform: 'capitalize' }}>
+                      {selectedOffer.offer_type.replace(/_/g, ' ')}
+                    </p>
+                  </DetailItem>
+                  {selectedOffer.category && (
+                    <DetailItem>
+                      <h3>Category</h3>
+                      <p>{selectedOffer.category}</p>
+                    </DetailItem>
                   )}
-                </p>
-              </DetailsSection>
+                </DetailsGrid>
+              )}
+
+              {selectedOffer.group_id && (
+                <DetailsSection>
+                  <h3>Group ID</h3>
+                  <p style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>{selectedOffer.group_id}</p>
+                </DetailsSection>
+              )}
+
+              {selectedOffer.tags && selectedOffer.tags.length > 0 && (
+                <DetailsSection>
+                  <h3>Tags</h3>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+                    {selectedOffer.tags.map((tag, index) => (
+                      <span
+                        key={index}
+                        style={{
+                          backgroundColor: 'rgba(30, 58, 95, 0.1)',
+                          color: colors.primary,
+                          padding: '0.25rem 0.75rem',
+                          borderRadius: '1rem',
+                          fontSize: '0.85rem',
+                          fontWeight: '500',
+                        }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                </DetailsSection>
+              )}
+
+              <DetailsGrid>
+                <DetailItem>
+                  <h3>Created At</h3>
+                  <p style={{ fontSize: '0.85rem' }}>
+                    {selectedOffer.created_at
+                      ? new Date(selectedOffer.created_at).toLocaleString()
+                      : 'N/A'}
+                  </p>
+                </DetailItem>
+                <DetailItem>
+                  <h3>Updated At</h3>
+                  <p style={{ fontSize: '0.85rem' }}>
+                    {selectedOffer.updated_at
+                      ? new Date(selectedOffer.updated_at).toLocaleString()
+                      : 'N/A'}
+                  </p>
+                </DetailItem>
+              </DetailsGrid>
 
               <DetailsCloseButton onClick={handleCloseDetails}>
                 Close
