@@ -160,7 +160,8 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ user }) => {
   const stats = useMemo(() => {
     const availableBalance = balance?.available_balance || 0;
     const totalPayments = balance?.total_deposits || 0;
-    const pendingCount = transactions.filter(t => t.status === 'pending').length;
+    // Count both 'pending' and 'processing' transactions as pending
+    const pendingCount = transactions.filter(t => t.status === 'pending' || t.status === 'processing').length;
 
     return {
       availableBalance,
