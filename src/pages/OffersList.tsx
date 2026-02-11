@@ -793,6 +793,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
     
     // Refs for file inputs
     const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+    const groupFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
     // Offers tab state
     const [searchTerm, setSearchTerm] = useState('');
@@ -1056,6 +1057,35 @@ export const OffersList: React.FC<OffersListProps> = () => {
         }
     };
 
+    const handleGroupImageUploadClick = (groupId: string) => {
+        groupFileInputRefs.current[groupId]?.click();
+    };
+
+    const handleGroupFileChange = async (groupId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+            return;
+        }
+        
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size should be less than 5MB');
+            return;
+        }
+        
+        await uploadOfferGroupImage(groupId, file);
+        
+        // Reset file input
+        if (groupFileInputRefs.current[groupId]) {
+            groupFileInputRefs.current[groupId]!.value = '';
+        }
+    };
+
     return (
         <>
             <Header>
@@ -1296,6 +1326,19 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                                 <span>No image</span>
                                             </OfferImagePlaceholder>
                                         )}
+                                        <ImageUploadButton
+                                            onClick={() => handleGroupImageUploadClick(group.id)}
+                                            disabled={isLoading}
+                                            title="Upload group image"
+                                        >
+                                            <FiImage size={14} /> {group.image ? 'Change' : 'Add'}
+                                        </ImageUploadButton>
+                                        <HiddenFileInput
+                                            ref={(el) => { groupFileInputRefs.current[group.id] = el; }}
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/gif,image/webp"
+                                            onChange={(e) => handleGroupFileChange(group.id, e)}
+                                        />
                                     </OfferImageContainer>
 
                                     <GroupHeader>
