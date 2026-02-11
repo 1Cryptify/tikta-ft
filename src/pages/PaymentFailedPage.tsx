@@ -1,11 +1,27 @@
 import React from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import '../styles/payment.css';
 import '../styles/payment-failed.css';
 
 export const PaymentFailedPage: React.FC = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Determine if we're in a group context or direct route
+  const isDirectRoute = !groupId;
+
+  const handleTryAgain = () => {
+    window.history.back();
+  };
+
+  const handleBackToPayment = () => {
+    if (groupId) {
+      navigate(`/pay/${groupId}`);
+    } else {
+      navigate('/');
+    }
+  };
 
   return (
     <div className="payment-failed">
@@ -63,15 +79,15 @@ export const PaymentFailedPage: React.FC = () => {
         <div className="failed-actions">
           <button
             className="btn-primary"
-            onClick={() => window.history.back()}
+            onClick={handleTryAgain}
           >
             Try Again
           </button>
           <button
             className="btn-secondary"
-            onClick={() => groupId ? navigate(`/pay/${groupId}`) : navigate('/')}
+            onClick={handleBackToPayment}
           >
-            Back to Payment Options
+            {groupId ? 'Back to Payment Options' : 'Back to Home'}
           </button>
         </div>
 

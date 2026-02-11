@@ -42,6 +42,14 @@ export const PaymentSuccessPage: React.FC = () => {
     }).format(parseFloat(amount) || 0);
   };
 
+  const handleContinueShopping = () => {
+    if (groupId) {
+      navigate(`/pay/${groupId}`);
+    } else {
+      navigate('/');
+    }
+  };
+
   if (loading) {
     return (
       <div className="payment-success">
@@ -103,9 +111,9 @@ export const PaymentSuccessPage: React.FC = () => {
           </button>
           <button
             className="btn-secondary"
-            onClick={() => groupId ? navigate(`/pay/${groupId}`) : navigate('/')}
+            onClick={handleContinueShopping}
           >
-            Continue Shopping
+            {groupId ? 'Continue Shopping' : 'Back to Home'}
           </button>
         </div>
 

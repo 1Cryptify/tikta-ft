@@ -19,6 +19,7 @@ export const PaymentCheckoutPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [dataLoading, setDataLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Contact info only requires email and phone
   const [contactEmail, setContactEmail] = useState('');
@@ -42,6 +43,7 @@ export const PaymentCheckoutPage: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        setErrorMessage(null);
 
         // Fetch payment methods from API
         const methodsResponse = await paymentService.listPaymentMethods();
@@ -63,25 +65,34 @@ export const PaymentCheckoutPage: React.FC = () => {
         // Fetch the specific item being purchased
         if (offerId) {
           const offerData = await paymentService.getOffer(offerId);
-          if (offerData.status === 'success') {
+          if (offerData.status === 'success' && offerData.offer) {
             setItem(offerData.offer);
+          } else {
+            setErrorMessage('Offer not found or unavailable');
           }
         } else if (productId) {
           const productData = await paymentService.getProduct(productId);
-          if (productData.status === 'success') {
-            setItem(productData);
+          if (productData.status === 'success' && productData.product) {
+            setItem(productData.product);
+          } else {
+            setErrorMessage('Product not found or unavailable');
           }
         }
 
         // Fetch group context if groupId is provided
         if (groupId) {
-          const groupData = await paymentService.getOfferGroup(groupId);
-          if (groupData.status === 'success') {
-            setGroupContext(groupData);
+          try {
+            const groupData = await paymentService.getOfferGroup(groupId);
+            if (groupData.status === 'success' && groupData) {
+              setGroupContext(groupData);
+            }
+          } catch (err) {
+            console.log('Group not found, continuing without group context');
           }
         }
       } catch (error) {
         console.error('Error fetching data:', error);
+        setErrorMessage('Failed to load payment data. Please try again.');
       } finally {
         setLoading(false);
       }
@@ -120,14 +131,38 @@ export const PaymentCheckoutPage: React.FC = () => {
     );
   }
 
+  // If error occurred
+  if (errorMessage) {
+    return (
+      <div className="payment-checkout">
+        <div className="checkout-container">
+          <div className="checkout-header">
+            <h1>Error</h1>
+            <p style={{ color: 'var(--color-error)' }}>{errorMessage}</p>
+            <button
+              className="btn-secondary"
+              onClick={() => groupId ? navigate(`/pay/${groupId}`) : navigate('/')}
+              style={{ marginTop: '20px' }}
+            >
+              Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   // If item not found
-  if (!item && !groupId) {
+  if (!item) {
     return (
       <div className="payment-checkout">
         <div className="checkout-container">
           <div className="checkout-header">
             <h1>Item not found</h1>
-            <button className="btn-secondary" onClick={() => groupId ? navigate(`/pay/${groupId}`) : navigate('/')}>
+            <button
+              className="btn-secondary"
+              onClick={() => groupId ? navigate(`/pay/${groupId}`) : navigate('/')}
+            >
               Back
             </button>
           </div>
@@ -266,13 +301,25 @@ export const PaymentCheckoutPage: React.FC = () => {
         }));
 
         // Navigate to success page
-        navigate(`/pay/${groupId}/success`);
+        if (groupId) {
+          navigate(`/pay/${groupId}/success`);
+        } else {
+          navigate('/pay/success');
+        }
       } else {
-        navigate(`/pay/${groupId}/failed`);
+        if (groupId) {
+          navigate(`/pay/${groupId}/failed`);
+        } else {
+          navigate('/pay/failed');
+        }
       }
     } catch (error) {
       console.error('Payment error:', error);
-      navigate(`/pay/${groupId}/failed`);
+      if (groupId) {
+        navigate(`/pay/${groupId}/failed`);
+      } else {
+        navigate('/pay/failed');
+      }
     } finally {
       setDataLoading(false);
     }
