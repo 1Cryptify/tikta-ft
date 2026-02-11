@@ -37,6 +37,7 @@ export interface Product {
     currency?: Currency;
     is_active: boolean;
     is_deleted?: boolean;
+    image?: string; // Image URL path
     created_at?: string;
     updated_at?: string;
 }
@@ -57,6 +58,7 @@ interface UseProductReturn extends ProductState {
     deleteProduct: (id: string) => Promise<boolean>;
     activateProduct: (id: string) => Promise<boolean>;
     deactivateProduct: (id: string) => Promise<boolean>;
+    uploadProductImage: (id: string, file: File) => Promise<string | null>;
     getCompanyProducts: (companyId: string) => Promise<Product[]>;
 }
 
@@ -319,6 +321,55 @@ export const useProduct = (): UseProductReturn => {
         return false;
     }, []);
 
+    // Upload product image
+    const uploadProductImage = useCallback(async (id: string, file: File): Promise<string | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const response = await axiosInstance.post(`/products/${id}/upload-image/`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const imageUrl = response.data.image_url;
+                // Update the product in state with the new image
+                setState(prev => ({
+                    ...prev,
+                    products: prev.products.map(p =>
+                        p.id === id ? { ...p, image: imageUrl } : p
+                    ),
+                    isLoading: false,
+                }));
+                return imageUrl;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to upload image',
+                }));
+            }
+        } catch (error: any) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: error.response?.data?.message || 'Failed to upload image',
+            }));
+        }
+        return null;
+    }, []);
+
     // Get company products
     const getCompanyProducts = useCallback(async (companyId: string): Promise<Product[]> => {
         const startTime = Date.now();
@@ -361,6 +412,7 @@ export const useProduct = (): UseProductReturn => {
         deleteProduct,
         activateProduct,
         deactivateProduct,
+        uploadProductImage,
         getCompanyProducts,
     };
 };
