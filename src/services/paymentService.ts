@@ -83,12 +83,13 @@ export const paymentService = {
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to initiate offer payment');
+    const data = await response.json();
+
+    if (data.status === 'error') {
+      throw new Error(data.message || 'Failed to initiate offer payment');
     }
 
-    return response.json();
+    return data;
   },
 
   async initiateProductPayment(payload: {
@@ -110,12 +111,14 @@ export const paymentService = {
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to initiate product payment');
+    const data = await response.json();
+    
+
+    if (data.status === 'error') {
+      throw new Error(data.message || 'Failed to initiate product payment');
     }
 
-    return response.json();
+    return data;
   },
 
   async verifyOfferPayment(payload: {
@@ -131,12 +134,13 @@ export const paymentService = {
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to verify offer payment');
+    const data = await response.json();
+
+    if (data.status === 'error') {
+      throw new Error(data.message || 'Failed to verify offer payment');
     }
 
-    return response.json();
+    return data;
   },
 
   async verifyProductPayment(payload: {
@@ -152,12 +156,13 @@ export const paymentService = {
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to verify product payment');
+    const data = await response.json();
+
+    if (data.status === 'error') {
+      throw new Error(data.message || 'Failed to verify product payment');
     }
 
-    return response.json();
+    return data;
   },
 
   async initiateGroupPayment(payload: {
@@ -179,12 +184,13 @@ export const paymentService = {
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to initiate group payment');
+    const data = await response.json();
+
+    if (data.status === 'error') {
+      throw new Error(data.message || 'Failed to initiate group payment');
     }
 
-    return response.json();
+    return data;
   },
 
   async verifyGroupPayment(payload: {
@@ -200,12 +206,13 @@ export const paymentService = {
       }
     );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || 'Failed to verify group payment');
+    const data = await response.json();
+
+    if (data.status === 'error') {
+      throw new Error(data.message || 'Failed to verify group payment');
     }
 
-    return response.json();
+    return data;
   },
 
   // ============ Payment List Operations ============

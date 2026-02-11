@@ -3,6 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PaymentMethodSelector from '../components/Payment/PaymentMethodSelector';
 import PaymentMethodFields from '../components/Payment/PaymentMethodFields';
+import { ToastContainer, ToastMessage } from '../components/Toast';
 import { paymentService } from '../services/paymentService';
 import { PaymentMethod, PaymentFormData } from '../types/payment.types';
 import '../styles/payment.css';
@@ -24,6 +25,22 @@ export const PaymentCheckoutPage: React.FC = () => {
   const [dataLoading, setDataLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Toast helper functions
+  const addToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
+    const newToast: ToastMessage = {
+      id: Date.now().toString(),
+      message,
+      type,
+      duration: 5000,
+    };
+    setToasts((prev) => [...prev, newToast]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts((prev) => prev.filter((toast) => toast.id !== id));
+  };
 
   // Contact info only requires email and phone
   const [contactEmail, setContactEmail] = useState('');
@@ -151,6 +168,7 @@ export const PaymentCheckoutPage: React.FC = () => {
   if (loading) {
     return (
       <div className="payment-checkout">
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
         <div className="checkout-container">
           <LoadingSpinner />
         </div>
@@ -162,6 +180,7 @@ export const PaymentCheckoutPage: React.FC = () => {
   if (errorMessage) {
     return (
       <div className="payment-checkout">
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
         <div className="checkout-container">
           <div className="checkout-header">
             <h1>Error</h1>
@@ -183,6 +202,7 @@ export const PaymentCheckoutPage: React.FC = () => {
   if (!item) {
     return (
       <div className="payment-checkout">
+        <ToastContainer toasts={toasts} onRemove={removeToast} />
         <div className="checkout-container">
           <div className="checkout-header">
             <h1>Item not found</h1>
@@ -321,6 +341,9 @@ export const PaymentCheckoutPage: React.FC = () => {
       }
 
       if (response.status === 'success') {
+        // Show success toast with message from response
+        addToast(response.message || 'Payment initiated successfully!', 'success');
+        
         // Wait a moment for payment to be processed
         await new Promise(resolve => setTimeout(resolve, 2000));
         
@@ -379,14 +402,18 @@ export const PaymentCheckoutPage: React.FC = () => {
           navigate('/pay/success');
         }
       } else {
+        // Show error toast with message from response
+        addToast(response.message || 'Payment failed. Please try again.', 'error');
         if (groupId) {
           navigate(`/pay/${groupId}/failed`);
         } else {
           navigate('/pay/failed');
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Payment error:', error);
+      // Show error toast with error message
+      addToast(error.message || 'An error occurred during payment. Please try again.', 'error');
       if (groupId) {
         navigate(`/pay/${groupId}/failed`);
       } else {
@@ -413,6 +440,7 @@ export const PaymentCheckoutPage: React.FC = () => {
 
   return (
     <div className="payment-checkout">
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="checkout-container">
         <div className="checkout-header">
           <h1>Checkout</h1>

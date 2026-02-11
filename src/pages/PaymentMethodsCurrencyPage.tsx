@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { usePaymentMethodCurrency, Currency, PaymentMethod } from '../hooks/usePaymentMethodCurrency';
-import { FiPlus, FiEdit2, FiTrash2, FiAlertCircle } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiAlertCircle, FiUpload } from 'react-icons/fi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/payment-config.css';
 
