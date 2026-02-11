@@ -28,6 +28,23 @@ export const PaymentCheckoutPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
+  // Contact info only requires email and phone
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+
+  // Form data
+  const [formData, setFormData] = useState<PaymentFormData>({
+    email: '',
+    firstName: '',
+    lastName: '',
+    address: '',
+    city: '',
+    country: '',
+    postalCode: '',
+    paymentMethod: '',
+    acceptTerms: false,
+  });
+
   // Payment verification hook
   const {
     status: verificationStatus,
@@ -55,23 +72,6 @@ export const PaymentCheckoutPage: React.FC = () => {
   const removeToast = (id: string) => {
     setToasts((prev) => prev.filter((toast) => toast.id !== id));
   };
-
-  // Contact info only requires email and phone
-  const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
-
-  // Form data
-  const [formData, setFormData] = useState<PaymentFormData>({
-    email: '',
-    firstName: '',
-    lastName: '',
-    address: '',
-    city: '',
-    country: '',
-    postalCode: '',
-    paymentMethod: '',
-    acceptTerms: false,
-  });
 
   // Fetch payment methods and item data on mount
   useEffect(() => {
@@ -158,6 +158,63 @@ export const PaymentCheckoutPage: React.FC = () => {
 
     fetchData();
   }, [offerId, productId, groupId, isBuyingGroup]);
+
+  // Handle verification status changes
+  useEffect(() => {
+    if (!verificationResult) return;
+
+    if (verificationStatus === 'completed') {
+      // Payment completed successfully
+      const storedPayment = localStorage.getItem('pendingPayment');
+      const successData: any = storedPayment ? JSON.parse(storedPayment) : {};
+      
+      // Add ticket data from verification result
+      if (verificationResult.ticket) {
+        // Single ticket
+        successData.tickets = [verificationResult.ticket];
+        successData.offerName = verificationResult.offerName;
+        successData.offerType = verificationResult.offerType;
+      } else if (verificationResult.tickets) {
+        // Multiple tickets (package)
+        successData.tickets = verificationResult.tickets;
+        successData.offerName = verificationResult.groupName;
+        successData.offerType = 'package';
+      }
+      
+      // Update localStorage with complete data
+      localStorage.setItem('pendingPayment', JSON.stringify(successData));
+
+      // Show success message
+      addToast('Payment completed successfully!', 'success');
+
+      // Navigate to success page
+      if (groupId) {
+        navigate(`/pay/${groupId}/success`);
+      } else {
+        navigate('/pay/success');
+      }
+    } else if (verificationStatus === 'failed') {
+      // Payment failed
+      addToast(verificationResult.message || 'Payment failed. Please try again.', 'error');
+      if (groupId) {
+        navigate(`/pay/${groupId}/failed`);
+      } else {
+        navigate('/pay/failed');
+      }
+    } else if (verificationStatus === 'timeout') {
+      // Payment verification timed out
+      addToast(
+        'Payment verification is taking longer than expected. Please check your payment status in your account.',
+        'info'
+      );
+      // Navigate to a pending/success page with info about checking later
+      if (groupId) {
+        navigate(`/pay/${groupId}/success`);
+      } else {
+        navigate('/pay/success');
+      }
+    }
+  }, [verificationStatus, verificationResult, groupId, navigate, addToast]);
 
   // Helper to map payment method types to icons
   const getIconForType = (type: string): string => {
@@ -406,63 +463,6 @@ export const PaymentCheckoutPage: React.FC = () => {
       setDataLoading(false);
     }
   };
-
-  // Handle verification status changes
-  useEffect(() => {
-    if (!verificationResult) return;
-
-    if (verificationStatus === 'completed') {
-      // Payment completed successfully
-      const storedPayment = localStorage.getItem('pendingPayment');
-      const successData: any = storedPayment ? JSON.parse(storedPayment) : {};
-      
-      // Add ticket data from verification result
-      if (verificationResult.ticket) {
-        // Single ticket
-        successData.tickets = [verificationResult.ticket];
-        successData.offerName = verificationResult.offerName;
-        successData.offerType = verificationResult.offerType;
-      } else if (verificationResult.tickets) {
-        // Multiple tickets (package)
-        successData.tickets = verificationResult.tickets;
-        successData.offerName = verificationResult.groupName;
-        successData.offerType = 'package';
-      }
-      
-      // Update localStorage with complete data
-      localStorage.setItem('pendingPayment', JSON.stringify(successData));
-
-      // Show success message
-      addToast('Payment completed successfully!', 'success');
-
-      // Navigate to success page
-      if (groupId) {
-        navigate(`/pay/${groupId}/success`);
-      } else {
-        navigate('/pay/success');
-      }
-    } else if (verificationStatus === 'failed') {
-      // Payment failed
-      addToast(verificationResult.message || 'Payment failed. Please try again.', 'error');
-      if (groupId) {
-        navigate(`/pay/${groupId}/failed`);
-      } else {
-        navigate('/pay/failed');
-      }
-    } else if (verificationStatus === 'timeout') {
-      // Payment verification timed out
-      addToast(
-        'Payment verification is taking longer than expected. Please check your payment status in your account.',
-        'info'
-      );
-      // Navigate to a pending/success page with info about checking later
-      if (groupId) {
-        navigate(`/pay/${groupId}/success`);
-      } else {
-        navigate('/pay/success');
-      }
-    }
-  }, [verificationStatus, verificationResult, groupId, navigate]);
 
   const getItemType = (): string => {
     if (isBuyingGroup) return 'Bundle Package';
