@@ -37,7 +37,7 @@ export const PaymentFailedPage: React.FC = () => {
 
 
 
-        <div className="failed-actions">
+        <div className="">
           <button
             className="btn-primary"
             onClick={handleTryAgain}
