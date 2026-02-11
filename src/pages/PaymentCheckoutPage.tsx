@@ -560,37 +560,14 @@ export const PaymentCheckoutPage: React.FC = () => {
 
             {/* Verification Status */}
             {isVerifying && (
-              <div className="verification-status" style={{
-                marginTop: 'var(--space-lg)',
-                padding: 'var(--space-lg)',
-                backgroundColor: 'var(--color-bg-secondary)',
-                borderRadius: 'var(--radius-md)',
-                textAlign: 'center',
-              }}>
+              <div className="verification-status">
                 <LoadingSpinner />
-                <p style={{
-                  marginTop: 'var(--space-md)',
-                  fontWeight: 500,
-                  color: 'var(--color-text-primary)',
-                }}>
-                  {verificationMessage}
-                </p>
-                <p style={{
-                  marginTop: 'var(--space-sm)',
-                  fontSize: '14px',
-                  color: 'var(--color-text-secondary)',
-                }}>
-                  Please complete the payment on your mobile device if prompted.
-                </p>
+                <p>{verificationMessage}</p>
+                <p>Please complete the payment on your mobile device if prompted.</p>
                 <button
                   type="button"
                   className="btn-secondary"
                   onClick={stopVerification}
-                  style={{
-                    marginTop: 'var(--space-md)',
-                    padding: 'var(--space-sm) var(--space-md)',
-                    fontSize: '14px',
-                  }}
                 >
                   Cancel Verification
                 </button>

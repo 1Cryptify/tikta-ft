@@ -21,7 +21,7 @@ export const PaymentMethodFields: React.FC<PaymentMethodFieldsProps> = ({
     return (
       <div className="payment-method-fields">
         <h4 className="field-section-title">Mobile Money Details</h4>
-        <p className="field-description" style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
+        <p className="field-description">
           Enter your mobile money phone number. You will receive a prompt on your phone to confirm the payment.
         </p>
         <div className={`form-group ${errors.mobileMoneyNumber ? 'error' : ''}`}>
