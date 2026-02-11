@@ -610,23 +610,10 @@ export const PaymentCheckoutPage: React.FC = () => {
                 <span className="total-label">Subtotal</span>
                 <span className="total-value">{formatPrice(subtotal)}</span>
               </div>
-              <div className="total-row">
-                <span className="total-label">Tax (10%)</span>
-                <span className="total-value">{formatPrice(tax)}</span>
-              </div>
               <div className="total-row final">
                 <span>Total</span>
                 <span>{formatPrice(total)}</span>
               </div>
-            </div>
-
-            <div className="security-info">
-              <p>
-                <strong>Secure Payment</strong>
-                <br />
-                Your payment information is encrypted and secure. We never
-                store your full card details.
-              </p>
             </div>
           </aside>
         </div>
