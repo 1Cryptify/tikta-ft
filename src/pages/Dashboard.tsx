@@ -76,13 +76,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 onClick: () => navigate('/dashboard/offers'),
             },
             {
-                id: 'payment_api',
-                label: 'Payment API',
-                icon: <FiCode size={20} />,
-                active: activeNav === 'payment_api',
-                onClick: () => navigate('/dashboard/payment-api'),
-            },
-            {
                 id: 'payments',
                 label: 'Payments',
                 icon: <FiCreditCard size={20} />,
@@ -106,12 +99,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 onClick: () => navigate('/dashboard/tickets'),
             },
             {
-                id: 'transactions',
-                label: 'Transactions',
-                icon: <FiTrendingUp size={20} />,
-                active: activeNav === 'transactions',
-                onClick: () => navigate('/dashboard/transactions'),
+                id: 'payment_api',
+                label: 'Payment API',
+                icon: <FiCode size={20} />,
+                active: activeNav === 'payment_api',
+                onClick: () => navigate('/dashboard/payment-api'),
+                badge: 'Coming Soon',
+                disabled: true,
             },
+
             {
                 id: 'settings',
                 label: 'Settings',

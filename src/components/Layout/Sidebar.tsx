@@ -8,6 +8,8 @@ interface NavItem {
     icon: React.ReactNode;
     active?: boolean;
     onClick?: () => void;
+    badge?: string;
+    disabled?: boolean;
 }
 
 interface SidebarProps {
@@ -78,24 +80,35 @@ const NavList = styled.nav`
   }
 `;
 
-const NavItemButton = styled.button<{ active?: boolean }>`
+const NavItemButton = styled.button<{ active?: boolean; disabled?: boolean }>`
   width: 100%;
   padding: ${spacing.md} ${spacing.lg};
-  background: ${props => (props.active ? colors.primary : 'transparent')};
-  color: ${props => (props.active ? colors.surface : colors.textPrimary)};
+  background: ${props => 
+    props.disabled ? colors.neutral : 
+    props.active ? colors.primary : 'transparent'
+  };
+  color: ${props => 
+    props.disabled ? colors.textSecondary :
+    props.active ? colors.surface : colors.textPrimary
+  };
   border: none;
   border-radius: ${borderRadius.md};
   text-align: left;
   font-weight: 500;
   font-size: 0.875rem;
-  cursor: pointer;
+  cursor: ${props => (props.disabled ? 'not-allowed' : 'pointer')};
   transition: ${transitions.fast};
   display: flex;
   align-items: center;
   gap: ${spacing.md};
+  justify-content: space-between;
+  opacity: ${props => (props.disabled ? 0.6 : 1)};
 
   &:hover {
-    background: ${props => (props.active ? colors.primaryDark : colors.neutral)};
+    background: ${props => 
+      props.disabled ? colors.neutral :
+      props.active ? colors.primaryDark : colors.neutral
+    };
   }
 
   span:first-child {
@@ -106,16 +119,42 @@ const NavItemButton = styled.button<{ active?: boolean }>`
     flex-shrink: 0;
   }
 
-  span:last-child {
+  .label-container {
+    display: flex;
+    align-items: center;
+    gap: ${spacing.md};
+    flex: 1;
+    overflow: hidden;
+  }
+
+  span.label {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  .badge {
+    display: inline-block;
+    padding: 0.25rem ${spacing.sm};
+    background: #fbbf24;
+    color: #000;
+    border-radius: ${borderRadius.sm};
+    font-size: 0.65rem;
+    font-weight: 700;
+    white-space: nowrap;
+    text-transform: uppercase;
+    flex-shrink: 0;
   }
 
   @media (max-width: 480px) {
     padding: ${spacing.sm} ${spacing.md};
     font-size: 0.8125rem;
     gap: ${spacing.sm};
+
+    .badge {
+      font-size: 0.6rem;
+      padding: 0.2rem ${spacing.xs};
+    }
   }
 `;
 
@@ -130,13 +169,19 @@ export const Sidebar: React.FC<SidebarProps> = ({ items, title = 'Menu', onItemC
                     <NavItemButton
                         key={item.id}
                         active={item.active}
+                        disabled={item.disabled}
                         onClick={() => {
-                            item.onClick?.();
-                            onItemClick?.();
+                            if (!item.disabled) {
+                                item.onClick?.();
+                                onItemClick?.();
+                            }
                         }}
                     >
-                        <span>{item.icon}</span>
-                        <span>{item.label}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: 0 }}>
+                            <span>{item.icon}</span>
+                            <span className="label">{item.label}</span>
+                        </div>
+                        {item.badge && <span className="badge">{item.badge}</span>}
                     </NavItemButton>
                 ))}
             </NavList>
