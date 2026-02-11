@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePaymentMethodCurrency, Currency, PaymentMethod } from '../hooks/usePaymentMethodCurrency';
-import { FiPlus, FiEdit2, FiTrash2, FiLoaderLoader, FiAlertCircle } from 'react-icons/fi';
+import { FiPlus, FiEdit2, FiTrash2, FiAlertCircle } from 'react-icons/fi';
+import LoadingSpinner from '../components/LoadingSpinner';
 
 export const PaymentMethodsCurrencyPage: React.FC = () => {
     const {
@@ -136,11 +137,7 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
             </div>
 
             {/* Loading State */}
-            {isLoading && (
-                <div className="flex items-center justify-center py-12">
-                    <FiLoaderLoader className="animate-spin text-blue-600" size={32} />
-                </div>
-            )}
+            {isLoading && <LoadingSpinner />}
 
             {/* Currencies Tab */}
             {activeTab === 'currencies' && !isLoading && (
