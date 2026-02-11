@@ -164,6 +164,18 @@ export const PAYMENT_METHODS: PaymentMethod[] = [
     type: 'bank_transfer',
     icon: 'bank',
   },
+  {
+    id: 'MOBILE_MONEY',
+    name: 'Mobile Money',
+    type: 'mobile_money',
+    icon: 'phone',
+  },
+  {
+    id: 'BANK_ACCOUNT',
+    name: 'Bank Account',
+    type: 'bank_account',
+    icon: 'account_balance',
+  },
 ];
 
 // ==================== PAYMENT DETAILS (MOCK) ====================

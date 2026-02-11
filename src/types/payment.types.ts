@@ -39,7 +39,7 @@ export interface OfferGroup {
 export interface PaymentMethod {
   id: string;
   name: string;
-  type: 'credit_card' | 'paypal' | 'bank_transfer';
+  type: 'credit_card' | 'paypal' | 'bank_transfer' | 'mobile_money' | 'bank_account';
   icon?: string;
 }
 
@@ -53,6 +53,17 @@ export interface PaymentFormData {
   postalCode: string;
   paymentMethod: string;
   acceptTerms: boolean;
+  // Mobile Money fields
+  mobileMoneyNumber?: string;
+  mobileMoneyOperator?: string;
+  // Bank Transfer fields
+  bankAccountNumber?: string;
+  bankAccountName?: string;
+  bankCode?: string;
+  // Credit Card fields
+  cardNumber?: string;
+  cardExpiry?: string;
+  cardCvc?: string;
 }
 
 export interface PaymentDetails {

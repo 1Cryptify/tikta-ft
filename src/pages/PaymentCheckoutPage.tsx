@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PaymentMethodSelector from '../components/Payment/PaymentMethodSelector';
+import PaymentMethodFields from '../components/Payment/PaymentMethodFields';
 import {
   getProductById,
   getOfferById,
@@ -58,6 +59,7 @@ export const PaymentCheckoutPage: React.FC = () => {
     country: '',
     postalCode: '',
     paymentMethod: '',
+    acceptTerms: false,
   });
 
   // Contact info only requires email
@@ -84,6 +86,36 @@ export const PaymentCheckoutPage: React.FC = () => {
     }
     if (!formData.paymentMethod) {
       newErrors.paymentMethod = 'Payment method is required';
+    }
+
+    // Validate payment method specific fields
+    if (formData.paymentMethod === 'MOBILE_MONEY') {
+      if (!formData.mobileMoneyOperator) {
+        newErrors.mobileMoneyOperator = 'Mobile money operator is required';
+      }
+      if (!formData.mobileMoneyNumber || !/^[\d\+\-\(\)]+$/.test(formData.mobileMoneyNumber)) {
+        newErrors.mobileMoneyNumber = 'Valid mobile money number is required';
+      }
+    } else if (formData.paymentMethod === 'BANK_ACCOUNT') {
+      if (!formData.bankAccountName) {
+        newErrors.bankAccountName = 'Account holder name is required';
+      }
+      if (!formData.bankCode) {
+        newErrors.bankCode = 'Bank code is required';
+      }
+      if (!formData.bankAccountNumber || !/^\d+$/.test(formData.bankAccountNumber)) {
+        newErrors.bankAccountNumber = 'Valid account number is required';
+      }
+    } else if (formData.paymentMethod === 'CC') {
+      if (!formData.cardNumber || !/^\d{4}\s?\d{4}\s?\d{4}\s?\d{4}$/.test(formData.cardNumber.replace(/\s/g, ''))) {
+        newErrors.cardNumber = 'Valid card number is required';
+      }
+      if (!formData.cardExpiry || !/^\d{2}\/\d{2}$/.test(formData.cardExpiry)) {
+        newErrors.cardExpiry = 'Valid expiry date (MM/YY) is required';
+      }
+      if (!formData.cardCvc || !/^\d{3,4}$/.test(formData.cardCvc)) {
+        newErrors.cardCvc = 'Valid CVC is required';
+      }
     }
 
     setErrors(newErrors);
@@ -200,6 +232,17 @@ export const PaymentCheckoutPage: React.FC = () => {
                 </span>
               )}
             </div>
+
+            {/* Payment Method Specific Fields */}
+            {formData.paymentMethod && (
+              <PaymentMethodFields
+                paymentMethod={formData.paymentMethod}
+                formData={formData}
+                onChange={handleChange}
+                errors={errors}
+                disabled={loading}
+              />
+            )}
 
             {/* Submit Button */}
             {loading && <LoadingSpinner />}
