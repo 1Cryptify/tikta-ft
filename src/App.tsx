@@ -5,11 +5,18 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './components/Auth/LoginPage';
 import { ConfirmationPage } from './components/Auth/ConfirmationPage';
 import { Dashboard } from './pages/Dashboard';
+import { PayPage } from './pages/PayPage';
 import { PaymentCheckoutPage } from './pages/PaymentCheckoutPage';
 import { PaymentSuccessPage } from './pages/PaymentSuccessPage';
 import { PaymentFailedPage } from './pages/PaymentFailedPage';
+import PaymentRoutes from './config/payment-routes';
 import { UserRole } from './config/menuPermissions';
 import './styles/global.css';
+import './styles/payment.css';
+import './styles/pay-page.css';
+import './styles/payment-checkout.css';
+import './styles/payment-success.css';
+import './styles/payment-failed.css';
 
 // Helper function to map user to UserRole
 const getUserRole = (user: User): UserRole => {
@@ -50,11 +57,7 @@ function App() {
                 <Route path="/confirm" element={<ConfirmationPage email="" onSuccess={() => { }} onBack={() => { }} />} />
 
                 {/* Payment Routes - Public */}
-                <Route path="/pay/:groupId" element={<PaymentCheckoutPage />} />
-                <Route path="/pay/offer/:offerId" element={<PaymentCheckoutPage />} />
-                <Route path="/pay/product/:productId" element={<PaymentCheckoutPage />} />
-                <Route path="/pay/success" element={<PaymentSuccessPage />} />
-                <Route path="/pay/failed" element={<PaymentFailedPage />} />
+                <Route path="/pay/*" element={<PaymentRoutes />} />
 
                 {/* Dashboard Route - Protected */}
                 <Route

@@ -1,0 +1,226 @@
+/* Payment Success Page Styles */
+
+.payment-success {
+  min-height: 100vh;
+  background-color: #ffffff;
+  padding: var(--space-3xl) var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.success-container {
+  max-width: 500px;
+  text-align: center;
+}
+
+.success-icon {
+  width: 80px;
+  height: 80px;
+  background-color: var(--color-success);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-xl);
+  animation: scaleIn 0.6s ease-out;
+  position: relative;
+}
+
+.success-icon::after {
+  content: '✓';
+  font-size: 48px;
+  color: white;
+  font-weight: 700;
+}
+
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.success-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-md);
+}
+
+.success-message {
+  font-size: 16px;
+  color: var(--color-secondary);
+  margin-bottom: var(--space-2xl);
+  line-height: 1.6;
+}
+
+.success-details {
+  background-color: var(--color-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-2xl);
+  text-align: left;
+  border: 1px solid var(--color-border);
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) 0;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+  font-size: 14px;
+}
+
+.detail-row:last-child {
+  border-bottom: none;
+}
+
+.detail-label {
+  color: var(--color-secondary);
+  font-weight: 600;
+}
+
+.detail-value {
+  color: var(--color-text);
+  font-weight: 700;
+}
+
+.success-guarantee {
+  background-color: rgba(40, 167, 96, 0.05);
+  border-left: 4px solid var(--color-success);
+  padding: var(--space-lg);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2xl);
+  text-align: center;
+}
+
+.guarantee-icon {
+  font-size: 24px;
+  margin-bottom: var(--space-sm);
+}
+
+.guarantee-text {
+  font-size: 13px;
+  color: var(--color-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.success-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.success-actions button {
+  padding: var(--space-lg);
+  font-size: 16px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.success-actions .btn-primary {
+  background-color: var(--color-accent);
+  color: white;
+  width: 100%;
+}
+
+.success-actions .btn-primary:hover {
+  background-color: #0056b3;
+  box-shadow: var(--shadow-md);
+}
+
+.success-actions .btn-secondary {
+  background-color: var(--color-light);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  width: 100%;
+}
+
+.success-actions .btn-secondary:hover {
+  background-color: #e0e0e0;
+}
+
+.email-notice {
+  font-size: 12px;
+  color: var(--color-secondary);
+  margin-top: var(--space-xl);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .payment-success {
+    padding: var(--space-2xl) var(--space-lg);
+  }
+
+  .success-container {
+    max-width: 100%;
+  }
+
+  .success-icon {
+    width: 70px;
+    height: 70px;
+  }
+
+  .success-icon::after {
+    font-size: 40px;
+  }
+
+  .success-title {
+    font-size: 26px;
+  }
+
+  .success-message {
+    font-size: 14px;
+  }
+
+  .success-details {
+    padding: var(--space-lg);
+  }
+
+  .detail-row {
+    padding: var(--space-sm) 0;
+    font-size: 13px;
+  }
+}
+
+@media (max-width: 480px) {
+  .payment-success {
+    padding: var(--space-xl) var(--space-md);
+  }
+
+  .success-icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: var(--space-lg);
+  }
+
+  .success-icon::after {
+    font-size: 32px;
+  }
+
+  .success-title {
+    font-size: 22px;
+    margin-bottom: var(--space-sm);
+  }
+
+  .success-message {
+    font-size: 13px;
+    margin-bottom: var(--space-xl);
+  }
+
+  .success-actions button {
+    padding: var(--space-md) var(--space-lg);
+    font-size: 14px;
+  }
+}

@@ -1,0 +1,314 @@
+/* Payment Failed Page Styles */
+
+.payment-failed {
+  min-height: 100vh;
+  background-color: #ffffff;
+  padding: var(--space-3xl) var(--space-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.failed-container {
+  max-width: 500px;
+  text-align: center;
+}
+
+.failed-icon {
+  width: 80px;
+  height: 80px;
+  background-color: var(--color-danger);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto var(--space-xl);
+  animation: shake 0.5s ease-in-out;
+  position: relative;
+}
+
+.failed-icon::after {
+  content: '✕';
+  font-size: 48px;
+  color: white;
+  font-weight: 700;
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-10px);
+  }
+  75% {
+    transform: translateX(10px);
+  }
+}
+
+.failed-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-danger);
+  margin-bottom: var(--space-md);
+}
+
+.failed-message {
+  font-size: 16px;
+  color: var(--color-secondary);
+  margin-bottom: var(--space-2xl);
+  line-height: 1.6;
+}
+
+.failure-reasons {
+  background-color: rgba(220, 53, 69, 0.05);
+  border-left: 4px solid var(--color-danger);
+  padding: var(--space-lg);
+  border-radius: var(--radius-sm);
+  margin-bottom: var(--space-2xl);
+  text-align: left;
+}
+
+.failure-reasons-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-danger);
+  margin-bottom: var(--space-md);
+}
+
+.failure-reasons ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.failure-reasons li {
+  font-size: 13px;
+  color: var(--color-secondary);
+  padding: var(--space-sm) 0;
+  line-height: 1.5;
+}
+
+.failure-reasons li::before {
+  content: '• ';
+  color: var(--color-danger);
+  font-weight: 700;
+  margin-right: var(--space-sm);
+}
+
+.recovery-guide {
+  background-color: var(--color-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin-bottom: var(--space-2xl);
+  border: 1px solid var(--color-border);
+  text-align: left;
+}
+
+.recovery-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-lg);
+  text-align: center;
+}
+
+.recovery-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.recovery-step {
+  display: flex;
+  gap: var(--space-lg);
+}
+
+.step-number {
+  width: 28px;
+  height: 28px;
+  background-color: var(--color-accent);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.step-content {
+  text-align: left;
+}
+
+.step-title {
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--color-text);
+  margin-bottom: 2px;
+}
+
+.step-desc {
+  font-size: 12px;
+  color: var(--color-secondary);
+  line-height: 1.5;
+  margin: 0;
+}
+
+.failed-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-bottom: var(--space-2xl);
+}
+
+.failed-actions button {
+  padding: var(--space-lg);
+  font-size: 16px;
+  border-radius: var(--radius-md);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-base);
+}
+
+.failed-actions .btn-primary {
+  background-color: var(--color-accent);
+  color: white;
+  width: 100%;
+}
+
+.failed-actions .btn-primary:hover {
+  background-color: #0056b3;
+  box-shadow: var(--shadow-md);
+}
+
+.failed-actions .btn-secondary {
+  background-color: var(--color-light);
+  color: var(--color-text);
+  border: 1px solid var(--color-border);
+  width: 100%;
+}
+
+.failed-actions .btn-secondary:hover {
+  background-color: #e0e0e0;
+}
+
+.support-contact {
+  background-color: #f0f7ff;
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  border: 1px solid #d4e6f1;
+  text-align: center;
+}
+
+.support-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-text);
+  margin-bottom: var(--space-md);
+}
+
+.support-text {
+  font-size: 13px;
+  color: var(--color-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.support-link {
+  color: var(--color-accent);
+  text-decoration: none;
+  font-weight: 600;
+  display: inline-block;
+  margin-top: var(--space-sm);
+}
+
+.support-link:hover {
+  text-decoration: underline;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .payment-failed {
+    padding: var(--space-2xl) var(--space-lg);
+  }
+
+  .failed-container {
+    max-width: 100%;
+  }
+
+  .failed-icon {
+    width: 70px;
+    height: 70px;
+  }
+
+  .failed-icon::after {
+    font-size: 40px;
+  }
+
+  .failed-title {
+    font-size: 26px;
+  }
+
+  .failed-message {
+    font-size: 14px;
+  }
+
+  .recovery-steps {
+    gap: var(--space-sm);
+  }
+
+  .step-number {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .payment-failed {
+    padding: var(--space-xl) var(--space-md);
+  }
+
+  .failed-icon {
+    width: 60px;
+    height: 60px;
+    margin-bottom: var(--space-lg);
+  }
+
+  .failed-icon::after {
+    font-size: 32px;
+  }
+
+  .failed-title {
+    font-size: 22px;
+    margin-bottom: var(--space-sm);
+  }
+
+  .failed-message {
+    font-size: 13px;
+    margin-bottom: var(--space-xl);
+  }
+
+  .failed-actions button {
+    padding: var(--space-md) var(--space-lg);
+    font-size: 14px;
+  }
+
+  .recovery-guide {
+    padding: var(--space-lg);
+  }
+
+  .recovery-title {
+    font-size: 13px;
+  }
+
+  .step-title {
+    font-size: 12px;
+  }
+
+  .step-desc {
+    font-size: 11px;
+  }
+}
