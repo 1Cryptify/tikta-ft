@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import styled from 'styled-components';
 import {
     FiPlus,
@@ -12,10 +12,12 @@ import {
     FiFolder,
     FiChevronRight,
     FiCopy,
+    FiImage,
 } from 'react-icons/fi';
 import { useOffer, Offer, OfferGroup } from '../hooks/useOffer';
 import { OfferModal } from '../components/OfferModal';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
+import { getMediaUrl } from '../services/api';
 
 const Header = styled.div`
   margin-bottom: ${spacing.xxl};
@@ -177,6 +179,73 @@ const CardHeader = styled.div`
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: ${spacing.md};
+`;
+
+const OfferImageContainer = styled.div`
+  width: 100%;
+  height: 160px;
+  border-radius: ${borderRadius.md};
+  overflow: hidden;
+  margin-bottom: ${spacing.md};
+  background-color: ${colors.neutral};
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+`;
+
+const OfferImage = styled.img`
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+`;
+
+const OfferImagePlaceholder = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: ${colors.textSecondary};
+  font-size: 0.875rem;
+  
+  svg {
+    font-size: 2rem;
+    margin-bottom: ${spacing.sm};
+    opacity: 0.5;
+  }
+`;
+
+const ImageUploadButton = styled.button`
+  position: absolute;
+  bottom: ${spacing.sm};
+  right: ${spacing.sm};
+  background-color: rgba(30, 58, 95, 0.9);
+  color: ${colors.surface};
+  border: none;
+  border-radius: ${borderRadius.md};
+  padding: ${spacing.sm} ${spacing.md};
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: ${spacing.xs};
+  transition: all 0.3s ease;
+  
+  &:hover {
+    background-color: ${colors.primary};
+    transform: translateY(-2px);
+  }
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+  }
+`;
+
+const HiddenFileInput = styled.input`
+  display: none;
 `;
 
 const CardTitle = styled.h3`
@@ -714,11 +783,15 @@ export const OffersList: React.FC<OffersListProps> = () => {
         deleteOffer,
         activateOffer,
         deactivateOffer,
+        uploadOfferImage,
         createOfferGroup,
         updateOfferGroup,
         deleteOfferGroup,
         getOfferGroups,
     } = useOffer();
+    
+    // Refs for file inputs
+    const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
     // Offers tab state
     const [searchTerm, setSearchTerm] = useState('');
@@ -903,6 +976,35 @@ export const OffersList: React.FC<OffersListProps> = () => {
         });
     };
 
+    const handleImageUploadClick = (offerId: string) => {
+        fileInputRefs.current[offerId]?.click();
+    };
+
+    const handleFileChange = async (offerId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+            return;
+        }
+        
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('Image size should be less than 5MB');
+            return;
+        }
+        
+        await uploadOfferImage(offerId, file);
+        
+        // Reset file input
+        if (fileInputRefs.current[offerId]) {
+            fileInputRefs.current[offerId]!.value = '';
+        }
+    };
+
     return (
         <>
             <Header>
@@ -1002,6 +1104,36 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                             )}
                                         </Badge>
                                     </CardHeader>
+
+                                    <OfferImageContainer>
+                                        {offer.image ? (
+                                            <OfferImage
+                                                src={getMediaUrl(offer.image)}
+                                                alt={offer.name}
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
+                                        ) : (
+                                            <OfferImagePlaceholder>
+                                                <FiImage />
+                                                <span>No image</span>
+                                            </OfferImagePlaceholder>
+                                        )}
+                                        <ImageUploadButton
+                                            onClick={() => handleImageUploadClick(offer.id)}
+                                            disabled={isLoading}
+                                            title="Upload image"
+                                        >
+                                            <FiImage size={14} /> {offer.image ? 'Change' : 'Add'}
+                                        </ImageUploadButton>
+                                        <HiddenFileInput
+                                            ref={(el) => { fileInputRefs.current[offer.id] = el; }}
+                                            type="file"
+                                            accept="image/jpeg,image/png,image/gif,image/webp"
+                                            onChange={(e) => handleFileChange(offer.id, e)}
+                                        />
+                                    </OfferImageContainer>
 
                                     {offer.description && (
                                         <Description>{offer.description}</Description>

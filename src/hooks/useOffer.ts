@@ -46,6 +46,7 @@ export interface Offer {
     offer_type?: 'ticket' | 'digital_product';
     category?: string;
     tags?: string[];
+    image?: string; // Image URL path
     created_at?: string;
     updated_at?: string;
 }
@@ -79,6 +80,7 @@ interface UseOfferReturn extends OfferState {
     deleteOffer: (id: string) => Promise<boolean>;
     activateOffer: (id: string) => Promise<boolean>;
     deactivateOffer: (id: string) => Promise<boolean>;
+    uploadOfferImage: (id: string, file: File) => Promise<string | null>;
     getCompanyOffers: (companyId: string) => Promise<Offer[]>;
     getOfferGroups: () => Promise<void>;
     getOfferGroupById: (id: string) => Promise<OfferGroup | null>;
@@ -352,6 +354,55 @@ export const useOffer = (): UseOfferReturn => {
         return false;
     }, []);
 
+    // Upload offer image
+    const uploadOfferImage = useCallback(async (id: string, file: File): Promise<string | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const response = await axiosInstance.post(`/offers/${id}/upload-image/`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const imageUrl = response.data.image_url;
+                // Update the offer in state with the new image
+                setState(prev => ({
+                    ...prev,
+                    offers: prev.offers.map(o =>
+                        o.id === id ? { ...o, image: imageUrl } : o
+                    ),
+                    isLoading: false,
+                }));
+                return imageUrl;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to upload image',
+                }));
+            }
+        } catch (error: any) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: error.response?.data?.message || 'Failed to upload image',
+            }));
+        }
+        return null;
+    }, []);
+
     // Get company offers
     const getCompanyOffers = useCallback(async (companyId: string): Promise<Offer[]> => {
         const startTime = Date.now();
@@ -575,6 +626,7 @@ export const useOffer = (): UseOfferReturn => {
         deleteOffer,
         activateOffer,
         deactivateOffer,
+        uploadOfferImage,
         getCompanyOffers,
         getOfferGroups,
         getOfferGroupById,
