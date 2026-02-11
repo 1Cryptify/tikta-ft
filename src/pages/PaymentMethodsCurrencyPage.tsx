@@ -526,8 +526,11 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                         <table className="data-table">
                             <thead>
                                 <tr>
+                                    <th>Logo</th>
                                     <th>Name</th>
                                     <th>Type</th>
+                                    <th>Channel</th>
+                                    <th>Country</th>
                                     <th>Status</th>
                                     <th>Actions</th>
                                 </tr>
@@ -535,12 +538,42 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                             <tbody>
                                 {paymentMethods.map(method => (
                                     <tr key={method.id}>
+                                        <td>
+                                            {method.logo ? (
+                                                <img 
+                                                    src={method.logo} 
+                                                    alt={method.name}
+                                                    style={{ 
+                                                        width: '40px', 
+                                                        height: '40px', 
+                                                        objectFit: 'contain',
+                                                        borderRadius: 'var(--radius-md)'
+                                                    }}
+                                                />
+                                            ) : (
+                                                <div style={{ 
+                                                    width: '40px', 
+                                                    height: '40px', 
+                                                    backgroundColor: '#f3f4f6',
+                                                    borderRadius: 'var(--radius-md)',
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'center',
+                                                    color: '#9ca3af',
+                                                    fontSize: '10px'
+                                                }}>
+                                                    No Logo
+                                                </div>
+                                            )}
+                                        </td>
                                         <td>{method.name}</td>
                                         <td>
                                             <span style={{ textTransform: 'capitalize' }}>
                                                 {method.type.replace('_', ' ')}
                                             </span>
                                         </td>
+                                        <td>{method.channel || '-'}</td>
+                                        <td>{method.country || '-'}</td>
                                         <td>
                                             <span className={`badge ${method.is_active ? 'badge-active' : 'badge-inactive'}`}>
                                                 {method.is_active ? 'Active' : 'Inactive'}
@@ -551,6 +584,7 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                                                 <button
                                                     onClick={() => {
                                                         setEditingPaymentMethod(method);
+                                                        setPaymentType(method.type);
                                                         setShowPaymentMethodForm(true);
                                                     }}
                                                     className="btn-icon btn-icon-edit"
