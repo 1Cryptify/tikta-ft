@@ -18,7 +18,8 @@ export const paymentService = {
     if (!response.ok) throw new Error('Failed to fetch offer group');
     const data = await response.json();
     console.log('getOfferGroup response:', data);
-    return data;
+    // Merge status with offer_group data so code can access both response.status and response.id, etc.
+    return { status: data.status, ...data.offer_group };
   },
 
   async listOfferGroups() {

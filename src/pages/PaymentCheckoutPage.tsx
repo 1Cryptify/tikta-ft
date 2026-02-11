@@ -9,6 +9,7 @@ import { PaymentMethod, PaymentFormData } from '../types/payment.types';
 import { usePaymentVerification } from '../hooks/usePaymentVerification';
 import '../styles/payment.css';
 import '../styles/payment-checkout.css';
+import { API_BASE_URL } from '../services/api.ts';
 
 export const PaymentCheckoutPage: React.FC = () => {
   const { groupId, productId, offerId } = useParams();
@@ -299,7 +300,7 @@ export const PaymentCheckoutPage: React.FC = () => {
   // Get item details for display
   const itemName = item?.name || 'Unknown Item';
   const itemDesc = item?.description || '';
-  const itemImage = item?.image || '';
+  const itemImage = API_BASE_URL + (item?.image || '');
   const currency = item?.currency?.code || item?.currency || 'XAF';
 
   // Get selected payment method
