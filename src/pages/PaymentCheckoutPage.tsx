@@ -58,7 +58,6 @@ export const PaymentCheckoutPage: React.FC = () => {
     country: '',
     postalCode: '',
     paymentMethod: '',
-    acceptTerms: false,
   });
 
   // Contact info only requires email
@@ -85,9 +84,6 @@ export const PaymentCheckoutPage: React.FC = () => {
     }
     if (!formData.paymentMethod) {
       newErrors.paymentMethod = 'Payment method is required';
-    }
-    if (!formData.acceptTerms) {
-      newErrors.acceptTerms = 'You must accept the terms';
     }
 
     setErrors(newErrors);
@@ -203,31 +199,6 @@ export const PaymentCheckoutPage: React.FC = () => {
                   {errors.paymentMethod}
                 </span>
               )}
-            </div>
-
-            {/* Terms Section */}
-            <div className={`form-group ${errors.acceptTerms ? 'error' : ''}`}>
-              <div className="checkbox-group">
-                <input
-                  type="checkbox"
-                  id="terms"
-                  name="acceptTerms"
-                  checked={formData.acceptTerms}
-                  onChange={handleChange}
-                  disabled={loading}
-                  className="checkbox-input"
-                />
-                <label htmlFor="terms" className="checkbox-label">
-                  I agree to the{' '}
-                  <a href="#terms" onClick={(e) => e.preventDefault()}>
-                    Terms & Conditions
-                  </a>{' '}
-                  and{' '}
-                  <a href="#privacy" onClick={(e) => e.preventDefault()}>
-                    Privacy Policy
-                  </a>
-                </label>
-              </div>
             </div>
 
             {/* Submit Button */}
