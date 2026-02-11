@@ -67,7 +67,6 @@ export interface PaymentFormData {
   acceptTerms: boolean;
   // Mobile Money fields
   mobileMoneyNumber?: string;
-  mobileMoneyOperator?: string;
   // Bank Transfer fields
   bankAccountNumber?: string;
   bankAccountName?: string;

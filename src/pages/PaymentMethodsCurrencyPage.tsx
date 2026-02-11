@@ -65,12 +65,7 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
         // Build details object based on payment type
         let details: Record<string, unknown> = {};
 
-        if (type === 'mobile_money') {
-            details = {
-                phone_number: formData.get('phone_number') as string,
-                operator: formData.get('operator') as string,
-            };
-        } else if (type === 'bank_account') {
+        if (type === 'bank_account') {
             details = {
                 account_holder: formData.get('account_holder') as string,
                 bank_code: formData.get('bank_code') as string,
@@ -398,34 +393,6 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                                 </div>
 
                                 {/* Dynamic fields based on payment type */}
-                                {(paymentType || editingPaymentMethod?.type) === 'mobile_money' && (
-                                    <div className="form-section-divider">
-                                        <h4 className="form-section-title">Mobile Money Details</h4>
-                                        <div className="form-grid">
-                                            <div className="form-group">
-                                                <label className="form-label">Phone Number</label>
-                                                <input 
-                                                    type="tel" 
-                                                    name="phone_number" 
-                                                    placeholder="+237 6XX XXX XXX" 
-                                                    className="form-input"
-                                                    defaultValue={(editingPaymentMethod?.details as Record<string, string>)?.phone_number || ''}
-                                                />
-                                            </div>
-                                            <div className="form-group">
-                                                <label className="form-label">Operator</label>
-                                                <input 
-                                                    type="text" 
-                                                    name="operator" 
-                                                    placeholder="e.g., MTN, Orange" 
-                                                    className="form-input"
-                                                    defaultValue={(editingPaymentMethod?.details as Record<string, string>)?.operator || ''}
-                                                />
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
                                 {(paymentType || editingPaymentMethod?.type) === 'bank_account' && (
                                     <div className="form-section-divider">
                                         <h4 className="form-section-title">Bank Account Details</h4>

@@ -79,9 +79,16 @@ export const useTransaction = (): UseTransactionReturn => {
             }
 
             if (response.data.status === 'success') {
+                const sortedTransactions = (response.data.transactions || []).sort(
+                    (a: PaymentTransaction, b: PaymentTransaction) => {
+                        const dateA = new Date(a.created_at || 0).getTime();
+                        const dateB = new Date(b.created_at || 0).getTime();
+                        return dateB - dateA; // Descending order (newest first)
+                    }
+                );
                 setState(prev => ({
                     ...prev,
-                    transactions: response.data.transactions || [],
+                    transactions: sortedTransactions,
                     isLoading: false,
                 }));
             } else if (response.data.status === 'error') {
@@ -153,7 +160,7 @@ export const useTransaction = (): UseTransactionReturn => {
                 const newTransaction = response.data.transaction;
                 setState(prev => ({
                     ...prev,
-                    transactions: [...prev.transactions, newTransaction],
+                    transactions: [newTransaction, ...prev.transactions],
                     isLoading: false,
                     successMessage: response.data.message || 'Transaction created successfully',
                 }));

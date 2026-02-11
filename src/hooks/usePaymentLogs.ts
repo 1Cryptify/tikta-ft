@@ -63,9 +63,16 @@ export const usePaymentLogs = (): UsePaymentLogsReturn => {
             }
 
             if (response.data.status === 'success') {
+                const sortedLogs = (response.data.logs || []).sort(
+                    (a: PaymentLog, b: PaymentLog) => {
+                        const dateA = new Date(a.created_at || 0).getTime();
+                        const dateB = new Date(b.created_at || 0).getTime();
+                        return dateB - dateA; // Descending order (newest first)
+                    }
+                );
                 setState(prev => ({
                     ...prev,
-                    logs: response.data.logs || [],
+                    logs: sortedLogs,
                     isLoading: false,
                 }));
             } else if (response.data.status === 'error') {
@@ -135,7 +142,14 @@ export const usePaymentLogs = (): UsePaymentLogsReturn => {
 
             if (response.data.status === 'success') {
                 setState(prev => ({ ...prev, isLoading: false }));
-                return response.data.logs || [];
+                const sortedLogs = (response.data.logs || []).sort(
+                    (a: PaymentLog, b: PaymentLog) => {
+                        const dateA = new Date(a.created_at || 0).getTime();
+                        const dateB = new Date(b.created_at || 0).getTime();
+                        return dateB - dateA; // Descending order (newest first)
+                    }
+                );
+                return sortedLogs;
             } else if (response.data.status === 'error') {
                 setState(prev => ({
                     ...prev,
@@ -170,7 +184,14 @@ export const usePaymentLogs = (): UsePaymentLogsReturn => {
 
             if (response.data.status === 'success') {
                 setState(prev => ({ ...prev, isLoading: false }));
-                return response.data.logs || [];
+                const sortedLogs = (response.data.logs || []).sort(
+                    (a: PaymentLog, b: PaymentLog) => {
+                        const dateA = new Date(a.created_at || 0).getTime();
+                        const dateB = new Date(b.created_at || 0).getTime();
+                        return dateB - dateA; // Descending order (newest first)
+                    }
+                );
+                return sortedLogs;
             } else if (response.data.status === 'error') {
                 setState(prev => ({
                     ...prev,
