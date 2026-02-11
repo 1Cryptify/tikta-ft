@@ -1,10 +1,11 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 // @ts-ignore
 import QRCode from 'qrcode.react';
-import { FiPrinter, FiEye, FiEyeOff, FiCheck, FiX, FiCopy, FiPlus, FiTrash2 } from 'react-icons/fi';
+import { FiPrinter, FiEye, FiEyeOff, FiCheck, FiX, FiCopy, FiPlus, FiTrash2, FiFilter, FiXCircle } from 'react-icons/fi';
 import { colors, spacing } from '../config/theme';
 import { useTicket, Ticket } from '../hooks/useTicket';
+import { useOffer, Offer } from '../hooks/useOffer';
 import LoadingSpinner from '../components/LoadingSpinner';
 import CreateTicketModal from '../components/CreateTicketModal';
 
@@ -456,6 +457,122 @@ const PrintContainer = styled.div`
   }
 `;
 
+// ========== FILTER COMPONENTS ==========
+
+const FilterSection = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${spacing.md};
+  margin-bottom: ${spacing.xl};
+  padding: ${spacing.md};
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+`;
+
+const FilterGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${spacing.xs};
+  flex: 1;
+  min-width: 180px;
+  max-width: 280px;
+
+  @media (max-width: 768px) {
+    min-width: 100%;
+    max-width: 100%;
+  }
+`;
+
+const FilterLabel = styled.label`
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: ${colors.textSecondary};
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+`;
+
+const FilterSelect = styled.select`
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+  color: ${colors.textPrimary};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #999;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+`;
+
+const FilterButtonGroup = styled.div`
+  display: flex;
+  gap: ${spacing.xs};
+  flex-wrap: wrap;
+`;
+
+const FilterButton = styled.button<{ isActive: boolean }>`
+  padding: 8px 16px;
+  border: 1px solid ${props => props.isActive ? '#007bff' : '#ddd'};
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: ${props => props.isActive ? '600' : '400'};
+  background: ${props => props.isActive ? '#007bff' : 'white'};
+  color: ${props => props.isActive ? 'white' : colors.textPrimary};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #007bff;
+    background: ${props => props.isActive ? '#0056b3' : '#f0f7ff'};
+  }
+`;
+
+const ClearFiltersButton = styled.button`
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  background: white;
+  color: #dc3545;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-end;
+
+  &:hover {
+    background: #dc3545;
+    color: white;
+  }
+
+  svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  @media (max-width: 768px) {
+    align-self: stretch;
+    justify-content: center;
+  }
+`;
+
+const ResultsInfo = styled.div`
+  font-size: 0.875rem;
+  color: ${colors.textSecondary};
+  margin-bottom: ${spacing.md};
+`;
+
 const ThermalTicketTemplate = styled.div`
   width: 58mm;
   padding: 5mm;
@@ -573,10 +690,58 @@ const ThermalTicket: React.FC<ThermalTicketProps> = ({ ticket }: ThermalTicketPr
 
 export const TicketsPage: React.FC = () => {
     const ticketData = useTicket();
+    const offerData = useOffer();
     const tickets = ticketData?.tickets || [];
     const isLoading = ticketData?.isLoading || false;
     const error = ticketData?.error || null;
     const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
+
+    // Filter states
+    const [usedFilter, setUsedFilter] = useState<'all' | 'used' | 'unused'>('all');
+    const [selectedOfferId, setSelectedOfferId] = useState<string>('all');
+
+    // Load offers on mount
+    useEffect(() => {
+        offerData.getOffers();
+    }, []);
+
+    // Get unique offers from tickets (for dropdown)
+    const ticketOffers = useMemo(() => {
+        const offerMap = new Map<string, string>();
+        tickets.forEach(ticket => {
+            if (ticket.offer && ticket.offer_name) {
+                offerMap.set(ticket.offer, ticket.offer_name);
+            }
+        });
+        return Array.from(offerMap.entries()).map(([id, name]) => ({ id, name }));
+    }, [tickets]);
+
+    // Filter tickets based on selected filters
+    const filteredTickets = useMemo(() => {
+        return tickets.filter(ticket => {
+            // Filter by used status
+            if (usedFilter === 'used' && !ticket.is_used) {
+                return false;
+            }
+            if (usedFilter === 'unused' && ticket.is_used) {
+                return false;
+            }
+
+            // Filter by offer
+            if (selectedOfferId !== 'all' && ticket.offer !== selectedOfferId) {
+                return false;
+            }
+
+            return true;
+        });
+    }, [tickets, usedFilter, selectedOfferId]);
+
+    const clearFilters = () => {
+        setUsedFilter('all');
+        setSelectedOfferId('all');
+    };
+
+    const hasActiveFilters = usedFilter !== 'all' || selectedOfferId !== 'all';
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
     const [bulkJsonInput, setBulkJsonInput] = useState('');
@@ -740,10 +905,19 @@ export const TicketsPage: React.FC = () => {
             }
             .label {
               font-weight: bold;
-              font-size: 7pt;
+              font-size: 9pt;
             }
             .value {
-              font-size: 8pt;
+              font-size: 11pt;
+              font-weight: bold;
+            }
+            .value-id {
+              font-size: 7pt;
+              font-weight: bold;
+            }
+            .value-code {
+              font-size: 15pt;
+              font-weight: bold;
             }
             .footer {
               text-align: center;
@@ -771,17 +945,17 @@ export const TicketsPage: React.FC = () => {
                 <div class="content">
                   <div class="field">
                     <div class="label">ID:</div>
-                    <div class="value">${ticket.id || 'N/A'}</div>
+                    <div class="value value-id">${ticket.id || 'N/A'}</div>
                   </div>
 
                   <div class="field">
                     <div class="label">Code:</div>
-                    <div class="value">${ticket.ticket_code || 'N/A'}</div>
+                    <div class="value value-code">${ticket.ticket_code || 'N/A'}</div>
                   </div>
 
                   <div class="field">
                     <div class="label">Secret:</div>
-                    <div class="value">${ticket.ticket_secret || 'N/A'}</div>
+                    <div class="value value-code">${ticket.ticket_secret || 'N/A'}</div>
                   </div>
 
                   ${ticket.offer_name ? `
@@ -793,7 +967,7 @@ export const TicketsPage: React.FC = () => {
                 </div>
 
                 <div class="qr">
-                  <img src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(qrValue)}" />
+                  <img id="qr-image" src="https://api.qrserver.com/v1/create-qr-code/?size=128x128&data=${encodeURIComponent(qrValue)}" />
                 </div>
               </div>
 
@@ -810,9 +984,25 @@ export const TicketsPage: React.FC = () => {
 
             printWindow.document.write(html);
             printWindow.document.close();
-            setTimeout(() => {
-                printWindow.print();
-            }, 500);
+
+            // Attendre que le QR code soit chargé avant d'imprimer
+            const waitForQrAndPrint = () => {
+                const checkAndPrint = () => {
+                    // Vérifier si l'image du QR code est chargée
+                    const qrImg = printWindow.document.getElementById('qr-image') as HTMLImageElement | null;
+                    if (qrImg && qrImg.complete && qrImg.naturalWidth > 0) {
+                        printWindow.print();
+                    } else {
+                        // Attendre un peu et réessayer (max 5 secondes)
+                        setTimeout(checkAndPrint, 150);
+                    }
+                };
+
+                // Délai initial pour laisser le DOM se rendre
+                setTimeout(checkAndPrint, 300);
+            };
+
+            waitForQrAndPrint();
         }
     };
 
@@ -836,6 +1026,58 @@ export const TicketsPage: React.FC = () => {
                     </BulkCreateButton>
                 </ButtonGroup>
             </PageHeader>
+
+            {/* Filters Section */}
+            <FilterSection>
+                <FilterGroup>
+                    <FilterLabel>Status</FilterLabel>
+                    <FilterButtonGroup>
+                        <FilterButton
+                            isActive={usedFilter === 'all'}
+                            onClick={() => setUsedFilter('all')}
+                        >
+                            All
+                        </FilterButton>
+                        <FilterButton
+                            isActive={usedFilter === 'unused'}
+                            onClick={() => setUsedFilter('unused')}
+                        >
+                            Available
+                        </FilterButton>
+                        <FilterButton
+                            isActive={usedFilter === 'used'}
+                            onClick={() => setUsedFilter('used')}
+                        >
+                            Used
+                        </FilterButton>
+                    </FilterButtonGroup>
+                </FilterGroup>
+
+                <FilterGroup>
+                    <FilterLabel>Offer</FilterLabel>
+                    <FilterSelect
+                        value={selectedOfferId}
+                        onChange={(e) => setSelectedOfferId(e.target.value)}
+                    >
+                        <option value="all">All Offers</option>
+                        {ticketOffers.map(offer => (
+                            <option key={offer.id} value={offer.id}>
+                                {offer.name}
+                            </option>
+                        ))}
+                    </FilterSelect>
+                </FilterGroup>
+
+                {hasActiveFilters && (
+                    <ClearFiltersButton onClick={clearFilters}>
+                        <FiXCircle /> Clear Filters
+                    </ClearFiltersButton>
+                )}
+            </FilterSection>
+
+            <ResultsInfo>
+                Showing {filteredTickets.length} of {tickets.length} tickets
+            </ResultsInfo>
 
             <ModalOverlay isOpen={isBulkModalOpen} onClick={() => setIsBulkModalOpen(false)}>
                 <ModalContent onClick={(e) => e.stopPropagation()}>
@@ -907,15 +1149,15 @@ export const TicketsPage: React.FC = () => {
                 </EmptyState>
             )}
 
-            {!error && tickets.length === 0 && (
+            {!error && filteredTickets.length === 0 && (
                 <EmptyState>
-                    <p>No tickets found. Create your first ticket to get started.</p>
+                    <p>{hasActiveFilters ? 'No tickets match the selected filters.' : 'No tickets found. Create your first ticket to get started.'}</p>
                 </EmptyState>
             )}
 
-            {tickets.length > 0 && (
+            {filteredTickets.length > 0 && (
                 <TicketsContainer>
-                    {tickets.map(ticket => (
+                    {filteredTickets.map(ticket => (
                         <TicketCard key={ticket.id}>
                             <TicketHeader>
                                 <TicketTitle>{ticket.ticket_code}</TicketTitle>
@@ -1032,7 +1274,7 @@ export const TicketsPage: React.FC = () => {
             )}
 
             <PrintContainer ref={printRef}>
-                {tickets.map((ticket: Ticket) => (
+                {filteredTickets.map((ticket: Ticket) => (
                     <ThermalTicket key={ticket.id} ticket={ticket} />
                 ))}
             </PrintContainer>
