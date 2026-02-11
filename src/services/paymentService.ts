@@ -16,7 +16,9 @@ export const paymentService = {
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch offer group');
-    return response.json();
+    const data = await response.json();
+    console.log('getOfferGroup response:', data);
+    return data;
   },
 
   async listOfferGroups() {
@@ -25,7 +27,9 @@ export const paymentService = {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch offer groups');
-    return response.json();
+    const data = await response.json();
+    console.log('listOfferGroups response:', data);
+    return data;
   },
 
   // Offers
@@ -184,6 +188,7 @@ export const paymentService = {
     );
 
     const data = await response.json();
+    console.log('initiateGroupPayment response:', data);
 
     if (data.status === 'error') {
       throw new Error(data.message || 'Failed to initiate group payment');
@@ -210,6 +215,7 @@ export const paymentService = {
     );
 
     const data = await response.json();
+    console.log('verifyGroupPayment response:', data);
     return data;
   },
 
