@@ -28,9 +28,8 @@ export const PaymentCheckoutPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Contact info only requires email and phone
+  // Contact info only requires email
   const [contactEmail, setContactEmail] = useState('');
-  const [contactPhone, setContactPhone] = useState('');
 
   // Form data
   const [formData, setFormData] = useState<PaymentFormData>({
@@ -311,10 +310,6 @@ export const PaymentCheckoutPage: React.FC = () => {
       newErrors.email = 'Valid email is required';
     }
 
-    if (!contactPhone || contactPhone.length < 8) {
-      newErrors.phone = 'Valid phone number is required';
-    }
-
     if (!formData.paymentMethod) {
       newErrors.paymentMethod = 'Payment method is required';
     }
@@ -359,8 +354,6 @@ export const PaymentCheckoutPage: React.FC = () => {
 
     if (name === 'email') {
       setContactEmail(value);
-    } else if (name === 'phone') {
-      setContactPhone(value);
     } else {
       setFormData((prev) => ({
         ...prev,
@@ -389,7 +382,7 @@ export const PaymentCheckoutPage: React.FC = () => {
       // Prepare payload based on what's being purchased
       let payload: any = {
         email: contactEmail,
-        phone: contactPhone || formData.mobileMoneyNumber || '',
+        phone: formData.mobileMoneyNumber || '',
         payment_method_id: formData.paymentMethod,
         channel: channel,
         client_ip: '', // Can be filled from request if needed
@@ -506,21 +499,6 @@ export const PaymentCheckoutPage: React.FC = () => {
               />
               {errors.email && (
                 <span className="form-error">{errors.email}</span>
-              )}
-            </div>
-
-            <div className={`form-group ${errors.phone ? 'error' : ''}`}>
-              <label>Phone Number</label>
-              <input
-                type="tel"
-                name="phone"
-                value={contactPhone}
-                onChange={handleChange}
-                placeholder="+237 6XX XXX XXX"
-                disabled={isFormDisabled}
-              />
-              {errors.phone && (
-                <span className="form-error">{errors.phone}</span>
               )}
             </div>
 
