@@ -1,7 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import styled from 'styled-components';
 import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
+import { useTransaction } from '../hooks/useTransaction';
+import { useWithdrawal } from '../hooks/useWithdrawal';
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -141,6 +143,9 @@ interface OverviewPageProps {
 }
 
 export const OverviewPage: React.FC<OverviewPageProps> = ({ user }) => {
+  const { transactions, isLoading: transactionsLoading } = useTransaction();
+  const { balance, isLoading: withdrawalLoading } = useWithdrawal();
+
   const maskEmail = (email: string): string => {
     if (!email) return '';
     const [localPart, domain] = email.split('@');
@@ -151,12 +156,29 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ user }) => {
     return `${maskedPart}@${domain}`;
   };
 
-  const mockTransactions = [
-    { id: 'TXN-001', type: 'Deposit', amount: '50,000 XAF', date: '2024-02-01', status: 'completed' },
-    { id: 'TXN-002', type: 'Withdrawal', amount: '25,000 XAF', date: '2024-02-02', status: 'pending' },
-    { id: 'TXN-003', type: 'Deposit', amount: '100,000 XAF', date: '2024-02-03', status: 'completed' },
-    { id: 'TXN-004', type: 'Refund', amount: '10,000 XAF', date: '2024-02-04', status: 'failed' },
-  ];
+  // Calculate stats from real data
+  const stats = useMemo(() => {
+    const availableBalance = balance?.available_balance || 0;
+    const totalPayments = balance?.total_deposits || 0;
+    const pendingCount = transactions.filter(t => t.status === 'pending').length;
+
+    return {
+      availableBalance,
+      totalPayments,
+      pendingCount,
+    };
+  }, [balance, transactions]);
+
+  // Get last 5 transactions for display
+  const displayTransactions = useMemo(() => {
+    return transactions.slice(0, 5).map(txn => ({
+      id: txn.id,
+      type: txn.payment_id ? 'Payment' : 'Transaction',
+      amount: `${txn.amount} ${txn.currency?.code || 'XAF'}`,
+      date: txn.created_at ? new Date(txn.created_at).toLocaleDateString() : '-',
+      status: txn.status,
+    }));
+  }, [transactions]);
 
   return (
     <ContentSection>
@@ -168,17 +190,17 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ user }) => {
       <CardsGrid>
         <Card>
           <h3>Available Balance</h3>
-          <div className="value">250,000</div>
-          <div className="subtitle">XAF</div>
+          <div className="value">{withdrawalLoading ? '...' : stats.availableBalance.toLocaleString()}</div>
+          <div className="subtitle">{balance?.currency?.code || 'XAF'}</div>
         </Card>
         <Card>
           <h3>Total Payments</h3>
-          <div className="value">1,234,500</div>
-          <div className="subtitle">XAF</div>
+          <div className="value">{withdrawalLoading ? '...' : stats.totalPayments.toLocaleString()}</div>
+          <div className="subtitle">{balance?.currency?.code || 'XAF'}</div>
         </Card>
         <Card>
           <h3>Pending Transactions</h3>
-          <div className="value">2</div>
+          <div className="value">{transactionsLoading ? '...' : stats.pendingCount}</div>
           <div className="subtitle">In Progress</div>
         </Card>
       </CardsGrid>
@@ -198,19 +220,27 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ user }) => {
             </tr>
           </thead>
           <tbody>
-            {mockTransactions.map(txn => (
-              <tr key={txn.id}>
-                <td>{txn.id}</td>
-                <td>{txn.type}</td>
-                <td>{txn.amount}</td>
-                <td>{txn.date}</td>
-                <td>
-                  <StatusBadge status={txn.status}>
-                    {txn.status}
-                  </StatusBadge>
+            {displayTransactions.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'center', color: colors.textSecondary }}>
+                  {transactionsLoading ? 'Loading transactions...' : 'No transactions found'}
                 </td>
               </tr>
-            ))}
+            ) : (
+              displayTransactions.map(txn => (
+                <tr key={txn.id}>
+                  <td>{txn.id}</td>
+                  <td>{txn.type}</td>
+                  <td>{txn.amount}</td>
+                  <td>{txn.date}</td>
+                  <td>
+                    <StatusBadge status={txn.status}>
+                      {txn.status}
+                    </StatusBadge>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </TransactionsTable>
       </div>
