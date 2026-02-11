@@ -1021,7 +1021,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
     };
 
     const handleCopyGroupLink = (groupId: string) => {
-        const paymentUrl = `${window.location.origin}/pay/${groupId}`;
+        const paymentUrl = `${window.location.origin}/pay/g/${groupId}`;
         navigator.clipboard.writeText(paymentUrl).then(() => {
             setCopiedGroupId(groupId);
             setTimeout(() => setCopiedGroupId(null), 2000);
