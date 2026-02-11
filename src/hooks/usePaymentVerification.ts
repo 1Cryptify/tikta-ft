@@ -75,6 +75,9 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
     gatewayReference: string,
     paymentType: 'offer' | 'product' | 'group',
     currentAttempt: number,
+    offerId: string | undefined,
+    productId: string | undefined,
+    groupId: string | undefined,
     onToastMessage?: (message: string, type: 'success' | 'error' | 'info') => void
   ): Promise<VerificationResult | null> => {
     try {
@@ -84,16 +87,19 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
         response = await paymentService.verifyOfferPayment({
           reference,
           gateway_reference: gatewayReference,
+          offer_id: offerId || '',
         });
       } else if (paymentType === 'product') {
         response = await paymentService.verifyProductPayment({
           reference,
           gateway_reference: gatewayReference,
+          product_id: productId || '',
         });
       } else if (paymentType === 'group') {
         response = await paymentService.verifyGroupPayment({
           reference,
           gateway_reference: gatewayReference,
+          group_id: groupId || '',
         });
       }
 
@@ -168,6 +174,9 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
     reference,
     gatewayReference,
     paymentType,
+    offerId,
+    productId,
+    groupId,
   }: {
     reference: string;
     gatewayReference: string;
@@ -201,6 +210,9 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
         gatewayReference,
         paymentType,
         currentAttempt,
+        offerId,
+        productId,
+        groupId,
         onToastMessage
       );
 

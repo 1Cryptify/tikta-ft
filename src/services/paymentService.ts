@@ -124,6 +124,7 @@ export const paymentService = {
   async verifyOfferPayment(payload: {
     reference: string;
     gateway_reference: string;
+    offer_id: string;
   }) {
     const response = await fetch(
       `${API_BASE}/payments/offers-payment/verify/`,
@@ -141,6 +142,7 @@ export const paymentService = {
   async verifyProductPayment(payload: {
     reference: string;
     gateway_reference: string;
+    product_id: string;
   }) {
     const response = await fetch(
       `${API_BASE}/payments/product-payment/verify/`,
@@ -186,6 +188,7 @@ export const paymentService = {
   async verifyGroupPayment(payload: {
     reference: string;
     gateway_reference: string;
+    group_id: string;
   }) {
     const response = await fetch(
       `${API_BASE}/payments/offer-groups-payment/verify/`,
