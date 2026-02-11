@@ -6,24 +6,35 @@ import { OfferGroup, Product, Offer } from '../types/payment.types';
 import '../styles/payment.css';
 import '../styles/pay-page.css';
 
-export const PayPage: React.FC = () => {
+interface PayPageProps {
+  groupData?: OfferGroup;
+}
+
+export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
 
-  const [group, setGroup] = useState<OfferGroup | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [group, setGroup] = useState<OfferGroup | null>(groupData || null);
+  const [loading, setLoading] = useState(!groupData);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch group data from API
+  // Fetch group data from API (only if groupData prop is not provided)
   useEffect(() => {
     const fetchGroup = async () => {
+      // Skip fetching if groupData was provided via props
+      if (groupData) {
+        setGroup(groupData);
+        setLoading(false);
+        return;
+      }
+
       if (!groupId) return;
 
       try {
         setLoading(true);
         const response = await paymentService.getOfferGroup(groupId);
 
-        if (response.status === 'success' && response) {
+        if (response.data.status === 'success' && response) {
           // Map the API response to OfferGroup format
           const groupData: OfferGroup = {
             id: response.id || groupId,
@@ -67,19 +78,19 @@ export const PayPage: React.FC = () => {
     };
 
     fetchGroup();
-  }, [groupId]);
+  }, [groupId, groupData]);
 
   const handleProductClick = (productId: string) => {
-    navigate(`/pay/${groupId}/product/${productId}`);
+    navigate(`/checkout/product/${productId}`);
   };
 
   const handleOfferClick = (offerId: string) => {
-    navigate(`/pay/${groupId}/offer/${offerId}`);
+    navigate(`/checkout/offer/${offerId}`);
   };
 
   const handleBuyGroup = () => {
-    if (group?.is_package) {
-      navigate(`/pay/${groupId}/buy`);
+    if (group?.is_package && groupId) {
+      navigate(`/checkout/group/${groupId}/buy`);
     }
   };
 

@@ -17,7 +17,7 @@ export const PaymentFailedPage: React.FC = () => {
 
   const handleBackToPayment = () => {
     if (groupId) {
-      navigate(`/pay/${groupId}`);
+      navigate(`/pay/g/${groupId}`);
     } else {
       navigate('/');
     }

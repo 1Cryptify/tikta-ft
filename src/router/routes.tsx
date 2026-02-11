@@ -5,6 +5,7 @@ import { Dashboard } from '../pages/Dashboard';
 import { PaymentCheckoutPage } from '../pages/PaymentCheckoutPage';
 import { PaymentSuccessPage } from '../pages/PaymentSuccessPage';
 import { PaymentFailedPage } from '../pages/PaymentFailedPage';
+import { PayRouterPage } from '../pages/PayRouterPage';
 
 export interface RouteConfig {
     path: string;
@@ -25,21 +26,35 @@ export const routes: RouteConfig[] = [
         protected: false,
     },
     // Payment Routes
+    // /pay/:id - Offer payment page (or group package if id is a group with is_package=true)
     {
-        path: '/pay/:groupId',
+        path: '/pay/:id',
+        element: <PayRouterPage type="offer" />,
+        protected: false,
+    },
+    // /pay/g/:groupId - Group routing (payment if is_package=true, offers list if is_package=false)
+    {
+        path: '/pay/g/:groupId',
+        element: <PayRouterPage type="group" />,
+        protected: false,
+    },
+    // Checkout routes (internal redirects from PayRouterPage)
+    {
+        path: '/checkout/offer/:offerId',
         element: <PaymentCheckoutPage />,
         protected: false,
     },
     {
-        path: '/pay/offer/:offerId',
+        path: '/checkout/group/:groupId/buy',
         element: <PaymentCheckoutPage />,
         protected: false,
     },
     {
-        path: '/pay/product/:productId',
+        path: '/checkout/product/:productId',
         element: <PaymentCheckoutPage />,
         protected: false,
     },
+    // Success/Failed pages
     {
         path: '/pay/success',
         element: <PaymentSuccessPage />,
@@ -48,6 +63,17 @@ export const routes: RouteConfig[] = [
     {
         path: '/pay/failed',
         element: <PaymentFailedPage />,
+        protected: false,
+    },
+    // Legacy redirects for backward compatibility
+    {
+        path: '/pay/offer/:offerId',
+        element: <PaymentCheckoutPage />,
+        protected: false,
+    },
+    {
+        path: '/pay/product/:productId',
+        element: <PaymentCheckoutPage />,
         protected: false,
     },
     {

@@ -10,6 +10,7 @@ const getAuthHeaders = () => ({
 export const paymentService = {
   // Offer Groups
   async getOfferGroup(groupId: string) {
+    console.log('getOfferGroup called with groupId:', groupId);
     const response = await fetch(
       `${API_BASE}/payments/offer-groups/${groupId}/`,
       { headers: getAuthHeaders() }
@@ -19,6 +20,7 @@ export const paymentService = {
   },
 
   async listOfferGroups() {
+    console.log('listOfferGroups called');
     const response = await fetch(`${API_BASE}/payments/offer-groups/`, {
       headers: getAuthHeaders(),
     });
@@ -171,6 +173,7 @@ export const paymentService = {
     currency?: string;
     client_ip?: string;
   }) {
+    console.log('initiateGroupPayment called with payload:', payload);
     const response = await fetch(
       `${API_BASE}/payments/offer-groups-payment/initiate/`,
       {
@@ -193,6 +196,7 @@ export const paymentService = {
     gateway_reference: string;
     group_id: string;
   }) {
+    console.log('verifyGroupPayment called with payload:', payload);
     const response = await fetch(
       `${API_BASE}/payments/offer-groups-payment/verify/`,
       {

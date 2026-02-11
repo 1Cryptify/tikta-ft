@@ -330,7 +330,7 @@ export const PaymentSuccessPage: React.FC = () => {
 
   const handleContinueShopping = () => {
     if (groupId) {
-      navigate(`/pay/${groupId}`);
+      navigate(`/pay/g/${groupId}`);
     } else {
       navigate('/');
     }

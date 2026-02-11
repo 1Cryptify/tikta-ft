@@ -203,29 +203,17 @@ export const PaymentCheckoutPage: React.FC = () => {
       localStorage.setItem('pendingPayment', JSON.stringify(successData));
 
       // Navigate to success page immediately - no toast needed as the page will show success
-      if (groupId) {
-        navigate(`/pay/${groupId}/success`, { state: { paymentData: successData } });
-      } else {
-        navigate('/pay/success', { state: { paymentData: successData } });
-      }
+      navigate('/pay/success', { state: { paymentData: successData } });
     } else if (verificationStatus === 'failed') {
       // Payment failed - navigate directly, error shown on failed page
-      if (groupId) {
-        navigate(`/pay/${groupId}/failed`, { state: { errorMessage: verificationResult.message } });
-      } else {
-        navigate('/pay/failed', { state: { errorMessage: verificationResult.message } });
-      }
+      navigate('/pay/failed', { state: { errorMessage: verificationResult.message } });
     } else if (verificationStatus === 'timeout') {
       // Payment verification timed out - still navigate to success page
       // The success page will handle showing appropriate message
       const storedPayment = localStorage.getItem('pendingPayment');
       const successData: any = storedPayment ? JSON.parse(storedPayment) : {};
       
-      if (groupId) {
-        navigate(`/pay/${groupId}/success`, { state: { paymentData: successData, timeout: true } });
-      } else {
-        navigate('/pay/success', { state: { paymentData: successData, timeout: true } });
-      }
+      navigate('/pay/success', { state: { paymentData: successData, timeout: true } });
     }
   }, [verificationStatus, verificationResult, groupId, navigate]);
 
@@ -271,7 +259,7 @@ export const PaymentCheckoutPage: React.FC = () => {
             <p style={{ color: 'var(--color-error)' }}>{errorMessage}</p>
             <button
               className="btn-secondary"
-              onClick={() => groupId ? navigate(`/pay/${groupId}`) : navigate('/')}
+              onClick={() => groupId ? navigate(`/pay/g/${groupId}`) : navigate('/')}
               style={{ marginTop: '20px' }}
             >
               Back
@@ -292,7 +280,7 @@ export const PaymentCheckoutPage: React.FC = () => {
             <h1>Item not found</h1>
             <button
               className="btn-secondary"
-              onClick={() => groupId ? navigate(`/pay/${groupId}`) : navigate('/')}
+              onClick={() => groupId ? navigate(`/pay/g/${groupId}`) : navigate('/')}
             >
               Back
             </button>
@@ -451,21 +439,13 @@ export const PaymentCheckoutPage: React.FC = () => {
       } else {
         // Show error toast and navigate to failed page
         addToast(response.message || 'Payment failed. Please try again.', 'error');
-        if (groupId) {
-          navigate(`/pay/${groupId}/failed`, { state: { errorMessage: response.message } });
-        } else {
-          navigate('/pay/failed', { state: { errorMessage: response.message } });
-        }
+        navigate('/pay/failed', { state: { errorMessage: response.message } });
       }
     } catch (error: any) {
       console.error('Payment error:', error);
       // Show error toast and navigate to failed page
       addToast(error.message || 'An error occurred during payment. Please try again.', 'error');
-      if (groupId) {
-        navigate(`/pay/${groupId}/failed`, { state: { errorMessage: error.message } });
-      } else {
-        navigate('/pay/failed', { state: { errorMessage: error.message } });
-      }
+      navigate('/pay/failed', { state: { errorMessage: error.message } });
     } finally {
       setDataLoading(false);
     }
