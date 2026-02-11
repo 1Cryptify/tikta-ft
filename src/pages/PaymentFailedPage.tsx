@@ -23,14 +23,16 @@ export const PaymentFailedPage: React.FC = () => {
     }
   };
 
+  // Get error message from navigation state if available
+  const errorMessage = location.state?.errorMessage;
+
   return (
     <div className="payment-failed">
       <div className="failed-container">
         <div className="failed-icon" />
         <h1 className="failed-title">Payment Failed</h1>
         <p className="failed-message">
-          Unfortunately, your payment could not be processed. Please try again or
-          use a different payment method.
+          {errorMessage || 'Unfortunately, your payment could not be processed. Please try again or use a different payment method.'}
         </p>
 
         <div className="failure-reasons">

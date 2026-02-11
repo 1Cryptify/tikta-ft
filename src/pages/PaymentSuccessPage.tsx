@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { FiCopy, FiCheck } from 'react-icons/fi';
 import {
   PDFDownloadLink,
@@ -286,12 +286,25 @@ const AllTicketsPDF: React.FC<{ paymentData: StoredPaymentData }> = ({ paymentDa
 export const PaymentSuccessPage: React.FC = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [paymentData, setPaymentData] = useState<StoredPaymentData | null>(null);
   const [loading, setLoading] = useState(true);
   const [emailSent, setEmailSent] = useState(false);
 
   useEffect(() => {
-    // Retrieve payment info from localStorage
+    // First try to get payment data from navigation state (most reliable)
+    const stateData = location.state?.paymentData;
+    
+    if (stateData) {
+      // Use data from navigation state
+      setPaymentData(stateData);
+      // Also store in localStorage as backup for page refresh
+      localStorage.setItem('pendingPayment', JSON.stringify(stateData));
+      setLoading(false);
+      return;
+    }
+    
+    // Fallback to localStorage if no state data (e.g., page refresh)
     const storedPayment = localStorage.getItem('pendingPayment');
     if (storedPayment) {
       try {
@@ -306,7 +319,7 @@ export const PaymentSuccessPage: React.FC = () => {
       }
     }
     setLoading(false);
-  }, []);
+  }, [location.state]);
 
   const formatPrice = (amount: string, currency: string): string => {
     return new Intl.NumberFormat('fr-FR', {

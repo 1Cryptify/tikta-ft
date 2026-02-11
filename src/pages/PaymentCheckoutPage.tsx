@@ -57,15 +57,20 @@ export const PaymentCheckoutPage: React.FC = () => {
   // Determine if form should be disabled
   const isFormDisabled = dataLoading || isVerifying;
 
-  // Toast helper functions
+  // Toast helper functions - limit to max 2 toasts and shorter duration
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
-    const newToast: ToastMessage = {
-      id: Date.now().toString(),
-      message,
-      type,
-      duration: 5000,
-    };
-    setToasts((prev) => [...prev, newToast]);
+    setToasts((prev) => {
+      // Remove duplicate messages of the same type
+      const filtered = prev.filter(t => !(t.type === type && t.message === message));
+      const newToast: ToastMessage = {
+        id: Date.now().toString(),
+        message,
+        type,
+        duration: 2500, // Reduced from 5000ms to 2500ms
+      };
+      // Maximum 2 toasts at a time
+      return [...filtered, newToast].slice(-2);
+    });
   };
 
   const removeToast = (id: string) => {
@@ -197,37 +202,32 @@ export const PaymentCheckoutPage: React.FC = () => {
       // Update localStorage with complete data
       localStorage.setItem('pendingPayment', JSON.stringify(successData));
 
-      // Show success message
-      addToast('Payment completed successfully!', 'success');
-
-      // Navigate to success page
+      // Navigate to success page immediately - no toast needed as the page will show success
       if (groupId) {
-        navigate(`/pay/${groupId}/success`);
+        navigate(`/pay/${groupId}/success`, { state: { paymentData: successData } });
       } else {
-        navigate('/pay/success');
+        navigate('/pay/success', { state: { paymentData: successData } });
       }
     } else if (verificationStatus === 'failed') {
-      // Payment failed
-      addToast(verificationResult.message || 'Payment failed. Please try again.', 'error');
+      // Payment failed - navigate directly, error shown on failed page
       if (groupId) {
-        navigate(`/pay/${groupId}/failed`);
+        navigate(`/pay/${groupId}/failed`, { state: { errorMessage: verificationResult.message } });
       } else {
-        navigate('/pay/failed');
+        navigate('/pay/failed', { state: { errorMessage: verificationResult.message } });
       }
     } else if (verificationStatus === 'timeout') {
-      // Payment verification timed out
-      addToast(
-        'Payment verification is taking longer than expected. Please check your payment status in your account.',
-        'info'
-      );
-      // Navigate to a pending/success page with info about checking later
+      // Payment verification timed out - still navigate to success page
+      // The success page will handle showing appropriate message
+      const storedPayment = localStorage.getItem('pendingPayment');
+      const successData: any = storedPayment ? JSON.parse(storedPayment) : {};
+      
       if (groupId) {
-        navigate(`/pay/${groupId}/success`);
+        navigate(`/pay/${groupId}/success`, { state: { paymentData: successData, timeout: true } });
       } else {
-        navigate('/pay/success');
+        navigate('/pay/success', { state: { paymentData: successData, timeout: true } });
       }
     }
-  }, [verificationStatus, verificationResult, groupId, navigate, addToast]);
+  }, [verificationStatus, verificationResult, groupId, navigate]);
 
   // Helper to map payment method types to icons
   const getIconForType = (type: string): string => {
@@ -423,20 +423,7 @@ export const PaymentCheckoutPage: React.FC = () => {
       }
 
       if (response.status === 'success') {
-        // Show success toast with message from response
-        addToast(response.message || 'Payment initiated successfully!', 'success');
-        
-        // Start the payment verification polling
-        startVerification({
-          reference: response.reference,
-          gatewayReference: response.gateway_reference,
-          paymentType: paymentType,
-          offerId,
-          productId,
-          groupId,
-        }, addToast);
-
-        // Store initial payment info in localStorage
+        // Store initial payment info in localStorage first
         const successData: any = {
           paymentInfo: {
             paymentId: response.payment_id,
@@ -448,23 +435,36 @@ export const PaymentCheckoutPage: React.FC = () => {
           }
         };
         localStorage.setItem('pendingPayment', JSON.stringify(successData));
+        
+        // Show single toast for payment initiation
+        addToast(response.message || 'Payment initiated successfully!', 'success');
+        
+        // Start the payment verification polling (without toast callback to reduce notifications)
+        startVerification({
+          reference: response.reference,
+          gatewayReference: response.gateway_reference,
+          paymentType: paymentType,
+          offerId,
+          productId,
+          groupId,
+        });
       } else {
-        // Show error toast with message from response
+        // Show error toast and navigate to failed page
         addToast(response.message || 'Payment failed. Please try again.', 'error');
         if (groupId) {
-          navigate(`/pay/${groupId}/failed`);
+          navigate(`/pay/${groupId}/failed`, { state: { errorMessage: response.message } });
         } else {
-          navigate('/pay/failed');
+          navigate('/pay/failed', { state: { errorMessage: response.message } });
         }
       }
     } catch (error: any) {
       console.error('Payment error:', error);
-      // Show error toast with error message
+      // Show error toast and navigate to failed page
       addToast(error.message || 'An error occurred during payment. Please try again.', 'error');
       if (groupId) {
-        navigate(`/pay/${groupId}/failed`);
+        navigate(`/pay/${groupId}/failed`, { state: { errorMessage: error.message } });
       } else {
-        navigate('/pay/failed');
+        navigate('/pay/failed', { state: { errorMessage: error.message } });
       }
     } finally {
       setDataLoading(false);
