@@ -122,7 +122,6 @@ export const paymentService = {
   },
 
   async verifyOfferPayment(payload: {
-    reference: string;
     gateway_reference: string;
     offer_id: string;
   }) {
@@ -131,7 +130,10 @@ export const paymentService = {
       {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          reference: payload.gateway_reference,
+          offer_id: payload.offer_id,
+        }),
       }
     );
 
@@ -140,7 +142,6 @@ export const paymentService = {
   },
 
   async verifyProductPayment(payload: {
-    reference: string;
     gateway_reference: string;
     product_id: string;
   }) {
@@ -149,7 +150,10 @@ export const paymentService = {
       {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          reference: payload.gateway_reference,
+          product_id: payload.product_id,
+        }),
       }
     );
 
@@ -186,7 +190,6 @@ export const paymentService = {
   },
 
   async verifyGroupPayment(payload: {
-    reference: string;
     gateway_reference: string;
     group_id: string;
   }) {
@@ -195,7 +198,10 @@ export const paymentService = {
       {
         method: 'POST',
         headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          reference: payload.gateway_reference,
+          group_id: payload.group_id,
+        }),
       }
     );
 

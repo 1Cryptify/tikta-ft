@@ -77,16 +77,12 @@ TICKET - ${ticket.offer_name}
 Identifiant Ticket: ${ticket.ticket_id}
 Mot de passe: ${ticket.password}
 
-Validité:
-Du: ${ticket.valid_from}
-Au: ${ticket.valid_until}
-
 Transaction: ${paymentData?.paymentInfo.reference || 'N/A'}
 Date d'achat: ${new Date().toLocaleDateString('fr-FR')}
 
 =============================
 Conservez ces informations précieusement.
-Chaque ticket ne peut être utilisé qu'une seule fois.
+
     `;
 
     const blob = new Blob([content], { type: 'text/plain' });
@@ -287,10 +283,6 @@ Chaque ticket ne peut être utilisé qu'une seule fois.
           </button>
         </div>
 
-        <p className="email-notice">
-          Une confirmation a été envoyée à votre adresse email.
-          Vérifiez votre dossier spam si vous ne la voyez pas.
-        </p>
       </div>
     </div>
   );

@@ -71,7 +71,6 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
   }, [clearAllTimers]);
 
   const verifyPayment = useCallback(async (
-    reference: string,
     gatewayReference: string,
     paymentType: 'offer' | 'product' | 'group',
     currentAttempt: number,
@@ -85,19 +84,16 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
 
       if (paymentType === 'offer') {
         response = await paymentService.verifyOfferPayment({
-          reference,
           gateway_reference: gatewayReference,
           offer_id: offerId || '',
         });
       } else if (paymentType === 'product') {
         response = await paymentService.verifyProductPayment({
-          reference,
           gateway_reference: gatewayReference,
           product_id: productId || '',
         });
       } else if (paymentType === 'group') {
         response = await paymentService.verifyGroupPayment({
-          reference,
           gateway_reference: gatewayReference,
           group_id: groupId || '',
         });
@@ -206,7 +202,6 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
       setVerificationMessage(`Waiting for payment confirmation... (Attempt ${currentAttempt}/${MAX_ATTEMPTS})`);
 
       const result = await verifyPayment(
-        reference,
         gatewayReference,
         paymentType,
         currentAttempt,
