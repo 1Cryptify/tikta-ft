@@ -53,71 +53,83 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
 
     const activeNav = getActiveSection();
 
-    const navItems = useMemo(() => [
-        {
-            id: 'overview',
-            label: 'Overview',
-            icon: <FiBarChart2 size={20} />,
-            active: activeNav === 'overview',
-            onClick: () => navigate('/dashboard/overview'),
-        },
-        {
-            id: 'business',
-            label: 'Businesses',
-            icon: <FiBriefcase size={20} />,
-            active: activeNav === 'business',
-            onClick: () => navigate('/dashboard/business'),
-        },
-        {
-            id: 'offers_produits',
-            label: 'Offers & Products',
-            icon: <FiShoppingBag size={20} />,
-            active: activeNav === 'offers_produits',
-            onClick: () => navigate('/dashboard/offers'),
-        },
-        {
-            id: 'payment_api',
-            label: 'Payment API',
-            icon: <FiCode size={20} />,
-            active: activeNav === 'payment_api',
-            onClick: () => navigate('/dashboard/payment-api'),
-        },
-        {
-            id: 'payments',
-            label: 'Payments',
-            icon: <FiCreditCard size={20} />,
-            active: activeNav === 'payments',
-            onClick: () => navigate('/dashboard/payments'),
-        },
-        {
-            id: 'payment_config',
-            label: 'Payment Config',
-            icon: <FiSliders size={20} />,
-            active: activeNav === 'payment_config',
-            onClick: () => navigate('/dashboard/payment-config'),
-        },
-        {
-            id: 'tickets',
-            label: 'Tickets',
-            icon: <FiTag size={20} />,
-            active: activeNav === 'tickets',
-            onClick: () => navigate('/dashboard/tickets'),
-        },
-        {
-            id: 'transactions',
-            label: 'Transactions',
-            icon: <FiTrendingUp size={20} />,
-            active: activeNav === 'transactions',
-            onClick: () => navigate('/dashboard/transactions'),
-        },
-        {
-            id: 'settings',
-            label: 'Settings',
-            icon: <FiSettings size={20} />,
-            active: activeNav === 'settings',
-            onClick: () => navigate('/dashboard/settings'),
-        },
-    ], [activeNav, navigate]);
+    const navItems = useMemo(() => {
+        const allItems = [
+            {
+                id: 'overview',
+                label: 'Overview',
+                icon: <FiBarChart2 size={20} />,
+                active: activeNav === 'overview',
+                onClick: () => navigate('/dashboard/overview'),
+            },
+            {
+                id: 'business',
+                label: 'Businesses',
+                icon: <FiBriefcase size={20} />,
+                active: activeNav === 'business',
+                onClick: () => navigate('/dashboard/business'),
+            },
+            {
+                id: 'offers_produits',
+                label: 'Offers & Products',
+                icon: <FiShoppingBag size={20} />,
+                active: activeNav === 'offers_produits',
+                onClick: () => navigate('/dashboard/offers'),
+            },
+            {
+                id: 'payment_api',
+                label: 'Payment API',
+                icon: <FiCode size={20} />,
+                active: activeNav === 'payment_api',
+                onClick: () => navigate('/dashboard/payment-api'),
+            },
+            {
+                id: 'payments',
+                label: 'Payments',
+                icon: <FiCreditCard size={20} />,
+                active: activeNav === 'payments',
+                onClick: () => navigate('/dashboard/payments'),
+            },
+            {
+                id: 'payment_config',
+                label: 'Payment Config',
+                icon: <FiSliders size={20} />,
+                active: activeNav === 'payment_config',
+                onClick: () => navigate('/dashboard/payment-config'),
+                restricted: true,
+                allowedRoles: [UserRole.SUPER_ADMIN, UserRole.STAFF],
+            },
+            {
+                id: 'tickets',
+                label: 'Tickets',
+                icon: <FiTag size={20} />,
+                active: activeNav === 'tickets',
+                onClick: () => navigate('/dashboard/tickets'),
+            },
+            {
+                id: 'transactions',
+                label: 'Transactions',
+                icon: <FiTrendingUp size={20} />,
+                active: activeNav === 'transactions',
+                onClick: () => navigate('/dashboard/transactions'),
+            },
+            {
+                id: 'settings',
+                label: 'Settings',
+                icon: <FiSettings size={20} />,
+                active: activeNav === 'settings',
+                onClick: () => navigate('/dashboard/settings'),
+            },
+        ];
+
+        // Filter menu items based on user role
+        return allItems.filter(item => {
+            if (item.restricted && item.allowedRoles) {
+                return item.allowedRoles.includes(userRole);
+            }
+            return true;
+        });
+    }, [activeNav, navigate, userRole]);
 
     return (
         <MainLayout
@@ -134,7 +146,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 <Route path="/offers" element={<OffersPage />} />
                 <Route path="/payment-api" element={<PaymentAPIPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
-                <Route path="/payment-config" element={<PaymentMethodsCurrencyPage />} />
+                <Route 
+                    path="/payment-config" 
+                    element={
+                        [UserRole.SUPER_ADMIN, UserRole.STAFF].includes(userRole) ? (
+                            <PaymentMethodsCurrencyPage />
+                        ) : (
+                            <Navigate to="/dashboard/overview" replace />
+                        )
+                    } 
+                />
                 <Route path="/tickets" element={<TicketsPage />} />
                 <Route path="/transactions" element={<TransactionsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />

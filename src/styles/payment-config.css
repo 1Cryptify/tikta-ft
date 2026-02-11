@@ -349,24 +349,27 @@
   display: flex;
   gap: var(--space-sm);
   align-items: center;
+  justify-content: flex-start;
 }
 
 .btn-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border: none;
-  background: transparent;
+  background-color: #f3f4f6;
   cursor: pointer;
   border-radius: var(--radius-md);
   transition: all var(--transition-fast);
-  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  padding: 0;
 }
 
 .btn-icon:hover {
-  background-color: #f3f4f6;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .btn-icon-edit {
@@ -374,7 +377,8 @@
 }
 
 .btn-icon-edit:hover {
-  background-color: rgba(30, 58, 95, 0.1);
+  background-color: rgba(30, 58, 95, 0.15);
+  color: var(--color-primary-light);
 }
 
 .btn-icon-delete {
@@ -382,12 +386,14 @@
 }
 
 .btn-icon-delete:hover {
-  background-color: rgba(220, 38, 38, 0.1);
+  background-color: rgba(220, 38, 38, 0.15);
+  color: #b91c1c;
 }
 
 .btn-icon svg {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
 }
 
 /* Loading Spinner */
