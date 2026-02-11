@@ -2,7 +2,7 @@
 
 .payment-checkout {
   min-height: 100vh;
-  background-color: #ffffff;
+  background-color: var(--color-neutral);
   padding: var(--space-2xl) var(--space-lg);
 }
 
@@ -14,17 +14,18 @@
 .checkout-header {
   margin-bottom: var(--space-2xl);
   padding-bottom: var(--space-xl);
-  border-bottom: 2px solid var(--color-light);
+  border-bottom: 2px solid var(--color-neutral);
 }
 
 .checkout-header h1 {
   font-size: 32px;
   margin-bottom: var(--space-md);
+  color: var(--color-text-primary);
 }
 
 .checkout-header .breadcrumb {
   font-size: 13px;
-  color: var(--color-secondary);
+  color: var(--color-text-secondary);
 }
 
 .checkout-wrapper {
@@ -91,8 +92,8 @@
   font-weight: 700;
   margin-bottom: var(--space-lg);
   padding-bottom: var(--space-md);
-  border-bottom: 1px solid var(--color-light);
-  color: var(--color-text);
+  border-bottom: 1px solid var(--color-neutral);
+  color: var(--color-text-primary);
 }
 
 /* Payment Method Selection */
@@ -111,17 +112,17 @@
   border-radius: var(--radius-md);
   cursor: pointer;
   transition: all var(--transition-fast);
-  background-color: #ffffff;
+  background-color: var(--color-surface);
 }
 
 .payment-method-option:hover {
-  border-color: var(--color-accent);
-  background-color: #f8f9fa;
+  border-color: var(--color-primary);
+  background-color: var(--color-neutral);
 }
 
 .payment-method-option.active {
-  border-color: var(--color-accent);
-  background-color: rgba(0, 123, 255, 0.05);
+  border-color: var(--color-primary);
+  background-color: rgba(30, 58, 95, 0.05);
 }
 
 .payment-method-radio {
@@ -138,8 +139,8 @@
 }
 
 .payment-method-option.active .payment-method-radio {
-  border-color: var(--color-accent);
-  background-color: var(--color-accent);
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
 }
 
 .payment-method-radio::after {
@@ -159,6 +160,7 @@
   font-weight: 600;
   cursor: pointer;
   flex: 1;
+  color: var(--color-text-primary);
 }
 
 /* Checkbox */
@@ -178,24 +180,24 @@
   flex-shrink: 0;
   margin-top: 2px;
   appearance: none;
-  background-color: white;
+  background-color: var(--color-surface);
   transition: all var(--transition-fast);
 }
 
 .checkbox-input:checked {
-  background-color: var(--color-accent);
-  border-color: var(--color-accent);
+  background-color: var(--color-primary);
+  border-color: var(--color-primary);
 }
 
 .checkbox-label {
   font-size: 13px;
-  color: var(--color-secondary);
+  color: var(--color-text-secondary);
   line-height: 1.5;
   cursor: pointer;
 }
 
 .checkbox-label a {
-  color: var(--color-accent);
+  color: var(--color-primary);
   text-decoration: none;
   font-weight: 600;
 }
@@ -208,7 +210,7 @@
 .checkout-submit {
   width: 100%;
   padding: var(--space-lg);
-  background-color: var(--color-accent);
+  background-color: var(--color-primary);
   color: white;
   font-weight: 700;
   font-size: 16px;
@@ -220,7 +222,7 @@
 }
 
 .checkout-submit:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: var(--color-primary-light);
   box-shadow: var(--shadow-md);
 }
 
@@ -238,7 +240,7 @@
 
 /* Order Summary Sidebar */
 .order-summary {
-  background-color: var(--color-light);
+  background-color: var(--color-neutral);
   padding: var(--space-xl);
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-border);
@@ -252,6 +254,7 @@
   margin-bottom: var(--space-lg);
   padding-bottom: var(--space-md);
   border-bottom: 1px solid var(--color-border);
+  color: var(--color-text-primary);
 }
 
 .summary-item {
@@ -271,19 +274,19 @@
 
 .summary-item-name {
   font-size: 13px;
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .summary-item-price {
   font-weight: 600;
   font-size: 14px;
-  color: var(--color-text);
+  color: var(--color-text-primary);
 }
 
 .summary-item-image {
   width: 40px;
   height: 40px;
-  background-color: white;
+  background-color: var(--color-surface);
   border-radius: var(--radius-sm);
   overflow: hidden;
   margin-right: var(--space-md);
@@ -312,22 +315,22 @@
 .total-row.final {
   font-size: 18px;
   font-weight: 700;
-  color: var(--color-accent);
+  color: var(--color-primary);
   margin-bottom: 0;
 }
 
 .total-label {
-  color: var(--color-secondary);
+  color: var(--color-text-secondary);
 }
 
 .total-value {
-  color: var(--color-text);
+  color: var(--color-text-primary);
   font-weight: 600;
 }
 
 /* Security Info */
 .security-info {
-  background-color: rgba(40, 167, 96, 0.05);
+  background-color: rgba(5, 150, 105, 0.05);
   border-left: 4px solid var(--color-success);
   padding: var(--space-lg);
   border-radius: var(--radius-sm);
@@ -336,7 +339,7 @@
 
 .security-info p {
   font-size: 12px;
-  color: var(--color-secondary);
+  color: var(--color-text-secondary);
   margin: 0;
   line-height: 1.5;
 }

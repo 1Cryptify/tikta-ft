@@ -76,13 +76,13 @@ export const PaymentFailedPage: React.FC = () => {
         </div>
 
         <div className="support-contact">
-          <div className="support-title">Need help?</div>
+          <div className="support-title">Need Help?</div>
           <p className="support-text">
             If you continue to experience issues, our support team is here to help.
-            <a href="mailto:support@example.com" className="support-link">
-              Contact Support
-            </a>
           </p>
+          <a href="mailto:support@example.com" className="support-link">
+            Contact Support
+          </a>
         </div>
       </div>
     </div>

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import LoadingSpinner from '../components/LoadingSpinner';
 import {
   getProductById,
   getOfferById,
@@ -337,13 +338,16 @@ export const PaymentCheckoutPage: React.FC = () => {
             </div>
 
             {/* Submit Button */}
-            <button
-              type="submit"
-              className="checkout-submit"
-              disabled={loading}
-            >
-              {loading ? 'Processing Payment...' : 'Complete Purchase'}
-            </button>
+            {loading && <LoadingSpinner />}
+            {!loading && (
+              <button
+                type="submit"
+                className="checkout-submit"
+                disabled={loading}
+              >
+                Complete Purchase
+              </button>
+            )}
           </form>
 
           {/* Order Summary Sidebar */}
@@ -379,7 +383,7 @@ export const PaymentCheckoutPage: React.FC = () => {
 
             <div className="security-info">
               <p>
-                <strong>🔒 Secure Payment</strong>
+                <strong>Secure Payment</strong>
                 <br />
                 Your payment information is encrypted and secure. We never
                 store your full card details.

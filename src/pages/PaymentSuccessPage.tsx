@@ -41,7 +41,7 @@ export const PaymentSuccessPage: React.FC = () => {
         </div>
 
         <div className="success-guarantee">
-          <div className="guarantee-icon">🛡️</div>
+          <div className="guarantee-icon">Shield</div>
           <p className="guarantee-text">
             <strong>30-Day Money-Back Guarantee</strong>
             <br />
@@ -65,7 +65,7 @@ export const PaymentSuccessPage: React.FC = () => {
         </div>
 
         <p className="email-notice">
-          📧 A confirmation email with your order details has been sent to your inbox.
+          A confirmation email with your order details has been sent to your inbox.
           Please check your email and spam folder if you don't see it.
         </p>
       </div>
