@@ -30,6 +30,7 @@ export interface Currency {
 export interface PaymentTransaction {
     id: string;
     payment_id: string;
+    payment_type?: 'deposit' | 'withdrawal';
     amount: number;
     currency_id?: string;
     currency?: Currency;

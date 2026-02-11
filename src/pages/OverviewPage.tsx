@@ -173,7 +173,9 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ user }) => {
   const displayTransactions = useMemo(() => {
     return transactions.slice(0, 5).map(txn => ({
       id: txn.id,
-      type: txn.payment_id ? 'Payment' : 'Transaction',
+      type: txn.payment_type ? 
+        (txn.payment_type === 'deposit' ? 'Deposit' : 'Withdrawal') : 
+        'Transaction',
       amount: `${txn.amount} ${txn.currency?.code || 'XAF'}`,
       date: txn.created_at ? new Date(txn.created_at).toLocaleDateString() : '-',
       status: txn.status,
