@@ -57,6 +57,14 @@ export interface OfferGroup {
     name: string;
     description?: string;
     offers?: Offer[];
+    // New fields for package functionality
+    image?: string; // Image URL path
+    price?: number; // Price when is_package is true
+    currency_id?: string;
+    currency?: Currency;
+    is_package: boolean; // If true, the group is a payable package; if false, just a collection of offers
+    is_active: boolean;
+    is_featured: boolean;
     created_at?: string;
     updated_at?: string;
 }
@@ -88,6 +96,7 @@ interface UseOfferReturn extends OfferState {
     updateOfferGroup: (id: string, data: Partial<OfferGroup>) => Promise<OfferGroup | null>;
     deleteOfferGroup: (id: string) => Promise<boolean>;
     getCompanyOfferGroups: (companyId: string) => Promise<OfferGroup[]>;
+    uploadOfferGroupImage: (id: string, file: File) => Promise<string | null>;
 }
 
 export const useOffer = (): UseOfferReturn => {
@@ -609,6 +618,55 @@ export const useOffer = (): UseOfferReturn => {
         return [];
     }, []);
 
+    // Upload offer group image
+    const uploadOfferGroupImage = useCallback(async (id: string, file: File): Promise<string | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+            const response = await axiosInstance.post(`/offer-groups/${id}/upload-image/`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const imageUrl = response.data.image_url;
+                // Update the offer group in state with the new image
+                setState(prev => ({
+                    ...prev,
+                    offerGroups: prev.offerGroups.map(g =>
+                        g.id === id ? { ...g, image: imageUrl } : g
+                    ),
+                    isLoading: false,
+                }));
+                return imageUrl;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to upload image',
+                }));
+            }
+        } catch (error: any) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: error.response?.data?.message || 'Failed to upload image',
+            }));
+        }
+        return null;
+    }, []);
+
     // Initialize - fetch data on mount
     useEffect(() => {
         getCurrencies();
@@ -634,5 +692,6 @@ export const useOffer = (): UseOfferReturn => {
         updateOfferGroup,
         deleteOfferGroup,
         getCompanyOfferGroups,
+        uploadOfferGroupImage,
     };
 };

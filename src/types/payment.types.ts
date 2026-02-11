@@ -1,4 +1,4 @@
-// Payment System Type Definitions
+o// Payment System Type Definitions
 
 export interface Product {
   id: string;
@@ -26,14 +26,22 @@ export interface OfferGroup {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price?: number; // Price when is_package is true
   originalPrice?: number;
-  currency: string;
+  currency?: string;
+  currency_id?: string;
   discount?: number;
   image?: string;
   coverImage?: string;
   items: (Product | Offer)[];
-  purchasable: boolean; // true = buy directly as bundle, false = choose one product
+  offers?: (Product | Offer)[];
+  is_package: boolean; // true = buy directly as package, false = just a collection of offers
+  is_active: boolean;
+  is_featured: boolean;
+  purchasable?: boolean; // legacy field, use is_package instead
+  company_id?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface PaymentMethod {

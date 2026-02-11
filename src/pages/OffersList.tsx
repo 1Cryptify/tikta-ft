@@ -788,6 +788,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
         updateOfferGroup,
         deleteOfferGroup,
         getOfferGroups,
+        uploadOfferGroupImage,
     } = useOffer();
     
     // Refs for file inputs
@@ -806,7 +807,15 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const [activeTab, setActiveTab] = useState<'offers' | 'groups'>('offers');
     const [groupModalOpen, setGroupModalOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState<OfferGroup | null>(null);
-    const [groupFormData, setGroupFormData] = useState({ name: '', description: '' });
+    const [groupFormData, setGroupFormData] = useState({
+        name: '',
+        description: '',
+        price: '',
+        currency_id: '',
+        is_package: false,
+        is_active: true,
+        is_featured: false,
+    });
     const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
     const [groupSearchTerm, setGroupSearchTerm] = useState('');
     const [copiedGroupId, setCopiedGroupId] = useState<string | null>(null);
@@ -888,11 +897,24 @@ export const OffersList: React.FC<OffersListProps> = () => {
             setGroupFormData({
                 name: group.name,
                 description: group.description || '',
+                price: group.price ? String(group.price) : '',
+                currency_id: group.currency_id || '',
+                is_package: group.is_package || false,
+                is_active: group.is_active ?? true,
+                is_featured: group.is_featured ?? false,
             });
             setSelectedOfferIds(group.offers?.map(o => o.id) || []);
         } else {
             setEditingGroup(null);
-            setGroupFormData({ name: '', description: '' });
+            setGroupFormData({
+                name: '',
+                description: '',
+                price: '',
+                currency_id: '',
+                is_package: false,
+                is_active: true,
+                is_featured: false,
+            });
             setSelectedOfferIds([]);
         }
         setGroupModalOpen(true);
@@ -901,7 +923,15 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const handleCloseGroupModal = () => {
         setGroupModalOpen(false);
         setEditingGroup(null);
-        setGroupFormData({ name: '', description: '' });
+        setGroupFormData({
+            name: '',
+            description: '',
+            price: '',
+            currency_id: '',
+            is_package: false,
+            is_active: true,
+            is_featured: false,
+        });
         setSelectedOfferIds([]);
     };
 
@@ -911,13 +941,34 @@ export const OffersList: React.FC<OffersListProps> = () => {
             return;
         }
 
+        // Validation: if is_package is true, price and currency are required
+        if (groupFormData.is_package) {
+            if (!groupFormData.price || parseFloat(groupFormData.price) <= 0) {
+                alert('Price is required and must be greater than 0 when the group is a package');
+                return;
+            }
+            if (!groupFormData.currency_id) {
+                alert('Currency is required when the group is a package');
+                return;
+            }
+        }
+
         setIsSaving(true);
         try {
-            const data = {
+            const data: Record<string, unknown> = {
                 name: groupFormData.name,
                 description: groupFormData.description,
                 offer_ids: selectedOfferIds,
+                is_package: groupFormData.is_package,
+                is_active: groupFormData.is_active,
+                is_featured: groupFormData.is_featured,
             };
+
+            // Only include price and currency if it's a package
+            if (groupFormData.is_package) {
+                data.price = parseFloat(groupFormData.price);
+                data.currency_id = groupFormData.currency_id;
+            }
 
             if (editingGroup) {
                 await updateOfferGroup(editingGroup.id, data);
@@ -1229,14 +1280,95 @@ export const OffersList: React.FC<OffersListProps> = () => {
                         <div>
                             {filteredGroups.map((group) => (
                                 <GroupCard key={group.id}>
+                                    {/* Group Image */}
+                                    <OfferImageContainer style={{ marginBottom: spacing.lg }}>
+                                        {group.image ? (
+                                            <OfferImage
+                                                src={getMediaUrl(group.image)}
+                                                alt={group.name}
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).style.display = 'none';
+                                                }}
+                                            />
+                                        ) : (
+                                            <OfferImagePlaceholder>
+                                                <FiFolder size={32} />
+                                                <span>No image</span>
+                                            </OfferImagePlaceholder>
+                                        )}
+                                    </OfferImageContainer>
+
                                     <GroupHeader>
                                         <GroupInfo>
                                             <h3>
                                                 <FiFolder size={20} />
                                                 {group.name}
+                                                {group.is_package && (
+                                                    <span
+                                                        style={{
+                                                            backgroundColor: '#dbeafe',
+                                                            color: '#1e40af',
+                                                            padding: `${spacing.xs} ${spacing.sm}`,
+                                                            borderRadius: borderRadius.full,
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: 600,
+                                                            marginLeft: spacing.sm,
+                                                        }}
+                                                    >
+                                                        PACKAGE
+                                                    </span>
+                                                )}
+                                                {!group.is_active && (
+                                                    <span
+                                                        style={{
+                                                            backgroundColor: '#fee2e2',
+                                                            color: '#991b1b',
+                                                            padding: `${spacing.xs} ${spacing.sm}`,
+                                                            borderRadius: borderRadius.full,
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: 600,
+                                                            marginLeft: spacing.sm,
+                                                        }}
+                                                    >
+                                                        INACTIVE
+                                                    </span>
+                                                )}
+                                                {group.is_featured && (
+                                                    <span
+                                                        style={{
+                                                            backgroundColor: '#fef3c7',
+                                                            color: '#b45309',
+                                                            padding: `${spacing.xs} ${spacing.sm}`,
+                                                            borderRadius: borderRadius.full,
+                                                            fontSize: '0.7rem',
+                                                            fontWeight: 600,
+                                                            marginLeft: spacing.sm,
+                                                        }}
+                                                    >
+                                                        FEATURED
+                                                    </span>
+                                                )}
                                             </h3>
                                             {group.description && <p>{group.description}</p>}
-                                            <OfferCount>{group.offers?.length || 0} Offers</OfferCount>
+                                            <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap', marginTop: spacing.xs }}>
+                                                <OfferCount>{group.offers?.length || 0} Offers</OfferCount>
+                                                {group.is_package && group.price && group.currency && (
+                                                    <span
+                                                        style={{
+                                                            display: 'inline-block',
+                                                            backgroundColor: 'rgba(30, 58, 95, 0.1)',
+                                                            color: colors.primary,
+                                                            padding: `${spacing.xs} ${spacing.sm}`,
+                                                            borderRadius: borderRadius.full,
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 600,
+                                                        }}
+                                                    >
+                                                        {group.currency.symbol}
+                                                        {parseFloat(String(group.price)).toFixed(group.currency.decimal_places || 2)}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </GroupInfo>
                                         <GroupActions>
                                             <ActionButton
@@ -1553,6 +1685,98 @@ export const OffersList: React.FC<OffersListProps> = () => {
                             placeholder="Enter a description for this group..."
                             disabled={isSaving}
                         />
+                    </FormGroup>
+
+                    {/* Package Toggle */}
+                    <FormGroup>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
+                            <input
+                                type="checkbox"
+                                checked={groupFormData.is_package}
+                                onChange={(e) =>
+                                    setGroupFormData({ ...groupFormData, is_package: e.target.checked })
+                                }
+                                disabled={isSaving}
+                            />
+                            <span>This group is a payable package</span>
+                        </label>
+                        <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: `${spacing.xs} 0 0 0` }}>
+                            If checked, customers can pay for the entire package. If unchecked, customers will only see the individual offers.
+                        </p>
+                    </FormGroup>
+
+                    {/* Price and Currency - Only shown when is_package is true */}
+                    {groupFormData.is_package && (
+                        <>
+                            <FormGroup>
+                                <label>Price *</label>
+                                <input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    value={groupFormData.price}
+                                    onChange={(e) =>
+                                        setGroupFormData({ ...groupFormData, price: e.target.value })
+                                    }
+                                    placeholder="Enter package price"
+                                    disabled={isSaving}
+                                />
+                            </FormGroup>
+
+                            <FormGroup>
+                                <label>Currency *</label>
+                                <select
+                                    value={groupFormData.currency_id}
+                                    onChange={(e) =>
+                                        setGroupFormData({ ...groupFormData, currency_id: e.target.value })
+                                    }
+                                    disabled={isSaving}
+                                    style={{
+                                        width: '100%',
+                                        padding: spacing.md,
+                                        border: `1px solid ${colors.border}`,
+                                        borderRadius: borderRadius.md,
+                                        fontSize: '0.875rem',
+                                    }}
+                                >
+                                    <option value="">Select a currency</option>
+                                    {currencies.map((currency) => (
+                                        <option key={currency.id} value={currency.id}>
+                                            {currency.name} ({currency.code} - {currency.symbol})
+                                        </option>
+                                    ))}
+                                </select>
+                            </FormGroup>
+                        </>
+                    )}
+
+                    {/* Status Toggles */}
+                    <FormGroup>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
+                            <input
+                                type="checkbox"
+                                checked={groupFormData.is_active}
+                                onChange={(e) =>
+                                    setGroupFormData({ ...groupFormData, is_active: e.target.checked })
+                                }
+                                disabled={isSaving}
+                            />
+                            <span>Active</span>
+                        </label>
+                    </FormGroup>
+
+                    <FormGroup>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
+                            <input
+                                type="checkbox"
+                                checked={groupFormData.is_featured}
+                                onChange={(e) =>
+                                    setGroupFormData({ ...groupFormData, is_featured: e.target.checked })
+                                }
+                                disabled={isSaving}
+                            />
+                            <span>Featured</span>
+                        </label>
                     </FormGroup>
 
                     <OffersSelector>
