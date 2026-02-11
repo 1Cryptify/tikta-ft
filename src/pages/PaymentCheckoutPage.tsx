@@ -321,15 +321,56 @@ export const PaymentCheckoutPage: React.FC = () => {
       }
 
       if (response.status === 'success') {
+        // Wait a moment for payment to be processed
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Verify the payment to get ticket data
+        let verifyResponse;
+        try {
+          if (offerId) {
+            verifyResponse = await paymentService.verifyOfferPayment({
+              reference: response.reference,
+              gateway_reference: response.gateway_reference,
+            });
+          } else if (isBuyingGroup && groupId) {
+            verifyResponse = await paymentService.verifyGroupPayment({
+              reference: response.reference,
+              gateway_reference: response.gateway_reference,
+            });
+          }
+        } catch (verifyError) {
+          console.log('Verification pending, continuing without ticket data');
+        }
+        
+        // Prepare data for success page
+        const successData: any = {
+          paymentInfo: {
+            paymentId: response.payment_id,
+            transactionId: response.transaction_id,
+            reference: response.reference,
+            gatewayReference: response.gateway_reference,
+            amount: response.amount,
+            currency: response.currency,
+          }
+        };
+        
+        // Add ticket data if available
+        if (verifyResponse?.status === 'success') {
+          if (verifyResponse.ticket) {
+            // Single ticket
+            successData.tickets = [verifyResponse.ticket];
+            successData.offerName = verifyResponse.ticket.offer_name;
+            successData.offerType = verifyResponse.offer_type;
+          } else if (verifyResponse.tickets) {
+            // Multiple tickets (package)
+            successData.tickets = verifyResponse.tickets.filter((t: any) => t.ticket_id);
+            successData.offerName = verifyResponse.group_name;
+            successData.offerType = 'package';
+          }
+        }
+        
         // Store payment info in localStorage for success page
-        localStorage.setItem('pendingPayment', JSON.stringify({
-          paymentId: response.payment_id,
-          transactionId: response.transaction_id,
-          reference: response.reference,
-          gatewayReference: response.gateway_reference,
-          amount: response.amount,
-          currency: response.currency,
-        }));
+        localStorage.setItem('pendingPayment', JSON.stringify(successData));
 
         // Navigate to success page
         if (groupId) {
