@@ -11,7 +11,8 @@ import { PaymentsPage } from './PaymentsPage';
 import { TicketsPage } from './TicketsPage';
 import { TransactionsPage } from './TransactionsPage';
 import { SettingsPage } from './SettingsPage';
-import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiCode, FiTag } from 'react-icons/fi';
+import { PaymentMethodsCurrencyPage } from './PaymentMethodsCurrencyPage';
+import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiCode, FiTag, FiSliders } from 'react-icons/fi';
 
 interface DashboardProps {
     user: User;
@@ -43,6 +44,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
         if (path.includes('offers')) return 'offers_produits';
         if (path.includes('payment-api')) return 'payment_api';
         if (path.includes('payments')) return 'payments';
+        if (path.includes('payment-config')) return 'payment_config';
         if (path.includes('tickets')) return 'tickets';
         if (path.includes('transactions')) return 'transactions';
         if (path.includes('settings')) return 'settings';
@@ -88,6 +90,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
             onClick: () => navigate('/dashboard/payments'),
         },
         {
+            id: 'payment_config',
+            label: 'Payment Config',
+            icon: <FiSliders size={20} />,
+            active: activeNav === 'payment_config',
+            onClick: () => navigate('/dashboard/payment-config'),
+        },
+        {
             id: 'tickets',
             label: 'Tickets',
             icon: <FiTag size={20} />,
@@ -125,6 +134,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 <Route path="/offers" element={<OffersPage />} />
                 <Route path="/payment-api" element={<PaymentAPIPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
+                <Route path="/payment-config" element={<PaymentMethodsCurrencyPage />} />
                 <Route path="/tickets" element={<TicketsPage />} />
                 <Route path="/transactions" element={<TransactionsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
