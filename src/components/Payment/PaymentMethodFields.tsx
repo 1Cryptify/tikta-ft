@@ -21,29 +21,6 @@ export const PaymentMethodFields: React.FC<PaymentMethodFieldsProps> = ({
     return (
       <div className="payment-method-fields">
         <h4 className="field-section-title">Mobile Money Details</h4>
-
-        <div className={`form-group ${errors.mobileMoneyOperator ? 'error' : ''}`}>
-          <label htmlFor="mobileMoneyOperator">Mobile Money Operator</label>
-          <select
-            id="mobileMoneyOperator"
-            name="mobileMoneyOperator"
-            value={formData.mobileMoneyOperator || ''}
-            onChange={onChange}
-            disabled={disabled}
-            required
-          >
-            <option value="">Select operator...</option>
-            <option value="orange_money">Orange Money</option>
-            <option value="mtn_money">MTN Money</option>
-            <option value="moov_money">Moov Money</option>
-            <option value="wave">Wave</option>
-            <option value="airtel_money">Airtel Money</option>
-          </select>
-          {errors.mobileMoneyOperator && (
-            <span className="form-error">{errors.mobileMoneyOperator}</span>
-          )}
-        </div>
-
         <div className={`form-group ${errors.mobileMoneyNumber ? 'error' : ''}`}>
           <label htmlFor="mobileMoneyNumber">Mobile Money Number</label>
           <input

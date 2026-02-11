@@ -90,9 +90,7 @@ export const PaymentCheckoutPage: React.FC = () => {
 
     // Validate payment method specific fields
     if (formData.paymentMethod === 'MOBILE_MONEY') {
-      if (!formData.mobileMoneyOperator) {
-        newErrors.mobileMoneyOperator = 'Mobile money operator is required';
-      }
+
       if (!formData.mobileMoneyNumber || !/^[\d\+\-\(\)]+$/.test(formData.mobileMoneyNumber)) {
         newErrors.mobileMoneyNumber = 'Valid mobile money number is required';
       }
