@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PaymentMethodSelector from '../components/Payment/PaymentMethodSelector';
 import PaymentMethodFields from '../components/Payment/PaymentMethodFields';
@@ -11,6 +11,10 @@ import '../styles/payment-checkout.css';
 export const PaymentCheckoutPage: React.FC = () => {
   const { groupId, productId, offerId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Detect if we're buying the group itself (package)
+  const isBuyingGroup = location.pathname.endsWith('/buy') && groupId;
 
   // State for data loading
   const [item, setItem] = useState<any>(null);
@@ -63,7 +67,30 @@ export const PaymentCheckoutPage: React.FC = () => {
         }
 
         // Fetch the specific item being purchased
-        if (offerId) {
+        if (isBuyingGroup && groupId) {
+          // Buying the group as a package
+          const groupData = await paymentService.getOfferGroup(groupId);
+          if (groupData.status === 'success' && groupData) {
+            // Check if group is a payable package
+            if (!groupData.is_package) {
+              setErrorMessage('This group is not available for purchase as a package');
+            } else {
+              // Map group data to item format
+              setItem({
+                id: groupData.id,
+                name: groupData.name,
+                description: groupData.description,
+                price: parseFloat(groupData.price) || 0,
+                currency: groupData.currency?.code || groupData.currency || 'XAF',
+                image: groupData.image,
+                type: 'group_package',
+              });
+              setGroupContext(groupData);
+            }
+          } else {
+            setErrorMessage('Group not found or unavailable');
+          }
+        } else if (offerId) {
           const offerData = await paymentService.getOffer(offerId);
           if (offerData.status === 'success' && offerData.offer) {
             setItem(offerData.offer);
@@ -79,8 +106,8 @@ export const PaymentCheckoutPage: React.FC = () => {
           }
         }
 
-        // Fetch group context if groupId is provided
-        if (groupId) {
+        // Fetch group context if groupId is provided and not already fetched
+        if (groupId && !isBuyingGroup) {
           try {
             const groupData = await paymentService.getOfferGroup(groupId);
             if (groupData.status === 'success' && groupData) {
@@ -99,7 +126,7 @@ export const PaymentCheckoutPage: React.FC = () => {
     };
 
     fetchData();
-  }, [offerId, productId, groupId]);
+  }, [offerId, productId, groupId, isBuyingGroup]);
 
   // Helper to map payment method types to icons
   const getIconForType = (type: string): string => {
@@ -279,7 +306,11 @@ export const PaymentCheckoutPage: React.FC = () => {
 
       let response;
 
-      if (offerId) {
+      if (isBuyingGroup && groupId) {
+        // Paying for a group package
+        payload.group_id = groupId;
+        response = await paymentService.initiateGroupPayment(payload);
+      } else if (offerId) {
         payload.offer_id = offerId;
         response = await paymentService.initiateOfferPayment(payload);
       } else if (productId) {
@@ -326,6 +357,7 @@ export const PaymentCheckoutPage: React.FC = () => {
   };
 
   const getItemType = (): string => {
+    if (isBuyingGroup) return 'Bundle Package';
     if (productId) return 'Product';
     if (offerId) return 'Offer';
     return 'Item';

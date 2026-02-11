@@ -1,11 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import {
-  getOfferGroupById,
-  getAllProducts,
-  getAllOffers,
-  formatPrice,
-} from '../mocks/paymentData';
+import LoadingSpinner from '../components/LoadingSpinner';
+import { paymentService } from '../services/paymentService';
 import { OfferGroup, Product, Offer } from '../types/payment.types';
 import '../styles/payment.css';
 import '../styles/pay-page.css';
@@ -13,24 +9,65 @@ import '../styles/pay-page.css';
 export const PayPage: React.FC = () => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
-  
-  // Get the specific group
-  const group = groupId ? getOfferGroupById(groupId) : null;
-  
-  if (!group) {
-    return (
-      <div className="pay-page">
-        <div className="container">
-          <div className="pay-header">
-            <h1>Group not found</h1>
-            <button className="btn-secondary" onClick={() => navigate('/')}>
-              Back
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+
+  const [group, setGroup] = useState<OfferGroup | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch group data from API
+  useEffect(() => {
+    const fetchGroup = async () => {
+      if (!groupId) return;
+
+      try {
+        setLoading(true);
+        const response = await paymentService.getOfferGroup(groupId);
+
+        if (response.status === 'success' && response) {
+          // Map the API response to OfferGroup format
+          const groupData: OfferGroup = {
+            id: response.id || groupId,
+            name: response.name || 'Unnamed Group',
+            description: response.description || '',
+            price: response.price ? parseFloat(response.price) : undefined,
+            originalPrice: response.originalPrice ? parseFloat(response.originalPrice) : undefined,
+            currency: response.currency?.code || response.currency || 'XAF',
+            discount: response.discount,
+            image: response.image,
+            coverImage: response.coverImage || response.image,
+            // Map offers to items
+            items: response.offers?.map((offer: any) => ({
+              id: offer.id,
+              name: offer.name,
+              description: offer.description,
+              price: parseFloat(offer.price) || 0,
+              originalPrice: offer.originalPrice ? parseFloat(offer.originalPrice) : undefined,
+              currency: offer.currency?.code || offer.currency || 'XAF',
+              discount: offer.discount,
+              validUntil: offer.validUntil ? new Date(offer.validUntil) : undefined,
+              image: offer.image,
+            })) || [],
+            // is_package from backend indicates if group is payable as package
+            is_package: response.is_package || false,
+            is_active: response.is_active ?? true,
+            is_featured: response.is_featured || false,
+            // Legacy field for backward compatibility
+            purchasable: response.is_package || false,
+          };
+          setGroup(groupData);
+        } else {
+          setError('Group not found or unavailable');
+        }
+      } catch (err) {
+        console.error('Error fetching group:', err);
+        setError('Failed to load group data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroup();
+  }, [groupId]);
 
   const handleProductClick = (productId: string) => {
     navigate(`/pay/${groupId}/product/${productId}`);
@@ -41,12 +78,23 @@ export const PayPage: React.FC = () => {
   };
 
   const handleBuyGroup = () => {
-    navigate(`/pay/${groupId}/buy`);
+    if (group?.is_package) {
+      navigate(`/pay/${groupId}/buy`);
+    }
+  };
+
+  const formatPrice = (amount?: number, currency: string = 'XAF'): string => {
+    if (amount === undefined || amount === null) return '';
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: currency,
+    }).format(amount);
   };
 
   const renderGroupBuyCard = (group: OfferGroup) => {
-    if (!group.purchasable) return null;
-    
+    // Only show if group is a payable package
+    if (!group.is_package) return null;
+
     return (
       <div className="group-card">
         <div className="group-cover">
@@ -58,7 +106,7 @@ export const PayPage: React.FC = () => {
 
           <div className="group-price-section">
             <div className="group-price">
-              {formatPrice(group.price)}
+              {formatPrice(group.price, group.currency)}
               {group.discount && (
                 <span className="group-discount-badge">
                   {group.discount}% OFF
@@ -67,7 +115,7 @@ export const PayPage: React.FC = () => {
             </div>
             {group.originalPrice && (
               <div className="group-original-price">
-                {formatPrice(group.originalPrice)}
+                {formatPrice(group.originalPrice, group.currency)}
               </div>
             )}
           </div>
@@ -98,7 +146,7 @@ export const PayPage: React.FC = () => {
         <div className="product-content">
           <h4 className="product-name">{product.name}</h4>
           <p className="product-desc">{product.description}</p>
-          <div className="product-price">{formatPrice(product.price)}</div>
+          <div className="product-price">{formatPrice(product.price, product.currency)}</div>
           <button
             className="btn-primary"
             onClick={() => handleProductClick(product.id)}
@@ -126,10 +174,10 @@ export const PayPage: React.FC = () => {
           <h4 className="offer-name">{offer.name}</h4>
           <p className="offer-desc">{offer.description}</p>
           <div className="offer-price-group">
-            <div className="offer-price">{formatPrice(offer.price)}</div>
+            <div className="offer-price">{formatPrice(offer.price, offer.currency)}</div>
             {offer.originalPrice && (
               <div className="offer-original-price">
-                {formatPrice(offer.originalPrice)}
+                {formatPrice(offer.originalPrice, offer.currency)}
               </div>
             )}
           </div>
@@ -149,6 +197,29 @@ export const PayPage: React.FC = () => {
     );
   };
 
+  if (loading) {
+    return (
+      <div className="pay-page">
+        <div className="container">
+          <LoadingSpinner />
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !group) {
+    return (
+      <div className="pay-page">
+        <div className="container">
+          <div className="pay-header">
+            <h1>{error || 'Group not found'}</h1>
+            <button className="btn-secondary" onClick={() => navigate('/')}>Back</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="pay-page">
       <div className="container">
@@ -157,8 +228,8 @@ export const PayPage: React.FC = () => {
           <p>{group.description}</p>
         </div>
 
-        {/* Buy Group Bundle Section - Only if purchasable */}
-        {group.purchasable && (
+        {/* Buy Group Bundle Section - Only if is_package is true */}
+        {group.is_package && (
           <div className="pay-section">
             <h2 className="pay-section-title">Complete Bundle</h2>
             <div className="pay-groups-grid">
@@ -167,10 +238,10 @@ export const PayPage: React.FC = () => {
           </div>
         )}
 
-        {/* Group Products Section */}
+        {/* Group Products/Offers Section */}
         <div className="pay-section">
           <h2 className="pay-section-title">
-            {group.purchasable ? 'Or Choose Individual Products' : 'Available Products'}
+            {group.is_package ? 'Or Choose Individual Products' : 'Available Products'}
           </h2>
           <div className="pay-products-grid">
             {group.items.map((item) => {

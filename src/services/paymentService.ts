@@ -160,6 +160,54 @@ export const paymentService = {
     return response.json();
   },
 
+  async initiateGroupPayment(payload: {
+    group_id: string;
+    email: string;
+    phone: string;
+    payment_method_id: string;
+    channel?: string;
+    amount?: number;
+    currency?: string;
+    client_ip?: string;
+  }) {
+    const response = await fetch(
+      `${API_BASE}/payments/offer-groups-payment/initiate/`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to initiate group payment');
+    }
+
+    return response.json();
+  },
+
+  async verifyGroupPayment(payload: {
+    reference: string;
+    gateway_reference: string;
+  }) {
+    const response = await fetch(
+      `${API_BASE}/payments/offer-groups-payment/verify/`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to verify group payment');
+    }
+
+    return response.json();
+  },
+
   // ============ Payment List Operations ============
 
   async listPayments() {
