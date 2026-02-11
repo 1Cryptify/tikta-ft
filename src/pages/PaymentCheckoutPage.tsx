@@ -6,6 +6,7 @@ import PaymentMethodFields from '../components/Payment/PaymentMethodFields';
 import { ToastContainer, ToastMessage } from '../components/Toast';
 import { paymentService } from '../services/paymentService';
 import { PaymentMethod, PaymentFormData } from '../types/payment.types';
+import { usePaymentVerification } from '../hooks/usePaymentVerification';
 import '../styles/payment.css';
 import '../styles/payment-checkout.css';
 
@@ -26,6 +27,19 @@ export const PaymentCheckoutPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  // Payment verification hook
+  const {
+    status: verificationStatus,
+    isVerifying,
+    verificationMessage,
+    verificationResult,
+    startVerification,
+    stopVerification,
+  } = usePaymentVerification();
+
+  // Determine if form should be disabled
+  const isFormDisabled = dataLoading || isVerifying;
 
   // Toast helper functions
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
@@ -325,17 +339,21 @@ export const PaymentCheckoutPage: React.FC = () => {
       };
 
       let response;
+      let paymentType: 'offer' | 'product' | 'group';
 
       if (isBuyingGroup && groupId) {
         // Paying for a group package
         payload.group_id = groupId;
         response = await paymentService.initiateGroupPayment(payload);
+        paymentType = 'group';
       } else if (offerId) {
         payload.offer_id = offerId;
         response = await paymentService.initiateOfferPayment(payload);
+        paymentType = 'offer';
       } else if (productId) {
         payload.product_id = productId;
         response = await paymentService.initiateProductPayment(payload);
+        paymentType = 'product';
       } else {
         throw new Error('No item specified for purchase');
       }
@@ -344,28 +362,17 @@ export const PaymentCheckoutPage: React.FC = () => {
         // Show success toast with message from response
         addToast(response.message || 'Payment initiated successfully!', 'success');
         
-        // Wait a moment for payment to be processed
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        
-        // Verify the payment to get ticket data
-        let verifyResponse;
-        try {
-          if (offerId) {
-            verifyResponse = await paymentService.verifyOfferPayment({
-              reference: response.reference,
-              gateway_reference: response.gateway_reference,
-            });
-          } else if (isBuyingGroup && groupId) {
-            verifyResponse = await paymentService.verifyGroupPayment({
-              reference: response.reference,
-              gateway_reference: response.gateway_reference,
-            });
-          }
-        } catch (verifyError) {
-          console.log('Verification pending, continuing without ticket data');
-        }
-        
-        // Prepare data for success page
+        // Start the payment verification polling
+        startVerification({
+          reference: response.reference,
+          gatewayReference: response.gateway_reference,
+          paymentType: paymentType,
+          offerId,
+          productId,
+          groupId,
+        });
+
+        // Store initial payment info in localStorage
         const successData: any = {
           paymentInfo: {
             paymentId: response.payment_id,
@@ -376,31 +383,7 @@ export const PaymentCheckoutPage: React.FC = () => {
             currency: response.currency,
           }
         };
-        
-        // Add ticket data if available
-        if (verifyResponse?.status === 'success') {
-          if (verifyResponse.ticket) {
-            // Single ticket
-            successData.tickets = [verifyResponse.ticket];
-            successData.offerName = verifyResponse.ticket.offer_name;
-            successData.offerType = verifyResponse.offer_type;
-          } else if (verifyResponse.tickets) {
-            // Multiple tickets (package)
-            successData.tickets = verifyResponse.tickets.filter((t: any) => t.ticket_id);
-            successData.offerName = verifyResponse.group_name;
-            successData.offerType = 'package';
-          }
-        }
-        
-        // Store payment info in localStorage for success page
         localStorage.setItem('pendingPayment', JSON.stringify(successData));
-
-        // Navigate to success page
-        if (groupId) {
-          navigate(`/pay/${groupId}/success`);
-        } else {
-          navigate('/pay/success');
-        }
       } else {
         // Show error toast with message from response
         addToast(response.message || 'Payment failed. Please try again.', 'error');
@@ -423,6 +406,63 @@ export const PaymentCheckoutPage: React.FC = () => {
       setDataLoading(false);
     }
   };
+
+  // Handle verification status changes
+  useEffect(() => {
+    if (!verificationResult) return;
+
+    if (verificationStatus === 'completed') {
+      // Payment completed successfully
+      const storedPayment = localStorage.getItem('pendingPayment');
+      const successData: any = storedPayment ? JSON.parse(storedPayment) : {};
+      
+      // Add ticket data from verification result
+      if (verificationResult.ticket) {
+        // Single ticket
+        successData.tickets = [verificationResult.ticket];
+        successData.offerName = verificationResult.offerName;
+        successData.offerType = verificationResult.offerType;
+      } else if (verificationResult.tickets) {
+        // Multiple tickets (package)
+        successData.tickets = verificationResult.tickets;
+        successData.offerName = verificationResult.groupName;
+        successData.offerType = 'package';
+      }
+      
+      // Update localStorage with complete data
+      localStorage.setItem('pendingPayment', JSON.stringify(successData));
+
+      // Show success message
+      addToast('Payment completed successfully!', 'success');
+
+      // Navigate to success page
+      if (groupId) {
+        navigate(`/pay/${groupId}/success`);
+      } else {
+        navigate('/pay/success');
+      }
+    } else if (verificationStatus === 'failed') {
+      // Payment failed
+      addToast(verificationResult.message || 'Payment failed. Please try again.', 'error');
+      if (groupId) {
+        navigate(`/pay/${groupId}/failed`);
+      } else {
+        navigate('/pay/failed');
+      }
+    } else if (verificationStatus === 'timeout') {
+      // Payment verification timed out
+      addToast(
+        'Payment verification is taking longer than expected. Please check your payment status in your account.',
+        'info'
+      );
+      // Navigate to a pending/success page with info about checking later
+      if (groupId) {
+        navigate(`/pay/${groupId}/success`);
+      } else {
+        navigate('/pay/success');
+      }
+    }
+  }, [verificationStatus, verificationResult, groupId, navigate]);
 
   const getItemType = (): string => {
     if (isBuyingGroup) return 'Bundle Package';
@@ -462,7 +502,7 @@ export const PaymentCheckoutPage: React.FC = () => {
                 value={contactEmail}
                 onChange={handleChange}
                 placeholder="john@example.com"
-                disabled={dataLoading}
+                disabled={isFormDisabled}
               />
               {errors.email && (
                 <span className="form-error">{errors.email}</span>
@@ -477,7 +517,7 @@ export const PaymentCheckoutPage: React.FC = () => {
                 value={contactPhone}
                 onChange={handleChange}
                 placeholder="+237 6XX XXX XXX"
-                disabled={dataLoading}
+                disabled={isFormDisabled}
               />
               {errors.phone && (
                 <span className="form-error">{errors.phone}</span>
@@ -507,7 +547,7 @@ export const PaymentCheckoutPage: React.FC = () => {
                     });
                   }
                 }}
-                disabled={dataLoading}
+                disabled={isFormDisabled}
                 error={!!errors.paymentMethod}
               />
               {errors.paymentMethod && (
@@ -524,20 +564,59 @@ export const PaymentCheckoutPage: React.FC = () => {
                 formData={formData}
                 onChange={handleChange}
                 errors={errors}
-                disabled={dataLoading}
+                disabled={isFormDisabled}
               />
             )}
 
             {/* Submit Button */}
             {dataLoading && <LoadingSpinner />}
-            {!dataLoading && (
+            {!dataLoading && !isVerifying && (
               <button
                 type="submit"
                 className="checkout-submit"
-                disabled={dataLoading}
+                disabled={isFormDisabled}
               >
                 Complete Purchase
               </button>
+            )}
+
+            {/* Verification Status */}
+            {isVerifying && (
+              <div className="verification-status" style={{
+                marginTop: 'var(--space-lg)',
+                padding: 'var(--space-lg)',
+                backgroundColor: 'var(--color-bg-secondary)',
+                borderRadius: 'var(--radius-md)',
+                textAlign: 'center',
+              }}>
+                <LoadingSpinner />
+                <p style={{
+                  marginTop: 'var(--space-md)',
+                  fontWeight: 500,
+                  color: 'var(--color-text-primary)',
+                }}>
+                  {verificationMessage}
+                </p>
+                <p style={{
+                  marginTop: 'var(--space-sm)',
+                  fontSize: '14px',
+                  color: 'var(--color-text-secondary)',
+                }}>
+                  Please complete the payment on your mobile device if prompted.
+                </p>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={stopVerification}
+                  style={{
+                    marginTop: 'var(--space-md)',
+                    padding: 'var(--space-sm) var(--space-md)',
+                    fontSize: '14px',
+                  }}
+                >
+                  Cancel Verification
+                </button>
+              </div>
             )}
           </form>
 
