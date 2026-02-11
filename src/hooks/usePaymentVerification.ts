@@ -26,7 +26,7 @@ interface UsePaymentVerificationReturn {
     offerId?: string;
     productId?: string;
     groupId?: string;
-  }) => void;
+  }, onToastMessage?: (message: string, type: 'success' | 'error' | 'info') => void) => void;
   stopVerification: () => void;
   resetVerification: () => void;
 }
@@ -74,7 +74,8 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
     reference: string,
     gatewayReference: string,
     paymentType: 'offer' | 'product' | 'group',
-    currentAttempt: number
+    currentAttempt: number,
+    onToastMessage?: (message: string, type: 'success' | 'error' | 'info') => void
   ): Promise<VerificationResult | null> => {
     try {
       let response;
@@ -115,15 +116,28 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
           result.offerType = 'package';
         }
 
+        // Show success toast with backend message
+        if (onToastMessage && response.message) {
+          onToastMessage(response.message, 'success');
+        }
+
         return result;
       } else if (response?.status === 'pending') {
         // Payment still pending
+        // Show pending toast with backend message if available
+        if (onToastMessage && response.message) {
+          onToastMessage(response.message, 'info');
+        }
         return {
           status: 'pending',
           message: response.message || `Waiting for payment confirmation... (Attempt ${currentAttempt}/${MAX_ATTEMPTS})`,
         };
       } else if (response?.status === 'error') {
         // Payment failed
+        // Show error toast with backend message
+        if (onToastMessage && response.message) {
+          onToastMessage(response.message, 'error');
+        }
         return {
           status: 'failed',
           message: response.message || 'Payment verification failed',
@@ -138,6 +152,10 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
       }
 
       console.log('Verification error:', error);
+      // Show error toast
+      if (onToastMessage) {
+        onToastMessage(error.message || 'Verification error occurred', 'error');
+      }
       // Return pending to retry
       return {
         status: 'pending',
@@ -157,7 +175,7 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
     offerId?: string;
     productId?: string;
     groupId?: string;
-  }) => {
+  }, onToastMessage?: (message: string, type: 'success' | 'error' | 'info') => void) => {
     // Reset state
     clearAllTimers();
     setStatus('processing');
@@ -182,7 +200,8 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
         reference,
         gatewayReference,
         paymentType,
-        currentAttempt
+        currentAttempt,
+        onToastMessage
       );
 
       if (!result) {
@@ -195,7 +214,7 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
         clearAllTimers();
         setStatus('completed');
         setIsVerifying(false);
-        setVerificationMessage('Payment completed successfully!');
+        setVerificationMessage(result.message || 'Payment completed successfully!');
         setVerificationResult(result);
       } else if (result.status === 'failed') {
         // Payment failed - stop polling

@@ -135,11 +135,6 @@ export const paymentService = {
     );
 
     const data = await response.json();
-
-    if (data.status === 'error') {
-      throw new Error(data.message || 'Failed to verify offer payment');
-    }
-
     return data;
   },
 
@@ -157,11 +152,6 @@ export const paymentService = {
     );
 
     const data = await response.json();
-
-    if (data.status === 'error') {
-      throw new Error(data.message || 'Failed to verify product payment');
-    }
-
     return data;
   },
 
@@ -207,11 +197,6 @@ export const paymentService = {
     );
 
     const data = await response.json();
-
-    if (data.status === 'error') {
-      throw new Error(data.message || 'Failed to verify group payment');
-    }
-
     return data;
   },
 

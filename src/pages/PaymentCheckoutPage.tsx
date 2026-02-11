@@ -420,7 +420,7 @@ export const PaymentCheckoutPage: React.FC = () => {
           offerId,
           productId,
           groupId,
-        });
+        }, addToast);
 
         // Store initial payment info in localStorage
         const successData: any = {
