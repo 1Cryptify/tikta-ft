@@ -1,38 +1,127 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PaymentMethodSelector from '../components/Payment/PaymentMethodSelector';
 import PaymentMethodFields from '../components/Payment/PaymentMethodFields';
-import {
-  getProductById,
-  getOfferById,
-  getOfferGroupById,
-  getPaymentMethods,
-  formatPrice,
-  calculatePaymentTotal,
-} from '../mocks/paymentData';
-import { PaymentFormData } from '../types/payment.types';
+import { paymentService } from '../services/paymentService';
+import { PaymentMethod, PaymentFormData } from '../types/payment.types';
 import '../styles/payment.css';
 import '../styles/payment-checkout.css';
 
 export const PaymentCheckoutPage: React.FC = () => {
   const { groupId, productId, offerId } = useParams();
   const navigate = useNavigate();
-  
-  // Get the group context
-  const groupContext = groupId ? getOfferGroupById(groupId) : null;
 
-  // Determine what we're purchasing
-  const product = productId ? getProductById(productId) : null;
-  const offer = offerId ? getOfferById(offerId) : null;
-  
-  // For /buy route, user is buying the group itself
-  const isBuyingGroup = !productId && !offerId && groupContext?.purchasable;
-  const group = isBuyingGroup ? groupContext : null;
+  // State for data loading
+  const [item, setItem] = useState<any>(null);
+  const [groupContext, setGroupContext] = useState<any>(null);
+  const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const item = product || offer || group;
-  
-  if (!item || !groupContext) {
+  // Contact info only requires email and phone
+  const [contactEmail, setContactEmail] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+
+  // Form data
+  const [formData, setFormData] = useState<PaymentFormData>({
+    email: '',
+    firstName: '',
+    lastName: '',
+    address: '',
+    city: '',
+    country: '',
+    postalCode: '',
+    paymentMethod: '',
+    acceptTerms: false,
+  });
+
+  // Fetch payment methods and item data on mount
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+
+        // Fetch payment methods from API
+        const methodsResponse = await paymentService.listPaymentMethods();
+        if (methodsResponse.status === 'success' && methodsResponse.payment_methods) {
+          // Map backend payment methods to frontend format
+          const mappedMethods = methodsResponse.payment_methods.map((pm: any) => ({
+            id: pm.id,
+            name: pm.name,
+            type: pm.type,
+            icon: getIconForType(pm.type),
+            channel: pm.channel,
+            country: pm.country,
+            logo: pm.logo,
+            is_active: pm.is_active,
+          }));
+          setPaymentMethods(mappedMethods);
+        }
+
+        // Fetch the specific item being purchased
+        if (offerId) {
+          const offerData = await paymentService.getOffer(offerId);
+          if (offerData.status === 'success') {
+            setItem(offerData.offer);
+          }
+        } else if (productId) {
+          const productData = await paymentService.getProduct(productId);
+          if (productData.status === 'success') {
+            setItem(productData);
+          }
+        }
+
+        // Fetch group context if groupId is provided
+        if (groupId) {
+          const groupData = await paymentService.getOfferGroup(groupId);
+          if (groupData.status === 'success') {
+            setGroupContext(groupData);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [offerId, productId, groupId]);
+
+  // Helper to map payment method types to icons
+  const getIconForType = (type: string): string => {
+    switch (type) {
+      case 'card':
+      case 'credit_card':
+        return 'credit_card';
+      case 'mobile_money':
+        return 'phone';
+      case 'bank_account':
+      case 'bank_transfer':
+        return 'account_balance';
+      case 'wallet':
+      case 'paypal':
+        return 'account_balance_wallet';
+      default:
+        return 'payment';
+    }
+  };
+
+  // If still loading, show spinner
+  if (loading) {
+    return (
+      <div className="payment-checkout">
+        <div className="checkout-container">
+          <LoadingSpinner />
+        </div>
+      </div>
+    );
+  }
+
+  // If item not found
+  if (!item && !groupId) {
     return (
       <div className="payment-checkout">
         <div className="checkout-container">
@@ -47,36 +136,20 @@ export const PaymentCheckoutPage: React.FC = () => {
     );
   }
 
-  const paymentMethods = getPaymentMethods();
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [formData, setFormData] = useState<PaymentFormData>({
-    email: '',
-    firstName: '',
-    lastName: '',
-    address: '',
-    city: '',
-    country: '',
-    postalCode: '',
-    paymentMethod: '',
-    acceptTerms: false,
-  });
-
-  // Contact info only requires email
-  const [contactEmail, setContactEmail] = useState('');
-
   // Calculate pricing
-  const price = 'price' in item ? item.price : 0;
+  const price = item?.price || 0;
   const subtotal = price;
   const tax = subtotal * 0.1;
-  const total = calculatePaymentTotal(subtotal, 0.1, 0);
+  const total = subtotal + tax;
 
   // Get item details for display
-  const itemName =
-    'name' in item ? item.name : 'Unknown Item';
-  const itemDesc =
-    'description' in item ? item.description : '';
-  const itemImage = 'image' in item ? item.image : '';
+  const itemName = item?.name || 'Unknown Item';
+  const itemDesc = item?.description || '';
+  const itemImage = item?.image || '';
+  const currency = item?.currency?.code || item?.currency || 'XAF';
+
+  // Get selected payment method
+  const selectedPaymentMethod = paymentMethods.find(m => m.id === formData.paymentMethod);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -84,17 +157,21 @@ export const PaymentCheckoutPage: React.FC = () => {
     if (!contactEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
       newErrors.email = 'Valid email is required';
     }
+
+    if (!contactPhone || contactPhone.length < 8) {
+      newErrors.phone = 'Valid phone number is required';
+    }
+
     if (!formData.paymentMethod) {
       newErrors.paymentMethod = 'Payment method is required';
     }
 
     // Validate payment method specific fields
-    if (formData.paymentMethod === 'MOBILE_MONEY') {
-
+    if (selectedPaymentMethod?.type === 'mobile_money') {
       if (!formData.mobileMoneyNumber || !/^[\d\+\-\(\)]+$/.test(formData.mobileMoneyNumber)) {
         newErrors.mobileMoneyNumber = 'Valid mobile money number is required';
       }
-    } else if (formData.paymentMethod === 'BANK_ACCOUNT') {
+    } else if (selectedPaymentMethod?.type === 'bank_account') {
       if (!formData.bankAccountName) {
         newErrors.bankAccountName = 'Account holder name is required';
       }
@@ -104,7 +181,7 @@ export const PaymentCheckoutPage: React.FC = () => {
       if (!formData.bankAccountNumber || !/^\d+$/.test(formData.bankAccountNumber)) {
         newErrors.bankAccountNumber = 'Valid account number is required';
       }
-    } else if (formData.paymentMethod === 'CC') {
+    } else if (selectedPaymentMethod?.type === 'card') {
       if (!formData.cardNumber || !/^\d{4}\s?\d{4}\s?\d{4}\s?\d{4}$/.test(formData.cardNumber.replace(/\s/g, ''))) {
         newErrors.cardNumber = 'Valid card number is required';
       }
@@ -126,16 +203,18 @@ export const PaymentCheckoutPage: React.FC = () => {
     const { name, value, type } = e.target;
     const newValue =
       type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    
+
     if (name === 'email') {
       setContactEmail(value);
+    } else if (name === 'phone') {
+      setContactPhone(value);
     } else {
       setFormData((prev) => ({
         ...prev,
         [name]: newValue,
       }));
     }
-    
+
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -149,23 +228,67 @@ export const PaymentCheckoutPage: React.FC = () => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    setLoading(true);
+    setDataLoading(true);
     try {
-      // Simulate payment processing
-      await new Promise((resolve) => setTimeout(resolve, 1500));
-      navigate(`/pay/${groupId}/success`);
+      // Get the selected payment method's channel
+      const channel = selectedPaymentMethod?.channel;
+
+      // Prepare payload based on what's being purchased
+      let payload: any = {
+        email: contactEmail,
+        phone: contactPhone || formData.mobileMoneyNumber || '',
+        payment_method_id: formData.paymentMethod,
+        channel: channel,
+        client_ip: '', // Can be filled from request if needed
+      };
+
+      let response;
+
+      if (offerId) {
+        payload.offer_id = offerId;
+        response = await paymentService.initiateOfferPayment(payload);
+      } else if (productId) {
+        payload.product_id = productId;
+        response = await paymentService.initiateProductPayment(payload);
+      } else {
+        throw new Error('No item specified for purchase');
+      }
+
+      if (response.status === 'success') {
+        // Store payment info in localStorage for success page
+        localStorage.setItem('pendingPayment', JSON.stringify({
+          paymentId: response.payment_id,
+          transactionId: response.transaction_id,
+          reference: response.reference,
+          gatewayReference: response.gateway_reference,
+          amount: response.amount,
+          currency: response.currency,
+        }));
+
+        // Navigate to success page
+        navigate(`/pay/${groupId}/success`);
+      } else {
+        navigate(`/pay/${groupId}/failed`);
+      }
     } catch (error) {
+      console.error('Payment error:', error);
       navigate(`/pay/${groupId}/failed`);
     } finally {
-      setLoading(false);
+      setDataLoading(false);
     }
   };
 
   const getItemType = (): string => {
-    if (product) return 'Product';
-    if (offer) return 'Offer';
-    if (group) return 'Bundle';
+    if (productId) return 'Product';
+    if (offerId) return 'Offer';
     return 'Item';
+  };
+
+  const formatPrice = (amount: number, curr: string = currency): string => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: curr,
+    }).format(amount);
   };
 
   return (
@@ -191,15 +314,30 @@ export const PaymentCheckoutPage: React.FC = () => {
                 value={contactEmail}
                 onChange={handleChange}
                 placeholder="john@example.com"
-                disabled={loading}
+                disabled={dataLoading}
               />
               {errors.email && (
                 <span className="form-error">{errors.email}</span>
               )}
             </div>
 
+            <div className={`form-group ${errors.phone ? 'error' : ''}`}>
+              <label>Phone Number</label>
+              <input
+                type="tel"
+                name="phone"
+                value={contactPhone}
+                onChange={handleChange}
+                placeholder="+237 6XX XXX XXX"
+                disabled={dataLoading}
+              />
+              {errors.phone && (
+                <span className="form-error">{errors.phone}</span>
+              )}
+            </div>
+
             <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '-8px', marginBottom: 'var(--space-lg)' }}>
-              The product will be sent to this email address.
+              The product details will be sent to this email address.
             </p>
 
             {/* Payment Method Section */}
@@ -221,7 +359,7 @@ export const PaymentCheckoutPage: React.FC = () => {
                     });
                   }
                 }}
-                disabled={loading}
+                disabled={dataLoading}
                 error={!!errors.paymentMethod}
               />
               {errors.paymentMethod && (
@@ -234,21 +372,21 @@ export const PaymentCheckoutPage: React.FC = () => {
             {/* Payment Method Specific Fields */}
             {formData.paymentMethod && (
               <PaymentMethodFields
-                paymentMethod={formData.paymentMethod}
+                paymentMethod={selectedPaymentMethod?.type || ''}
                 formData={formData}
                 onChange={handleChange}
                 errors={errors}
-                disabled={loading}
+                disabled={dataLoading}
               />
             )}
 
             {/* Submit Button */}
-            {loading && <LoadingSpinner />}
-            {!loading && (
+            {dataLoading && <LoadingSpinner />}
+            {!dataLoading && (
               <button
                 type="submit"
                 className="checkout-submit"
-                disabled={loading}
+                disabled={dataLoading}
               >
                 Complete Purchase
               </button>

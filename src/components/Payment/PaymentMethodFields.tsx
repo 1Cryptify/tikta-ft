@@ -16,11 +16,14 @@ export const PaymentMethodFields: React.FC<PaymentMethodFieldsProps> = ({
   errors,
   disabled,
 }) => {
-  // Mobile Money Fields
-  if (paymentMethod === 'MOBILE_MONEY') {
+  // Mobile Money Fields - Just need phone number for initialization
+  if (paymentMethod === 'mobile_money' || paymentMethod === 'MOBILE_MONEY') {
     return (
       <div className="payment-method-fields">
         <h4 className="field-section-title">Mobile Money Details</h4>
+        <p className="field-description" style={{ fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '16px' }}>
+          Enter your mobile money phone number. You will receive a prompt on your phone to confirm the payment.
+        </p>
         <div className={`form-group ${errors.mobileMoneyNumber ? 'error' : ''}`}>
           <label htmlFor="mobileMoneyNumber">Mobile Money Number</label>
           <input
@@ -29,7 +32,7 @@ export const PaymentMethodFields: React.FC<PaymentMethodFieldsProps> = ({
             name="mobileMoneyNumber"
             value={formData.mobileMoneyNumber || ''}
             onChange={onChange}
-            placeholder="+1234567890"
+            placeholder="+237 6XX XXX XXX"
             disabled={disabled}
             required
           />
@@ -42,7 +45,7 @@ export const PaymentMethodFields: React.FC<PaymentMethodFieldsProps> = ({
   }
 
   // Bank Account Fields
-  if (paymentMethod === 'BANK_ACCOUNT') {
+  if (paymentMethod === 'bank_account' || paymentMethod === 'BANK_ACCOUNT') {
     return (
       <div className="payment-method-fields">
         <h4 className="field-section-title">Bank Account Details</h4>
@@ -102,7 +105,7 @@ export const PaymentMethodFields: React.FC<PaymentMethodFieldsProps> = ({
   }
 
   // Credit Card Fields
-  if (paymentMethod === 'CC') {
+  if (paymentMethod === 'card' || paymentMethod === 'CC' || paymentMethod === 'credit_card') {
     return (
       <div className="payment-method-fields">
         <h4 className="field-section-title">Credit Card Details</h4>
@@ -166,7 +169,7 @@ export const PaymentMethodFields: React.FC<PaymentMethodFieldsProps> = ({
     );
   }
 
-  // No additional fields for PayPal or Bank Transfer
+  // No additional fields for PayPal, Wallet, or Bank Transfer
   return null;
 };
 

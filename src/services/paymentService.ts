@@ -68,9 +68,11 @@ export const paymentService = {
     offer_id: string;
     email: string;
     phone: string;
-    payment_method: string;
+    payment_method_id: string;
+    channel?: string;
     amount?: number;
     currency?: string;
+    client_ip?: string;
   }) {
     const response = await fetch(
       `${API_BASE}/payments/offers-payment/initiate/`,
@@ -93,9 +95,11 @@ export const paymentService = {
     product_id: string;
     email: string;
     phone: string;
-    payment_method: string;
+    payment_method_id: string;
+    channel?: string;
     amount?: number;
     currency?: string;
+    client_ip?: string;
   }) {
     const response = await fetch(
       `${API_BASE}/payments/product-payment/initiate/`,

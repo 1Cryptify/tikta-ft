@@ -1,4 +1,4 @@
-o// Payment System Type Definitions
+// Payment System Type Definitions
 
 export interface Product {
   id: string;
@@ -47,8 +47,12 @@ export interface OfferGroup {
 export interface PaymentMethod {
   id: string;
   name: string;
-  type: 'credit_card' | 'paypal' | 'bank_transfer' | 'mobile_money' | 'bank_account';
+  type: 'credit_card' | 'paypal' | 'bank_transfer' | 'mobile_money' | 'bank_account' | 'card' | 'wallet';
   icon?: string;
+  channel?: string;  // e.g., 'cm.mtn', 'cm.orange', 'cm.paypal'
+  country?: string;  // ISO 3166-1 alpha-2 country code (e.g., 'CM', 'GA', 'CI')
+  logo?: string;     // URL to payment method logo
+  is_active?: boolean;
 }
 
 export interface PaymentFormData {
