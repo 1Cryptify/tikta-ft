@@ -60,6 +60,9 @@ export const PaymentCheckoutPage: React.FC = () => {
     acceptTerms: false,
   });
 
+  // Contact info only requires email
+  const [contactEmail, setContactEmail] = useState('');
+
   // Calculate pricing
   const price = 'price' in item ? item.price : 0;
   const subtotal = price;
@@ -76,26 +79,8 @@ export const PaymentCheckoutPage: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    if (!contactEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
       newErrors.email = 'Valid email is required';
-    }
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First name is required';
-    }
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last name is required';
-    }
-    if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
-    }
-    if (!formData.city.trim()) {
-      newErrors.city = 'City is required';
-    }
-    if (!formData.country.trim()) {
-      newErrors.country = 'Country is required';
-    }
-    if (!formData.postalCode.trim()) {
-      newErrors.postalCode = 'Postal code is required';
     }
     if (!formData.paymentMethod) {
       newErrors.paymentMethod = 'Payment method is required';
@@ -114,10 +99,16 @@ export const PaymentCheckoutPage: React.FC = () => {
     const { name, value, type } = e.target;
     const newValue =
       type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: newValue,
-    }));
+    
+    if (name === 'email') {
+      setContactEmail(value);
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: newValue,
+      }));
+    }
+    
     if (errors[name]) {
       setErrors((prev) => {
         const newErrors = { ...prev };
@@ -165,43 +156,12 @@ export const PaymentCheckoutPage: React.FC = () => {
           <form onSubmit={handleSubmit} className="checkout-form-section">
             {/* Contact Section */}
             <h3 className="form-section-title">Contact Information</h3>
-            <div className="form-row">
-              <div className={`form-group ${errors.firstName ? 'error' : ''}`}>
-                <label>First Name</label>
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  placeholder="John"
-                  disabled={loading}
-                />
-                {errors.firstName && (
-                  <span className="form-error">{errors.firstName}</span>
-                )}
-              </div>
-              <div className={`form-group ${errors.lastName ? 'error' : ''}`}>
-                <label>Last Name</label>
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  placeholder="Doe"
-                  disabled={loading}
-                />
-                {errors.lastName && (
-                  <span className="form-error">{errors.lastName}</span>
-                )}
-              </div>
-            </div>
-
             <div className={`form-group ${errors.email ? 'error' : ''}`}>
               <label>Email Address</label>
               <input
                 type="email"
                 name="email"
-                value={formData.email}
+                value={contactEmail}
                 onChange={handleChange}
                 placeholder="john@example.com"
                 disabled={loading}
@@ -211,106 +171,31 @@ export const PaymentCheckoutPage: React.FC = () => {
               )}
             </div>
 
-            {/* Address Section */}
-            <h3 className="form-section-title">Delivery Address</h3>
-            <div className={`form-group ${errors.address ? 'error' : ''}`}>
-              <label>Street Address</label>
-              <input
-                type="text"
-                name="address"
-                value={formData.address}
-                onChange={handleChange}
-                placeholder="123 Main Street"
-                disabled={loading}
-              />
-              {errors.address && (
-                <span className="form-error">{errors.address}</span>
-              )}
-            </div>
-
-            <div className="form-row">
-              <div className={`form-group ${errors.city ? 'error' : ''}`}>
-                <label>City</label>
-                <input
-                  type="text"
-                  name="city"
-                  value={formData.city}
-                  onChange={handleChange}
-                  placeholder="New York"
-                  disabled={loading}
-                />
-                {errors.city && (
-                  <span className="form-error">{errors.city}</span>
-                )}
-              </div>
-              <div className={`form-group ${errors.postalCode ? 'error' : ''}`}>
-                <label>Postal Code</label>
-                <input
-                  type="text"
-                  name="postalCode"
-                  value={formData.postalCode}
-                  onChange={handleChange}
-                  placeholder="10001"
-                  disabled={loading}
-                />
-                {errors.postalCode && (
-                  <span className="form-error">{errors.postalCode}</span>
-                )}
-              </div>
-            </div>
-
-            <div className={`form-group ${errors.country ? 'error' : ''}`}>
-              <label>Country</label>
-              <select
-                name="country"
-                value={formData.country}
-                onChange={handleChange}
-                disabled={loading}
-              >
-                <option value="">Select a country</option>
-                <option value="United States">United States</option>
-                <option value="Canada">Canada</option>
-                <option value="France">France</option>
-                <option value="Germany">Germany</option>
-                <option value="United Kingdom">United Kingdom</option>
-                <option value="Other">Other</option>
-              </select>
-              {errors.country && (
-                <span className="form-error">{errors.country}</span>
-              )}
-            </div>
+            <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '-8px', marginBottom: 'var(--space-lg)' }}>
+              The product will be sent to this email address.
+            </p>
 
             {/* Payment Method Section */}
             <h3 className="form-section-title">Payment Method</h3>
-            <div
-              className={`payment-methods ${
-                errors.paymentMethod ? 'error' : ''
-              }`}
-            >
-              {paymentMethods.map((method) => (
-                <label
-                  key={method.id}
-                  className={`payment-method-option ${
-                    formData.paymentMethod === method.id ? 'active' : ''
-                  }`}
-                >
-                  <div className="payment-method-radio" />
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    value={method.id}
-                    checked={formData.paymentMethod === method.id}
-                    onChange={handleChange}
-                    disabled={loading}
-                    style={{ display: 'none' }}
-                  />
-                  <span className="payment-method-label">{method.name}</span>
-                </label>
-              ))}
+            <div className={`form-group ${errors.paymentMethod ? 'error' : ''}`}>
+              <label>Select Payment Method</label>
+              <select
+                name="paymentMethod"
+                value={formData.paymentMethod}
+                onChange={handleChange}
+                disabled={loading}
+              >
+                <option value="">Choose a payment method</option>
+                {paymentMethods.map((method) => (
+                  <option key={method.id} value={method.id}>
+                    {method.name}
+                  </option>
+                ))}
+              </select>
+              {errors.paymentMethod && (
+                <span className="form-error">{errors.paymentMethod}</span>
+              )}
             </div>
-            {errors.paymentMethod && (
-              <span className="form-error">{errors.paymentMethod}</span>
-            )}
 
             {/* Terms Section */}
             <div className={`form-group ${errors.acceptTerms ? 'error' : ''}`}>
