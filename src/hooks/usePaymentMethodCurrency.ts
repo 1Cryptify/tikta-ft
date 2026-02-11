@@ -33,6 +33,8 @@ export interface PaymentMethod {
     type: 'bank_account' | 'card' | 'mobile_money' | 'wallet';
     logo?: string;
     details: Record<string, unknown>;
+    channel?: string;
+    country?: string;
     is_active: boolean;
     created_at?: string;
     updated_at?: string;

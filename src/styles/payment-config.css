@@ -499,3 +499,59 @@
     padding: var(--space-md);
   }
 }
+
+/* Logo Upload Styles */
+.logo-upload-wrapper {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.logo-upload-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-lg);
+  background-color: var(--color-neutral);
+  border: 2px dashed var(--color-border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.logo-upload-btn:hover {
+  background-color: #e5e7eb;
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.logo-current {
+  font-size: 13px;
+  color: var(--color-success);
+  font-weight: 500;
+}
+
+/* Form Section Divider */
+.form-section-divider {
+  margin-top: var(--space-xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--color-border);
+}
+
+.form-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  margin-bottom: var(--space-lg);
+  margin-top: 0;
+}
+
+/* Form File Input (hidden but accessible) */
+.form-file-input:focus + .logo-upload-btn {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}

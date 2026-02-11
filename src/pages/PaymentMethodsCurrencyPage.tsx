@@ -27,6 +27,8 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
     const [showPaymentMethodForm, setShowPaymentMethodForm] = useState(false);
     const [editingCurrency, setEditingCurrency] = useState<Currency | null>(null);
     const [editingPaymentMethod, setEditingPaymentMethod] = useState<PaymentMethod | null>(null);
+    const [selectedLogo, setSelectedLogo] = useState<File | null>(null);
+    const [paymentType, setPaymentType] = useState<string>('');
 
     // Currency Form Handler
     const handleCurrencySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -58,23 +60,66 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
     const handlePaymentMethodSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         const formData = new FormData(e.currentTarget);
+        const type = formData.get('type') as 'bank_account' | 'card' | 'mobile_money' | 'wallet';
+
+        // Build details object based on payment type
+        let details: Record<string, unknown> = {};
+
+        if (type === 'mobile_money') {
+            details = {
+                phone_number: formData.get('phone_number') as string,
+                operator: formData.get('operator') as string,
+            };
+        } else if (type === 'bank_account') {
+            details = {
+                account_holder: formData.get('account_holder') as string,
+                bank_code: formData.get('bank_code') as string,
+                account_number: formData.get('account_number') as string,
+            };
+        } else if (type === 'card') {
+            details = {
+                card_processor: formData.get('card_processor') as string,
+            };
+        } else if (type === 'wallet') {
+            details = {
+                wallet_provider: formData.get('wallet_provider') as string,
+            };
+        }
 
         const methodData = {
             name: formData.get('name') as string,
-            type: formData.get('type') as 'bank_account' | 'card' | 'mobile_money' | 'wallet',
+            type,
             is_active: formData.get('is_active') === 'on',
-            details: {},
+            channel: formData.get('channel') as string,
+            country: formData.get('country') as string,
+            details,
         };
 
+        let result: PaymentMethod | null = null;
+
         if (editingPaymentMethod) {
-            await updatePaymentMethod(editingPaymentMethod.id, methodData);
+            result = await updatePaymentMethod(editingPaymentMethod.id, methodData);
             setEditingPaymentMethod(null);
         } else {
-            await createPaymentMethod(methodData);
+            result = await createPaymentMethod(methodData);
+        }
+
+        // Upload logo if selected and method was created/updated successfully
+        if (result && selectedLogo) {
+            await uploadPaymentMethodLogo(result.id, selectedLogo);
         }
 
         setShowPaymentMethodForm(false);
+        setSelectedLogo(null);
+        setPaymentType('');
         e.currentTarget.reset();
+    };
+
+    // Handle logo file selection
+    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            setSelectedLogo(e.target.files[0]);
+        }
     };
 
     // Delete Currency
@@ -274,11 +319,24 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                                 <div className="form-grid">
                                     <div className="form-group">
                                         <label className="form-label">Method Name</label>
-                                        <input type="text" name="name" placeholder="e.g., Stripe" className="form-input" required />
+                                        <input 
+                                            type="text" 
+                                            name="name" 
+                                            placeholder="e.g., MTN Mobile Money" 
+                                            className="form-input" 
+                                            defaultValue={editingPaymentMethod?.name || ''}
+                                            required 
+                                        />
                                     </div>
                                     <div className="form-group">
                                         <label className="form-label">Payment Type</label>
-                                        <select name="type" className="form-select" required>
+                                        <select 
+                                            name="type" 
+                                            className="form-select" 
+                                            value={paymentType || editingPaymentMethod?.type || ''}
+                                            onChange={(e) => setPaymentType(e.target.value)}
+                                            required
+                                        >
                                             <option value="">Select Type</option>
                                             <option value="bank_account">Bank Account</option>
                                             <option value="card">Card</option>
@@ -286,11 +344,162 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                                             <option value="wallet">Wallet</option>
                                         </select>
                                     </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Channel (Optional)</label>
+                                        <input 
+                                            type="text" 
+                                            name="channel" 
+                                            placeholder="e.g., cm.mtn, cm.orange" 
+                                            className="form-input"
+                                            defaultValue={editingPaymentMethod?.channel || ''}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Country Code (Optional)</label>
+                                        <input 
+                                            type="text" 
+                                            name="country" 
+                                            placeholder="e.g., CM, GA, CI" 
+                                            className="form-input"
+                                            maxLength={2}
+                                            defaultValue={editingPaymentMethod?.country || ''}
+                                        />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Logo (Optional)</label>
+                                        <div className="logo-upload-wrapper">
+                                            <input 
+                                                type="file" 
+                                                id="logo" 
+                                                name="logo" 
+                                                accept="image/*"
+                                                onChange={handleLogoChange}
+                                                className="form-file-input"
+                                                style={{ display: 'none' }}
+                                            />
+                                            <label htmlFor="logo" className="logo-upload-btn">
+                                                <FiUpload size={16} />
+                                                {selectedLogo ? selectedLogo.name : (editingPaymentMethod?.logo ? 'Change Logo' : 'Upload Logo')}
+                                            </label>
+                                            {editingPaymentMethod?.logo && !selectedLogo && (
+                                                <span className="logo-current">Current logo exists</span>
+                                            )}
+                                        </div>
+                                    </div>
                                     <div className="form-checkbox-group">
-                                        <input type="checkbox" id="pm_is_active" name="is_active" />
+                                        <input 
+                                            type="checkbox" 
+                                            id="pm_is_active" 
+                                            name="is_active" 
+                                            defaultChecked={editingPaymentMethod?.is_active ?? true}
+                                        />
                                         <label htmlFor="pm_is_active">Active</label>
                                     </div>
                                 </div>
+
+                                {/* Dynamic fields based on payment type */}
+                                {(paymentType || editingPaymentMethod?.type) === 'mobile_money' && (
+                                    <div className="form-section-divider">
+                                        <h4 className="form-section-title">Mobile Money Details</h4>
+                                        <div className="form-grid">
+                                            <div className="form-group">
+                                                <label className="form-label">Phone Number</label>
+                                                <input 
+                                                    type="tel" 
+                                                    name="phone_number" 
+                                                    placeholder="+237 6XX XXX XXX" 
+                                                    className="form-input"
+                                                    defaultValue={(editingPaymentMethod?.details as Record<string, string>)?.phone_number || ''}
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">Operator</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="operator" 
+                                                    placeholder="e.g., MTN, Orange" 
+                                                    className="form-input"
+                                                    defaultValue={(editingPaymentMethod?.details as Record<string, string>)?.operator || ''}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(paymentType || editingPaymentMethod?.type) === 'bank_account' && (
+                                    <div className="form-section-divider">
+                                        <h4 className="form-section-title">Bank Account Details</h4>
+                                        <div className="form-grid">
+                                            <div className="form-group">
+                                                <label className="form-label">Account Holder Name</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="account_holder" 
+                                                    placeholder="John Doe" 
+                                                    className="form-input"
+                                                    defaultValue={(editingPaymentMethod?.details as Record<string, string>)?.account_holder || ''}
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">Bank Code</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="bank_code" 
+                                                    placeholder="e.g., 001" 
+                                                    className="form-input"
+                                                    defaultValue={(editingPaymentMethod?.details as Record<string, string>)?.bank_code || ''}
+                                                />
+                                            </div>
+                                            <div className="form-group">
+                                                <label className="form-label">Account Number</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="account_number" 
+                                                    placeholder="0123456789" 
+                                                    className="form-input"
+                                                    defaultValue={(editingPaymentMethod?.details as Record<string, string>)?.account_number || ''}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(paymentType || editingPaymentMethod?.type) === 'card' && (
+                                    <div className="form-section-divider">
+                                        <h4 className="form-section-title">Card Details</h4>
+                                        <div className="form-grid">
+                                            <div className="form-group">
+                                                <label className="form-label">Card Processor</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="card_processor" 
+                                                    placeholder="e.g., Stripe, PayPal" 
+                                                    className="form-input"
+                                                    defaultValue={(editingPaymentMethod?.details as Record<string, string>)?.card_processor || ''}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {(paymentType || editingPaymentMethod?.type) === 'wallet' && (
+                                    <div className="form-section-divider">
+                                        <h4 className="form-section-title">Wallet Details</h4>
+                                        <div className="form-grid">
+                                            <div className="form-group">
+                                                <label className="form-label">Wallet Provider</label>
+                                                <input 
+                                                    type="text" 
+                                                    name="wallet_provider" 
+                                                    placeholder="e.g., PayPal, Apple Pay" 
+                                                    className="form-input"
+                                                    defaultValue={(editingPaymentMethod?.details as Record<string, string>)?.wallet_provider || ''}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="form-actions">
                                     <button type="submit" className="btn-submit">
                                         {editingPaymentMethod ? 'Update Method' : 'Create Method'}
@@ -300,6 +509,8 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                                         onClick={() => {
                                             setShowPaymentMethodForm(false);
                                             setEditingPaymentMethod(null);
+                                            setSelectedLogo(null);
+                                            setPaymentType('');
                                         }}
                                         className="btn-cancel"
                                     >
