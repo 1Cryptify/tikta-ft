@@ -485,6 +485,22 @@ export const PaymentCheckoutPage: React.FC = () => {
         <div className="checkout-wrapper">
           {/* Main Form */}
           <form onSubmit={handleSubmit} className="checkout-form-section">
+            {/* Verification Status - Prominent at top during verification */}
+            {isVerifying && (
+              <div className="verification-status verification-status-top">
+                <LoadingSpinner />
+                <p>{verificationMessage}</p>
+                <p>Please complete the payment on your mobile device if prompted.</p>
+                <button
+                  type="button"
+                  className="btn-secondary"
+                  onClick={stopVerification}
+                >
+                  Cancel Verification
+                </button>
+              </div>
+            )}
+
             {/* Contact Section */}
             <h3 className="form-section-title">Contact Information</h3>
             <div className={`form-group ${errors.email ? 'error' : ''}`}>
@@ -556,22 +572,6 @@ export const PaymentCheckoutPage: React.FC = () => {
               >
                 Complete Purchase
               </button>
-            )}
-
-            {/* Verification Status */}
-            {isVerifying && (
-              <div className="verification-status">
-                <LoadingSpinner />
-                <p>{verificationMessage}</p>
-                <p>Please complete the payment on your mobile device if prompted.</p>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={stopVerification}
-                >
-                  Cancel Verification
-                </button>
-              </div>
             )}
           </form>
 
