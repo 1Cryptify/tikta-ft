@@ -11,6 +11,7 @@ import {
     FiEye,
     FiFolder,
     FiChevronRight,
+    FiCopy,
 } from 'react-icons/fi';
 import { useOffer, Offer, OfferGroup } from '../hooks/useOffer';
 import { OfferModal } from '../components/OfferModal';
@@ -726,6 +727,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const [isSaving, setIsSaving] = useState(false);
     const [detailsModalOpen, setDetailsModalOpen] = useState(false);
     const [selectedOffer, setSelectedOffer] = useState<Offer | null>(null);
+    const [copiedId, setCopiedId] = useState<string | null>(null);
 
     // Groups tab state
     const [activeTab, setActiveTab] = useState<'offers' | 'groups'>('offers');
@@ -734,6 +736,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const [groupFormData, setGroupFormData] = useState({ name: '', description: '' });
     const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
     const [groupSearchTerm, setGroupSearchTerm] = useState('');
+    const [copiedGroupId, setCopiedGroupId] = useState<string | null>(null);
 
     const filteredOffers = useMemo(() => {
         return offers.filter(
@@ -884,6 +887,22 @@ export const OffersList: React.FC<OffersListProps> = () => {
         );
     }, [offerGroups, groupSearchTerm]);
 
+    const handleCopyOfferLink = (offerId: string) => {
+        const paymentUrl = `${window.location.origin}/pay/offer/${offerId}`;
+        navigator.clipboard.writeText(paymentUrl).then(() => {
+            setCopiedId(offerId);
+            setTimeout(() => setCopiedId(null), 2000);
+        });
+    };
+
+    const handleCopyGroupLink = (groupId: string) => {
+        const paymentUrl = `${window.location.origin}/pay/${groupId}`;
+        navigator.clipboard.writeText(paymentUrl).then(() => {
+            setCopiedGroupId(groupId);
+            setTimeout(() => setCopiedGroupId(null), 2000);
+        });
+    };
+
     return (
         <>
             <Header>
@@ -1026,6 +1045,14 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                         </ActionButton>
                                         <ActionButton
                                             variant="primary"
+                                            onClick={() => handleCopyOfferLink(offer.id)}
+                                            disabled={isSaving}
+                                            title={copiedId === offer.id ? 'Copied!' : 'Copy payment link'}
+                                        >
+                                            <FiCopy /> {copiedId === offer.id ? 'Copied' : 'Copy'}
+                                        </ActionButton>
+                                        <ActionButton
+                                            variant="primary"
                                             onClick={() => handleOpenModal(offer)}
                                             disabled={isSaving}
                                         >
@@ -1080,6 +1107,14 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                             <OfferCount>{group.offers?.length || 0} Offers</OfferCount>
                                         </GroupInfo>
                                         <GroupActions>
+                                            <ActionButton
+                                                variant="primary"
+                                                onClick={() => handleCopyGroupLink(group.id)}
+                                                disabled={isSaving}
+                                                title={copiedGroupId === group.id ? 'Copied!' : 'Copy payment link'}
+                                            >
+                                                <FiCopy /> {copiedGroupId === group.id ? 'Copied' : 'Copy'}
+                                            </ActionButton>
                                             <ActionButton
                                                 variant="primary"
                                                 onClick={() => handleOpenGroupModal(group)}
