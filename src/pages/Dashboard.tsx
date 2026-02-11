@@ -9,7 +9,6 @@ import { OffersPage } from './OffersPage';
 import { PaymentAPIPage } from './PaymentAPIPage';
 import { PaymentsPage } from './PaymentsPage';
 import { TicketsPage } from './TicketsPage';
-import { TransactionsPage } from './TransactionsPage';
 import { SettingsPage } from './SettingsPage';
 import { PaymentMethodsCurrencyPage } from './PaymentMethodsCurrencyPage';
 import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiCode, FiTag, FiSliders } from 'react-icons/fi';
@@ -157,7 +156,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                     } 
                 />
                 <Route path="/tickets" element={<TicketsPage />} />
-                <Route path="/transactions" element={<TransactionsPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
             </Routes>
         </MainLayout>
