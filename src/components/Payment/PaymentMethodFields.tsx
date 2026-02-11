@@ -20,10 +20,6 @@ export const PaymentMethodFields: React.FC<PaymentMethodFieldsProps> = ({
   if (paymentMethod === 'mobile_money' || paymentMethod === 'MOBILE_MONEY') {
     return (
       <div className="payment-method-fields">
-        <h4 className="field-section-title">Mobile Money Details</h4>
-        <p className="field-description">
-          Enter your mobile money phone number. You will receive a prompt on your phone to confirm the payment.
-        </p>
         <div className={`form-group ${errors.mobileMoneyNumber ? 'error' : ''}`}>
           <label htmlFor="mobileMoneyNumber">Mobile Money Number</label>
           <input
