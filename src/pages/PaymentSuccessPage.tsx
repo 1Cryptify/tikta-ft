@@ -477,22 +477,6 @@ export const PaymentSuccessPage: React.FC = () => {
             </span>
           </div>
         </div>
-
-        <div className="success-actions">
-          <button
-            className="btn-primary"
-            onClick={() => navigate('/dashboard')}
-          >
-            Tableau de bord
-          </button>
-          <button
-            className="btn-secondary"
-            onClick={handleContinueShopping}
-          >
-            {groupId ? 'Continuer les achats' : 'Retour à l\'accueil'}
-          </button>
-        </div>
-
       </div>
     </div>
   );
