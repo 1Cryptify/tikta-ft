@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FiCopy, FiCheck } from 'react-icons/fi';
+import {
+  PDFDownloadLink,
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  pdf,
+} from '@react-pdf/renderer';
 import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/payment.css';
 import '../styles/payment-success.css';
@@ -27,6 +37,247 @@ interface StoredPaymentData {
   offerName?: string;
   offerType?: string;
 }
+
+// PDF Styles
+const styles = StyleSheet.create({
+  page: {
+    padding: 40,
+    backgroundColor: '#ffffff',
+    fontFamily: 'Helvetica',
+  },
+  header: {
+    marginBottom: 30,
+    borderBottom: '2px solid #2563eb',
+    paddingBottom: 20,
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+  },
+  section: {
+    marginBottom: 25,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 15,
+    backgroundColor: '#f3f4f6',
+    padding: 10,
+  },
+  row: {
+    flexDirection: 'row',
+    marginBottom: 10,
+  },
+  label: {
+    width: '40%',
+    fontSize: 12,
+    color: '#6b7280',
+    fontWeight: 'bold',
+  },
+  value: {
+    width: '60%',
+    fontSize: 12,
+    color: '#1f2937',
+  },
+  ticketBox: {
+    border: '2px solid #e5e7eb',
+    borderRadius: 8,
+    padding: 20,
+    marginBottom: 20,
+    backgroundColor: '#fafafa',
+  },
+  ticketTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#2563eb',
+    marginBottom: 15,
+  },
+  divider: {
+    borderBottom: '1px solid #e5e7eb',
+    marginVertical: 15,
+  },
+  warning: {
+    backgroundColor: '#fef3c7',
+    padding: 15,
+    borderRadius: 6,
+    marginTop: 30,
+  },
+  warningText: {
+    fontSize: 11,
+    color: '#92400e',
+    textAlign: 'center',
+  },
+  footer: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    textAlign: 'center',
+    fontSize: 10,
+    color: '#9ca3af',
+  },
+  credentialsGrid: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  credentialBlock: {
+    width: '48%',
+  },
+  credentialLabel: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginBottom: 5,
+  },
+  credentialValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    backgroundColor: '#e5e7eb',
+    padding: 10,
+    borderRadius: 4,
+    fontFamily: 'Courier',
+  },
+});
+
+// Single Ticket PDF Document
+const SingleTicketPDF: React.FC<{ ticket: TicketInfo; index?: number }> = ({ ticket, index }) => (
+  <Document>
+    <Page size="A4" style={styles.page}>
+      <View style={styles.header}>
+        <Text style={styles.title}>TICKET</Text>
+        <Text style={styles.subtitle}>{ticket.offer_name}</Text>
+      </View>
+
+      <View style={styles.ticketBox}>
+        <Text style={styles.ticketTitle}>Informations du Ticket {index !== undefined ? `#${index + 1}` : ''}</Text>
+        
+        <View style={styles.credentialsGrid}>
+          <View style={styles.credentialBlock}>
+            <Text style={styles.credentialLabel}>Identifiant Ticket</Text>
+            <Text style={styles.credentialValue}>{ticket.ticket_id}</Text>
+          </View>
+          <View style={styles.credentialBlock}>
+            <Text style={styles.credentialLabel}>Mot de passe</Text>
+            <Text style={styles.credentialValue}>{ticket.password}</Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <View style={styles.row}>
+          <Text style={styles.label}>Offre:</Text>
+          <Text style={styles.value}>{ticket.offer_name}</Text>
+        </View>
+        <View style={styles.row}>
+          <Text style={styles.label}>Date d'achat:</Text>
+          <Text style={styles.value}>{new Date().toLocaleDateString('fr-FR')}</Text>
+        </View>
+        {ticket.valid_from && (
+          <View style={styles.row}>
+            <Text style={styles.label}>Valide à partir du:</Text>
+            <Text style={styles.value}>{new Date(ticket.valid_from).toLocaleDateString('fr-FR')}</Text>
+          </View>
+        )}
+        {ticket.valid_until && (
+          <View style={styles.row}>
+            <Text style={styles.label}>Valide jusqu'au:</Text>
+            <Text style={styles.value}>{new Date(ticket.valid_until).toLocaleDateString('fr-FR')}</Text>
+          </View>
+        )}
+      </View>
+
+      <View style={styles.warning}>
+        <Text style={styles.warningText}>
+          ATTENTION: Conservez ces informations precieusement. Chaque ticket ne peut etre utilise qu'une seule fois.
+        </Text>
+      </View>
+
+      <Text style={styles.footer}>
+        Généré le {new Date().toLocaleDateString('fr-FR')} - Tikta
+      </Text>
+    </Page>
+  </Document>
+);
+
+// All Tickets PDF Document
+const AllTicketsPDF: React.FC<{ paymentData: StoredPaymentData }> = ({ paymentData }) => {
+  const formatPrice = (amount: string, currency: string): string => {
+    return new Intl.NumberFormat('fr-FR', {
+      style: 'currency',
+      currency: currency || 'XAF',
+    }).format(parseFloat(amount) || 0);
+  };
+
+  return (
+    <Document>
+      <Page size="A4" style={styles.page}>
+        <View style={styles.header}>
+          <Text style={styles.title}>VOS TICKETS</Text>
+          <Text style={styles.subtitle}>{paymentData.offerName || 'Achat'}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Récapitulatif de l'achat</Text>
+          <View style={styles.row}>
+            <Text style={styles.label}>Date:</Text>
+            <Text style={styles.value}>{new Date().toLocaleDateString('fr-FR')}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Référence:</Text>
+            <Text style={styles.value}>{paymentData.paymentInfo.reference}</Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Montant:</Text>
+            <Text style={styles.value}>
+              {formatPrice(paymentData.paymentInfo.amount, paymentData.paymentInfo.currency)}
+            </Text>
+          </View>
+          <View style={styles.row}>
+            <Text style={styles.label}>Nombre de tickets:</Text>
+            <Text style={styles.value}>{paymentData.tickets?.length || 0}</Text>
+          </View>
+        </View>
+
+        <View style={styles.divider} />
+
+        <Text style={styles.sectionTitle}>Détails des Tickets</Text>
+
+        {paymentData.tickets?.map((ticket, index) => (
+          <View key={ticket.ticket_id} style={styles.ticketBox}>
+            <Text style={styles.ticketTitle}>Ticket #{index + 1} - {ticket.offer_name}</Text>
+            <View style={styles.credentialsGrid}>
+              <View style={styles.credentialBlock}>
+                <Text style={styles.credentialLabel}>Identifiant</Text>
+                <Text style={styles.credentialValue}>{ticket.ticket_id}</Text>
+              </View>
+              <View style={styles.credentialBlock}>
+                <Text style={styles.credentialLabel}>Mot de passe</Text>
+                <Text style={styles.credentialValue}>{ticket.password}</Text>
+              </View>
+            </View>
+          </View>
+        ))}
+
+        <View style={styles.warning}>
+          <Text style={styles.warningText}>
+            ATTENTION: Conservez precieusement vos identifiants. Chaque ticket ne peut etre utilise qu'une seule fois.
+          </Text>
+        </View>
+
+        <Text style={styles.footer}>
+          Généré le {new Date().toLocaleDateString('fr-FR')} - Tikta
+        </Text>
+      </Page>
+    </Document>
+  );
+};
 
 export const PaymentSuccessPage: React.FC = () => {
   const { groupId } = useParams();
@@ -68,62 +319,26 @@ export const PaymentSuccessPage: React.FC = () => {
     }
   };
 
-  const downloadTicketPDF = (ticket: TicketInfo, index: number) => {
-    // Create PDF content
-    const content = `
-TICKET - ${ticket.offer_name}
-=============================
-
-Identifiant Ticket: ${ticket.ticket_id}
-Mot de passe: ${ticket.password}
-
-Transaction: ${paymentData?.paymentInfo.reference || 'N/A'}
-Date d'achat: ${new Date().toLocaleDateString('fr-FR')}
-
-=============================
-Conservez ces informations précieusement.
-
-    `;
-
-    const blob = new Blob([content], { type: 'text/plain' });
+  const downloadTicketPDF = async (ticket: TicketInfo, index: number) => {
+    const blob = await pdf(<SingleTicketPDF ticket={ticket} index={index} />).toBlob();
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `ticket-${ticket.ticket_id}.txt`;
+    link.download = `ticket-${ticket.ticket_id}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
   };
 
-  const downloadAllTickets = () => {
+  const downloadAllTickets = async () => {
     if (!paymentData?.tickets || paymentData.tickets.length === 0) return;
 
-    // Create PDF content for all tickets
-    let content = `VOS TICKETS - ${paymentData.offerName || 'Achat'}\n`;
-    content += `=============================\n\n`;
-    content += `Transaction: ${paymentData.paymentInfo.reference}\n`;
-    content += `Date: ${new Date().toLocaleDateString('fr-FR')}\n`;
-    content += `Montant: ${formatPrice(paymentData.paymentInfo.amount, paymentData.paymentInfo.currency)}\n\n`;
-    content += `=============================\n\n`;
-
-    paymentData.tickets.forEach((ticket, index) => {
-      content += `TICKET ${index + 1} - ${ticket.offer_name}\n`;
-      content += `-----------------------------\n`;
-      content += `Identifiant: ${ticket.ticket_id}\n`;
-      content += `Mot de passe: ${ticket.password}\n`;
-      content += `Validité: ${ticket.valid_from} au ${ticket.valid_until}\n\n`;
-    });
-
-    content += `=============================\n`;
-    content += `Conservez ces informations précieusement.\n`;
-    content += `Chaque ticket ne peut être utilisé qu'une seule fois.\n`;
-
-    const blob = new Blob([content], { type: 'text/plain' });
+    const blob = await pdf(<AllTicketsPDF paymentData={paymentData} />).toBlob();
     const url = window.URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `tickets-${paymentData.paymentInfo.reference}.txt`;
+    link.download = `tickets-${paymentData.paymentInfo.reference}.pdf`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -189,12 +404,12 @@ Conservez ces informations précieusement.
                       <span className="credential-label">Identifiant Ticket:</span>
                       <div className="credential-value-container">
                         <code className="credential-code">{ticket.ticket_id}</code>
-                        <button 
+                        <button
                           className="btn-copy"
                           onClick={() => copyToClipboard(ticket.ticket_id)}
                           title="Copier"
                         >
-                          📋
+                          <FiCopy />
                         </button>
                       </div>
                     </div>
@@ -203,19 +418,14 @@ Conservez ces informations précieusement.
                       <span className="credential-label">Mot de passe:</span>
                       <div className="credential-value-container">
                         <code className="credential-code">{ticket.password}</code>
-                        <button 
+                        <button
                           className="btn-copy"
                           onClick={() => copyToClipboard(ticket.password)}
                           title="Copier"
                         >
-                          📋
+                          <FiCopy />
                         </button>
                       </div>
-                    </div>
-
-                    <div className="validity-dates">
-                      <p><strong> Validité:</strong></p>
-                      <p>Du {ticket.valid_from} au {ticket.valid_until}</p>
                     </div>
                   </div>
 
@@ -258,7 +468,7 @@ Conservez ces informations précieusement.
           </div>
           <div className="detail-row">
             <span className="detail-label">Statut</span>
-            <span className="detail-value" style={{ color: 'var(--color-success)' }}>Complété ✓</span>
+            <span className="detail-value" style={{ color: 'var(--color-success)' }}>Complété <FiCheck /></span>
           </div>
           <div className="detail-row">
             <span className="detail-label">Date</span>
