@@ -3,6 +3,7 @@ import { usePaymentMethodCurrency, Currency, PaymentMethod } from '../hooks/useP
 import { FiPlus, FiEdit2, FiTrash2, FiAlertCircle, FiUpload } from 'react-icons/fi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import '../styles/payment-config.css';
+import { API_BASE_URL } from '../services/api';
 
 export const PaymentMethodsCurrencyPage: React.FC = () => {
     const {
@@ -508,7 +509,7 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                                         <td>
                                             {method.logo ? (
                                                 <img 
-                                                    src={method.logo} 
+                                                    src={API_BASE_URL+method.logo} 
                                                     alt={method.name}
                                                     style={{ 
                                                         width: '40px', 

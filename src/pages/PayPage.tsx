@@ -5,6 +5,7 @@ import { paymentService } from '../services/paymentService';
 import { OfferGroup, Product, Offer } from '../types/payment.types';
 import '../styles/payment.css';
 import '../styles/pay-page.css';
+import { API_BASE_URL } from '../services/api';
 
 interface PayPageProps {
   groupData?: OfferGroup;
@@ -152,7 +153,7 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
     return (
       <div key={product.id} className="product-card">
         <div className="product-image">
-          <img src={product.image} alt={product.name} />
+          <img src={API_BASE_URL+product.image} alt={product.name} />
         </div>
         <div className="product-content">
           <h4 className="product-name">{product.name}</h4>
@@ -179,7 +180,7 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
           </div>
         )}
         <div className="offer-image">
-          <img src={offer.image} alt={offer.name} />
+          <img src={API_BASE_URL+offer.image} alt={offer.name} />
         </div>
         <div className="offer-content">
           <h4 className="offer-name">{offer.name}</h4>

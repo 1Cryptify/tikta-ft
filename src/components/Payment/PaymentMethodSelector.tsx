@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { FiCreditCard, FiDollarSign, FiTrendingUp, FiChevronDown, FiSmartphone, FiGlobe } from 'react-icons/fi';
 import { PaymentMethod } from '../../types/payment.types';
 import './payment-method-selector.css';
+import { API_BASE_URL } from '../../services/api';
 
 interface PaymentMethodSelectorProps {
   methods: PaymentMethod[];
@@ -26,7 +27,7 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
     if (method.logo) {
       return (
         <img
-          src={method.logo}
+          src={API_BASE_URL+method.logo}
           alt={method.name}
           className="payment-icon-logo"
           style={{ width: '24px', height: '24px', objectFit: 'contain' }}
