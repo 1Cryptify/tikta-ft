@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
+import PaymentMethodSelector from '../components/Payment/PaymentMethodSelector';
 import {
   getProductById,
   getOfferById,
@@ -178,22 +179,29 @@ export const PaymentCheckoutPage: React.FC = () => {
             {/* Payment Method Section */}
             <h3 className="form-section-title">Payment Method</h3>
             <div className={`form-group ${errors.paymentMethod ? 'error' : ''}`}>
-              <label>Select Payment Method</label>
-              <select
-                name="paymentMethod"
-                value={formData.paymentMethod}
-                onChange={handleChange}
+              <PaymentMethodSelector
+                methods={paymentMethods}
+                selected={formData.paymentMethod}
+                onChange={(methodId) => {
+                  setFormData((prev) => ({
+                    ...prev,
+                    paymentMethod: methodId,
+                  }));
+                  if (errors.paymentMethod) {
+                    setErrors((prev) => {
+                      const newErrors = { ...prev };
+                      delete newErrors.paymentMethod;
+                      return newErrors;
+                    });
+                  }
+                }}
                 disabled={loading}
-              >
-                <option value="">Choose a payment method</option>
-                {paymentMethods.map((method) => (
-                  <option key={method.id} value={method.id}>
-                    {method.name}
-                  </option>
-                ))}
-              </select>
+                error={!!errors.paymentMethod}
+              />
               {errors.paymentMethod && (
-                <span className="form-error">{errors.paymentMethod}</span>
+                <span className="form-error" style={{ marginTop: 'var(--space-md)' }}>
+                  {errors.paymentMethod}
+                </span>
               )}
             </div>
 

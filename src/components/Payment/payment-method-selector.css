@@ -1,0 +1,227 @@
+/* Payment Method Selector - Dropdown Styles */
+
+.payment-method-selector {
+  width: 100%;
+}
+
+.payment-method-selector.error {
+  opacity: 0.9;
+}
+
+/* Custom Select Wrapper */
+.custom-select-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+/* Trigger Button */
+.custom-select-trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background-color: var(--color-surface);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  width: 100%;
+  text-align: left;
+}
+
+.custom-select-wrapper:hover .custom-select-trigger {
+  border-color: var(--color-primary);
+}
+
+.custom-select-wrapper:focus-within .custom-select-trigger {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+}
+
+.trigger-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background-color: var(--color-neutral);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.trigger-chevron {
+  font-size: 18px;
+  color: var(--color-text-secondary);
+  margin-left: auto;
+  transition: transform var(--transition-fast);
+}
+
+.trigger-text {
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+
+.trigger-placeholder {
+  color: var(--color-text-secondary);
+}
+
+/* Dropdown Menu */
+.custom-select-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  max-height: 250px;
+  overflow-y: auto;
+  display: none;
+}
+
+.custom-select-wrapper:focus-within .custom-select-dropdown {
+  display: block;
+}
+
+/* Dropdown Options */
+.dropdown-option {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  width: 100%;
+  border: none;
+  background-color: transparent;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--color-text-primary);
+  text-align: left;
+}
+
+.dropdown-option:hover {
+  background-color: var(--color-neutral);
+}
+
+.dropdown-option.active {
+  background-color: rgba(30, 58, 95, 0.08);
+  font-weight: 600;
+}
+
+.dropdown-option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.option-icon-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: var(--color-neutral);
+  border-radius: var(--radius-sm);
+  flex-shrink: 0;
+}
+
+.dropdown-option.active .option-icon-wrapper {
+  background-color: var(--color-primary);
+}
+
+.dropdown-option.active .payment-icon {
+  color: white;
+}
+
+.payment-icon {
+  font-size: 16px;
+  color: var(--color-primary);
+  transition: all var(--transition-fast);
+}
+
+.option-text {
+  flex: 1;
+}
+
+/* Scrollbar Styling */
+.custom-select-dropdown::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+.custom-select-dropdown::-webkit-scrollbar-thumb:hover {
+  background: var(--color-text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .custom-select-trigger {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .trigger-icon-wrapper {
+    width: 28px;
+    height: 28px;
+  }
+
+  .dropdown-option {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .option-icon-wrapper {
+    width: 24px;
+    height: 24px;
+  }
+
+  .payment-icon {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .custom-select-trigger {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-sm);
+  }
+
+  .trigger-icon-wrapper {
+    width: 24px;
+    height: 24px;
+  }
+
+  .trigger-chevron {
+    font-size: 16px;
+  }
+
+  .trigger-text {
+    font-size: 13px;
+  }
+
+  .dropdown-option {
+    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-sm);
+    font-size: 13px;
+  }
+
+  .option-icon-wrapper {
+    width: 22px;
+    height: 22px;
+  }
+
+  .payment-icon {
+    font-size: 13px;
+  }
+}

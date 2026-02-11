@@ -148,18 +148,21 @@ export const OFFER_GROUPS: OfferGroup[] = [
 export const PAYMENT_METHODS: PaymentMethod[] = [
   {
     id: 'CC',
-    name: 'Credit Card (Visa, Mastercard)',
+    name: 'Credit Card',
     type: 'credit_card',
+    icon: 'credit_card',
   },
   {
     id: 'PAYPAL',
     name: 'PayPal',
     type: 'paypal',
+    icon: 'paypal',
   },
   {
     id: 'BANK',
     name: 'Bank Transfer',
     type: 'bank_transfer',
+    icon: 'bank',
   },
 ];
 
