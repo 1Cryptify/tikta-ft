@@ -180,6 +180,20 @@ export const PaymentCheckoutPage: React.FC = () => {
         successData.offerType = 'package';
       }
       
+      // Add ticket availability information
+      if (verificationResult.adminContactMessage) {
+        successData.adminContactMessage = verificationResult.adminContactMessage;
+      }
+      if (verificationResult.ticketAvailable !== undefined) {
+        successData.ticketAvailable = verificationResult.ticketAvailable;
+      }
+      if (verificationResult.allTicketsAvailable !== undefined) {
+        successData.allTicketsAvailable = verificationResult.allTicketsAvailable;
+      }
+      if (verificationResult.offersWithoutTickets) {
+        successData.offersWithoutTickets = verificationResult.offersWithoutTickets;
+      }
+      
       // Update localStorage with complete data
       localStorage.setItem('pendingPayment', JSON.stringify(successData));
 

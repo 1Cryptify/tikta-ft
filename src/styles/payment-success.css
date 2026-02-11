@@ -467,3 +467,68 @@
     font-size: 14px;
   }
 }
+
+/* Admin Contact Banner - When tickets are not available */
+.admin-contact-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-lg);
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  border: 2px solid #f59e0b;
+  border-radius: var(--radius-lg);
+  padding: var(--space-xl);
+  margin: var(--space-xl) 0;
+  text-align: left;
+  box-shadow: 0 4px 6px rgba(245, 158, 11, 0.1);
+}
+
+.admin-contact-icon {
+  font-size: 32px;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.admin-contact-content h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0 0 var(--space-sm) 0;
+}
+
+.admin-contact-content p {
+  font-size: 15px;
+  color: #78350f;
+  margin: 0 0 var(--space-sm) 0;
+  line-height: 1.5;
+}
+
+.admin-contact-note {
+  font-size: 13px !important;
+  color: #92400e !important;
+  font-style: italic;
+  background-color: rgba(255, 255, 255, 0.5);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-sm);
+  margin-top: var(--space-sm);
+}
+
+@media (max-width: 480px) {
+  .admin-contact-banner {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: var(--space-lg);
+  }
+
+  .admin-contact-icon {
+    font-size: 28px;
+  }
+
+  .admin-contact-content h3 {
+    font-size: 16px;
+  }
+
+  .admin-contact-content p {
+    font-size: 14px;
+  }
+}

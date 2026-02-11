@@ -11,6 +11,10 @@ export interface VerificationResult {
   offerType?: string;
   groupName?: string;
   message?: string;
+  adminContactMessage?: string;
+  ticketAvailable?: boolean;
+  allTicketsAvailable?: boolean;
+  offersWithoutTickets?: string[];
 }
 
 interface UsePaymentVerificationReturn {
@@ -118,9 +122,28 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
           result.offerType = 'package';
         }
 
+        // Handle ticket availability flags from backend
+        if (response.ticket_available !== undefined) {
+          result.ticketAvailable = response.ticket_available;
+        }
+        if (response.all_tickets_available !== undefined) {
+          result.allTicketsAvailable = response.all_tickets_available;
+        }
+        if (response.admin_contact_message) {
+          result.adminContactMessage = response.admin_contact_message;
+        }
+        if (response.offers_without_tickets) {
+          result.offersWithoutTickets = response.offers_without_tickets;
+        }
+
         // Show success toast with backend message
         if (onToastMessage && response.message) {
           onToastMessage(response.message, 'success');
+        }
+
+        // Show warning toast if tickets are not available
+        if (onToastMessage && response.admin_contact_message) {
+          onToastMessage(response.admin_contact_message, 'error');
         }
 
         return result;

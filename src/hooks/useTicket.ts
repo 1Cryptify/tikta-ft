@@ -48,7 +48,7 @@ interface TicketState {
 interface UseTicketReturn extends TicketState {
      getTickets: () => Promise<void>;
      getTicketById: (id: string) => Promise<Ticket | null>;
-     createTicket: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }) => Promise<Ticket | null>;
+     createTicket: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string; company_id?: string; ticket_id?: string; password?: string }) => Promise<Ticket | null>;
      updateTicket: (id: string, data: Partial<Ticket>) => Promise<Ticket | null>;
      deleteTicket: (id: string) => Promise<boolean>;
      validateTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
@@ -152,7 +152,7 @@ export const useTicket = (): UseTicketReturn => {
     }, []);
 
     // Create new ticket
-    const createTicket = useCallback(async (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }): Promise<Ticket | null> => {
+    const createTicket = useCallback(async (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string; company_id?: string; ticket_id?: string; password?: string }): Promise<Ticket | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -165,8 +165,10 @@ export const useTicket = (): UseTicketReturn => {
                 offer_id: data.offer_id
             };
 
-            // Auto-add company_id from active company if not a superuser
-            if (user && !user.is_superuser && user.active_company) {
+            // Add company_id for superusers if provided, otherwise from active company
+            if (user && user.is_superuser && data.company_id) {
+                ticketData.company_id = data.company_id;
+            } else if (user && !user.is_superuser && user.active_company) {
                 ticketData.company_id = user.active_company.id;
             }
 

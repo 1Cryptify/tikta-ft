@@ -4,11 +4,13 @@ import { FiX, FiPlus } from 'react-icons/fi';
 import { colors, spacing } from '../config/theme';
 import { Ticket } from '../hooks/useTicket';
 import { useOffer, Offer } from '../hooks/useOffer';
+import { useAuth } from '../hooks/useAuth';
+import { useBusiness, Business } from '../hooks/useBusiness';
 
 interface CreateTicketModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }) => Promise<void>;
+    onSubmit: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string; company_id?: string }) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -230,20 +232,37 @@ const SuccessMessage = styled.div`
 
 const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, onSubmit, isLoading }) => {
     const { offers } = useOffer();
+    const { user } = useAuth();
+    const { businesses, getBusinesses } = useBusiness();
     const [formData, setFormData] = useState({
         ticket_id: '',
         password: '',
         valid_until: '',
         offer_id: '',
         payment_id: '',
+        company_id: '',
     });
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [selectedOfferName, setSelectedOfferName] = useState<string>('');
 
+    const isSuperuser = user?.is_superuser || false;
+
+    // Fetch companies when modal opens for superusers
+    useEffect(() => {
+        if (isOpen && isSuperuser) {
+            getBusinesses();
+        }
+    }, [isOpen, isSuperuser, getBusinesses]);
+
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleCompanyChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const selectedCompanyId = e.target.value;
+        setFormData(prev => ({ ...prev, company_id: selectedCompanyId }));
     };
 
     const handleOfferChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -288,6 +307,10 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             setError('Valid until date is required');
             return;
         }
+        if (isSuperuser && !formData.company_id) {
+            setError('Company is required for superusers');
+            return;
+        }
 
         try {
             await onSubmit(formData);
@@ -298,6 +321,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                 valid_until: '',
                 offer_id: '',
                 payment_id: '',
+                company_id: '',
             });
             setSelectedOfferName('');
             setTimeout(() => {
@@ -354,6 +378,26 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                                 data-lpignore="true"
                             />
                         </FormGroup>
+
+                        {isSuperuser && (
+                            <FormGroup>
+                                <Label htmlFor="company_id">Company *</Label>
+                                <Select
+                                    id="company_id"
+                                    name="company_id"
+                                    value={formData.company_id}
+                                    onChange={handleCompanyChange}
+                                    disabled={isLoading}
+                                >
+                                    <option value="">-- Select a company --</option>
+                                    {businesses.map(company => (
+                                        <option key={company.id} value={company.id}>
+                                            {company.name}
+                                        </option>
+                                    ))}
+                                </Select>
+                            </FormGroup>
+                        )}
 
                         <FormGroup>
                             <Label htmlFor="valid_until">Valid Until Date *</Label>

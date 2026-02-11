@@ -36,6 +36,10 @@ interface StoredPaymentData {
   tickets?: TicketInfo[];
   offerName?: string;
   offerType?: string;
+  adminContactMessage?: string;
+  ticketAvailable?: boolean;
+  allTicketsAvailable?: boolean;
+  offersWithoutTickets?: string[];
 }
 
 // PDF Styles
@@ -195,7 +199,7 @@ const SingleTicketPDF: React.FC<{ ticket: TicketInfo; index?: number }> = ({ tic
 
       <View style={styles.warning}>
         <Text style={styles.warningText}>
-          ATTENTION: Conservez ces informations precieusement. Chaque ticket ne peut etre utilise qu'une seule fois.
+          ATTENTION: Conservez ces informations precieusement.
         </Text>
       </View>
 
@@ -267,7 +271,7 @@ const AllTicketsPDF: React.FC<{ paymentData: StoredPaymentData }> = ({ paymentDa
 
         <View style={styles.warning}>
           <Text style={styles.warningText}>
-            ATTENTION: Conservez precieusement vos identifiants. Chaque ticket ne peut etre utilise qu'une seule fois.
+            ATTENTION: Conservez precieusement vos identifiants.
           </Text>
         </View>
 
@@ -364,6 +368,8 @@ export const PaymentSuccessPage: React.FC = () => {
   }
 
   const hasTickets = paymentData?.tickets && paymentData.tickets.length > 0;
+  const hasAdminContactMessage = paymentData?.adminContactMessage;
+  const isTicketUnavailable = paymentData?.ticketAvailable === false || paymentData?.allTicketsAvailable === false;
 
   return (
     <div className="payment-success">
@@ -371,10 +377,25 @@ export const PaymentSuccessPage: React.FC = () => {
         <div className="success-icon" />
         <h1 className="success-title">Paiement Réussi !</h1>
         <p className="success-message">
-          Merci ! Votre paiement a été traité avec succès. 
+          Merci ! Votre paiement a été traité avec succès.
           {hasTickets && ' Vos tickets sont disponibles ci-dessous.'}
-          {!hasTickets && ' Un email de confirmation vous sera envoyé.'}
+          {!hasTickets && !isTicketUnavailable && ' Un email de confirmation vous sera envoyé.'}
+          {isTicketUnavailable && ' Cependant, nous rencontrons un problème avec vos tickets.'}
         </p>
+
+        {/* Admin Contact Message - Show when tickets are not available */}
+        {hasAdminContactMessage && (
+          <div className="admin-contact-banner">
+            <div className="admin-contact-icon">⚠️</div>
+            <div className="admin-contact-content">
+              <h3>Action requise</h3>
+              <p>{paymentData.adminContactMessage}</p>
+              <p className="admin-contact-note">
+                Votre paiement a bien été enregistré. Contactez l'administrateur pour recevoir votre(vos) ticket(s).
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* Tickets Section */}
         {hasTickets && (

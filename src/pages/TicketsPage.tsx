@@ -584,7 +584,7 @@ export const TicketsPage: React.FC = () => {
     const [bulkLoading, setBulkLoading] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
 
-    const handleCreateTicket = async (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string }) => {
+    const handleCreateTicket = async (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string; company_id?: string }) => {
         await ticketData.createTicket(data);
     };
 
