@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { usePaymentMethodCurrency, Currency, PaymentMethod } from '../hooks/usePaymentMethodCurrency';
 import { FiPlus, FiEdit2, FiTrash2, FiAlertCircle } from 'react-icons/fi';
 import LoadingSpinner from '../components/LoadingSpinner';
+import '../styles/payment-config.css';
 
 export const PaymentMethodsCurrencyPage: React.FC = () => {
     const {
@@ -91,46 +92,38 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
     };
 
     return (
-        <div className="p-6 max-w-7xl mx-auto">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Configuration</h1>
-                <p className="text-gray-600">Manage currencies and payment methods</p>
+        <div className="payment-config-container">
+            <div className="payment-config-header">
+                <h1 className="payment-config-title">Payment Configuration</h1>
+                <p className="payment-config-subtitle">Manage currencies and payment methods</p>
             </div>
 
             {/* Error Message */}
             {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-                    <FiAlertCircle className="text-red-600" size={20} />
-                    <span className="text-red-800">{error}</span>
+                <div className="alert alert-error">
+                    <FiAlertCircle size={20} />
+                    <span>{error}</span>
                 </div>
             )}
 
             {/* Success Message */}
             {successMessage && (
-                <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <span className="text-green-800">{successMessage}</span>
+                <div className="alert alert-success">
+                    <span>{successMessage}</span>
                 </div>
             )}
 
             {/* Tabs */}
-            <div className="flex gap-4 mb-6 border-b">
+            <div className="tab-navigation">
                 <button
                     onClick={() => setActiveTab('currencies')}
-                    className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                        activeTab === 'currencies'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`tab-button ${activeTab === 'currencies' ? 'active' : ''}`}
                 >
                     Currencies ({currencies.length})
                 </button>
                 <button
                     onClick={() => setActiveTab('payment-methods')}
-                    className={`px-4 py-2 font-medium border-b-2 transition-colors ${
-                        activeTab === 'payment-methods'
-                            ? 'border-blue-500 text-blue-600'
-                            : 'border-transparent text-gray-600 hover:text-gray-900'
-                    }`}
+                    className={`tab-button ${activeTab === 'payment-methods' ? 'active' : ''}`}
                 >
                     Payment Methods ({paymentMethods.length})
                 </button>
@@ -141,36 +134,51 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
 
             {/* Currencies Tab */}
             {activeTab === 'currencies' && !isLoading && (
-                <div>
-                    <div className="mb-6">
+                <div className="form-section">
+                    <div className="form-header">
                         {!showCurrencyForm ? (
                             <button
                                 onClick={() => setShowCurrencyForm(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                className="add-button"
                             >
                                 <FiPlus size={20} />
                                 Add Currency
                             </button>
                         ) : (
-                            <form onSubmit={handleCurrencySubmit} className="bg-gray-50 p-6 rounded-lg">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <input type="text" name="code" placeholder="Code (USD)" className="border p-2 rounded" required />
-                                    <input type="text" name="name" placeholder="Name (US Dollar)" className="border p-2 rounded" required />
-                                    <input type="text" name="symbol" placeholder="Symbol ($)" className="border p-2 rounded" required />
-                                    <input type="number" name="value_in_usd" placeholder="Value in USD" step="0.0001" className="border p-2 rounded" required />
-                                    <input type="number" name="decimal_places" placeholder="Decimal Places" className="border p-2 rounded" required />
-                                    <label className="flex items-center gap-2">
-                                        <input type="checkbox" name="is_active" />
-                                        <span>Active</span>
-                                    </label>
-                                    <label className="flex items-center gap-2">
-                                        <input type="checkbox" name="is_default" />
-                                        <span>Default</span>
-                                    </label>
+                            <form onSubmit={handleCurrencySubmit} className="form-container">
+                                <div className="form-grid">
+                                    <div className="form-group">
+                                        <label className="form-label">Code</label>
+                                        <input type="text" name="code" placeholder="USD" className="form-input" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Name</label>
+                                        <input type="text" name="name" placeholder="US Dollar" className="form-input" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Symbol</label>
+                                        <input type="text" name="symbol" placeholder="$" className="form-input" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Value in USD</label>
+                                        <input type="number" name="value_in_usd" placeholder="1.0" step="0.0001" className="form-input" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Decimal Places</label>
+                                        <input type="number" name="decimal_places" placeholder="2" className="form-input" required />
+                                    </div>
+                                    <div className="form-checkbox-group">
+                                        <input type="checkbox" id="is_active" name="is_active" />
+                                        <label htmlFor="is_active">Active</label>
+                                    </div>
+                                    <div className="form-checkbox-group">
+                                        <input type="checkbox" id="is_default" name="is_default" />
+                                        <label htmlFor="is_default">Default</label>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2 mt-4">
-                                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                        {editingCurrency ? 'Update' : 'Create'}
+                                <div className="form-actions">
+                                    <button type="submit" className="btn-submit">
+                                        {editingCurrency ? 'Update Currency' : 'Create Currency'}
                                     </button>
                                     <button
                                         type="button"
@@ -178,7 +186,7 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                                             setShowCurrencyForm(false);
                                             setEditingCurrency(null);
                                         }}
-                                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                                        className="btn-cancel"
                                     >
                                         Cancel
                                     </button>
@@ -188,54 +196,58 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                     </div>
 
                     {/* Currencies List */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse border border-gray-300">
-                            <thead className="bg-gray-100">
+                    <div className="table-wrapper">
+                        <table className="data-table">
+                            <thead>
                                 <tr>
-                                    <th className="border p-3 text-left">Code</th>
-                                    <th className="border p-3 text-left">Name</th>
-                                    <th className="border p-3 text-left">Symbol</th>
-                                    <th className="border p-3 text-left">USD Value</th>
-                                    <th className="border p-3 text-left">Decimals</th>
-                                    <th className="border p-3 text-left">Active</th>
-                                    <th className="border p-3 text-left">Default</th>
-                                    <th className="border p-3 text-left">Actions</th>
+                                    <th>Code</th>
+                                    <th>Name</th>
+                                    <th>Symbol</th>
+                                    <th>USD Value</th>
+                                    <th>Decimals</th>
+                                    <th>Active</th>
+                                    <th>Default</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {currencies.map(currency => (
-                                    <tr key={currency.id} className="hover:bg-gray-50">
-                                        <td className="border p-3">{currency.code}</td>
-                                        <td className="border p-3">{currency.name}</td>
-                                        <td className="border p-3">{currency.symbol}</td>
-                                        <td className="border p-3">{currency.value_in_usd}</td>
-                                        <td className="border p-3">{currency.decimal_places}</td>
-                                        <td className="border p-3">
-                                            <span className={`px-2 py-1 rounded text-white text-sm ${currency.is_active ? 'bg-green-600' : 'bg-red-600'}`}>
-                                                {currency.is_active ? 'Yes' : 'No'}
+                                    <tr key={currency.id}>
+                                        <td>{currency.code}</td>
+                                        <td>{currency.name}</td>
+                                        <td>{currency.symbol}</td>
+                                        <td>{currency.value_in_usd}</td>
+                                        <td>{currency.decimal_places}</td>
+                                        <td>
+                                            <span className={`badge ${currency.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                                                {currency.is_active ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td className="border p-3">
-                                            <span className={`px-2 py-1 rounded text-white text-sm ${currency.is_default ? 'bg-blue-600' : 'bg-gray-400'}`}>
-                                                {currency.is_default ? 'Yes' : 'No'}
+                                        <td>
+                                            <span className={`badge ${currency.is_default ? 'badge-default' : 'badge-inactive'}`}>
+                                                {currency.is_default ? 'Default' : 'No'}
                                             </span>
                                         </td>
-                                        <td className="border p-3 flex gap-2">
-                                            <button
-                                                onClick={() => {
-                                                    setEditingCurrency(currency);
-                                                    setShowCurrencyForm(true);
-                                                }}
-                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                                            >
-                                                <FiEdit2 size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeleteCurrency(currency.id)}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded"
-                                            >
-                                                <FiTrash2 size={18} />
-                                            </button>
+                                        <td>
+                                            <div className="action-buttons">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingCurrency(currency);
+                                                        setShowCurrencyForm(true);
+                                                    }}
+                                                    className="btn-icon btn-icon-edit"
+                                                    title="Edit"
+                                                >
+                                                    <FiEdit2 />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeleteCurrency(currency.id)}
+                                                    className="btn-icon btn-icon-delete"
+                                                    title="Delete"
+                                                >
+                                                    <FiTrash2 />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -247,35 +259,41 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
 
             {/* Payment Methods Tab */}
             {activeTab === 'payment-methods' && !isLoading && (
-                <div>
-                    <div className="mb-6">
+                <div className="form-section">
+                    <div className="form-header">
                         {!showPaymentMethodForm ? (
                             <button
                                 onClick={() => setShowPaymentMethodForm(true)}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                                className="add-button"
                             >
                                 <FiPlus size={20} />
                                 Add Payment Method
                             </button>
                         ) : (
-                            <form onSubmit={handlePaymentMethodSubmit} className="bg-gray-50 p-6 rounded-lg">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <input type="text" name="name" placeholder="Name" className="border p-2 rounded" required />
-                                    <select name="type" className="border p-2 rounded" required>
-                                        <option value="">Select Type</option>
-                                        <option value="bank_account">Bank Account</option>
-                                        <option value="card">Card</option>
-                                        <option value="mobile_money">Mobile Money</option>
-                                        <option value="wallet">Wallet</option>
-                                    </select>
-                                    <label className="flex items-center gap-2 col-span-2">
-                                        <input type="checkbox" name="is_active" />
-                                        <span>Active</span>
-                                    </label>
+                            <form onSubmit={handlePaymentMethodSubmit} className="form-container">
+                                <div className="form-grid">
+                                    <div className="form-group">
+                                        <label className="form-label">Method Name</label>
+                                        <input type="text" name="name" placeholder="e.g., Stripe" className="form-input" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Payment Type</label>
+                                        <select name="type" className="form-select" required>
+                                            <option value="">Select Type</option>
+                                            <option value="bank_account">Bank Account</option>
+                                            <option value="card">Card</option>
+                                            <option value="mobile_money">Mobile Money</option>
+                                            <option value="wallet">Wallet</option>
+                                        </select>
+                                    </div>
+                                    <div className="form-checkbox-group">
+                                        <input type="checkbox" id="pm_is_active" name="is_active" />
+                                        <label htmlFor="pm_is_active">Active</label>
+                                    </div>
                                 </div>
-                                <div className="flex gap-2 mt-4">
-                                    <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
-                                        {editingPaymentMethod ? 'Update' : 'Create'}
+                                <div className="form-actions">
+                                    <button type="submit" className="btn-submit">
+                                        {editingPaymentMethod ? 'Update Method' : 'Create Method'}
                                     </button>
                                     <button
                                         type="button"
@@ -283,7 +301,7 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                                             setShowPaymentMethodForm(false);
                                             setEditingPaymentMethod(null);
                                         }}
-                                        className="px-4 py-2 bg-gray-300 text-gray-700 rounded hover:bg-gray-400"
+                                        className="btn-cancel"
                                     >
                                         Cancel
                                     </button>
@@ -293,42 +311,50 @@ export const PaymentMethodsCurrencyPage: React.FC = () => {
                     </div>
 
                     {/* Payment Methods List */}
-                    <div className="overflow-x-auto">
-                        <table className="w-full border-collapse border border-gray-300">
-                            <thead className="bg-gray-100">
+                    <div className="table-wrapper">
+                        <table className="data-table">
+                            <thead>
                                 <tr>
-                                    <th className="border p-3 text-left">Name</th>
-                                    <th className="border p-3 text-left">Type</th>
-                                    <th className="border p-3 text-left">Active</th>
-                                    <th className="border p-3 text-left">Actions</th>
+                                    <th>Name</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {paymentMethods.map(method => (
-                                    <tr key={method.id} className="hover:bg-gray-50">
-                                        <td className="border p-3">{method.name}</td>
-                                        <td className="border p-3 capitalize">{method.type.replace('_', ' ')}</td>
-                                        <td className="border p-3">
-                                            <span className={`px-2 py-1 rounded text-white text-sm ${method.is_active ? 'bg-green-600' : 'bg-red-600'}`}>
-                                                {method.is_active ? 'Yes' : 'No'}
+                                    <tr key={method.id}>
+                                        <td>{method.name}</td>
+                                        <td>
+                                            <span style={{ textTransform: 'capitalize' }}>
+                                                {method.type.replace('_', ' ')}
                                             </span>
                                         </td>
-                                        <td className="border p-3 flex gap-2">
-                                            <button
-                                                onClick={() => {
-                                                    setEditingPaymentMethod(method);
-                                                    setShowPaymentMethodForm(true);
-                                                }}
-                                                className="p-2 text-blue-600 hover:bg-blue-50 rounded"
-                                            >
-                                                <FiEdit2 size={18} />
-                                            </button>
-                                            <button
-                                                onClick={() => handleDeletePaymentMethod(method.id)}
-                                                className="p-2 text-red-600 hover:bg-red-50 rounded"
-                                            >
-                                                <FiTrash2 size={18} />
-                                            </button>
+                                        <td>
+                                            <span className={`badge ${method.is_active ? 'badge-active' : 'badge-inactive'}`}>
+                                                {method.is_active ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <div className="action-buttons">
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingPaymentMethod(method);
+                                                        setShowPaymentMethodForm(true);
+                                                    }}
+                                                    className="btn-icon btn-icon-edit"
+                                                    title="Edit"
+                                                >
+                                                    <FiEdit2 />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleDeletePaymentMethod(method.id)}
+                                                    className="btn-icon btn-icon-delete"
+                                                    title="Delete"
+                                                >
+                                                    <FiTrash2 />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
