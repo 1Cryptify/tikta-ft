@@ -56,7 +56,7 @@ export const PayRouterPage: React.FC<PayRouterPageProps> = ({ type }) => {
             const offerData = await paymentService.getOffer(targetId);
             if (offerData.status === 'success' && offerData.offer) {
               // It's an offer - redirect to offer checkout
-              navigate(`/checkout/offer/${targetId}`, { replace: true });
+              navigate(`/pay/offer/${targetId}`, { replace: true });
               return;
             }
           } catch (err) {

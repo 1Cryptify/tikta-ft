@@ -14,7 +14,7 @@ import {
  * New URL Structure:
  * - /pay/:id                         - Offer payment page (or group package if id is a group with is_package=true)
  * - /pay/g/:groupId                  - Group routing (payment if is_package=true, offers list if is_package=false)
- * - /checkout/offer/:offerId         - Direct checkout for offer
+ * - /pay/offer/:offerId         - Direct checkout for offer
  * - /checkout/group/:groupId/buy     - Checkout for group package
  * - /checkout/product/:productId     - Checkout for product
  * - /pay/success                     - Payment success page
@@ -40,9 +40,9 @@ export const PaymentRoutes: React.FC = () => {
       <Route path="/g/:groupId" element={<PayRouterPage type="group" />} />
 
       {/* Checkout Routes (internal use) */}
-      <Route path="/checkout/offer/:offerId" element={<PaymentCheckoutPage />} />
-      <Route path="/checkout/group/:groupId/buy" element={<PaymentCheckoutPage />} />
-      <Route path="/checkout/product/:productId" element={<PaymentCheckoutPage />} />
+      <Route path="/pay/offer/:offerId" element={<PaymentCheckoutPage />} />
+      <Route path="/pay/g/:groupId/buy" element={<PaymentCheckoutPage />} />
+      <Route path="/pay/product/:productId" element={<PaymentCheckoutPage />} />
 
       {/* Success/Failure Routes */}
       <Route path="/success" element={<PaymentSuccessPage />} />

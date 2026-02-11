@@ -40,12 +40,12 @@ export const routes: RouteConfig[] = [
     },
     // Checkout routes (internal redirects from PayRouterPage)
     {
-        path: '/checkout/offer/:offerId',
+        path: '/pay/offer/:offerId',
         element: <PaymentCheckoutPage />,
         protected: false,
     },
     {
-        path: '/checkout/group/:groupId/buy',
+        path: '/pay/g/:groupId/buy',
         element: <PaymentCheckoutPage />,
         protected: false,
     },

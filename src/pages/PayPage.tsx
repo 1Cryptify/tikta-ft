@@ -85,7 +85,7 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
   };
 
   const handleOfferClick = (offerId: string) => {
-    navigate(`/checkout/offer/${offerId}`);
+    navigate(`/pay/offer/${offerId}`);
   };
 
   const handleBuyGroup = () => {
