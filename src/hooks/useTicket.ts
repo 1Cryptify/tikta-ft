@@ -49,6 +49,7 @@ interface UseTicketReturn extends TicketState {
      getTickets: () => Promise<void>;
      getTicketById: (id: string) => Promise<Ticket | null>;
      createTicket: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string; company_id?: string; ticket_id?: string; password?: string }) => Promise<Ticket | null>;
+    bulkImportTickets: (tickets: Array<{ ticket_id: string; password: string; valid_until: string }>, offer_id?: string, company_id?: string) => Promise<{ status: string; summary: { total: number; created: number; failed: number }; tickets: any[] } | null>;
      updateTicket: (id: string, data: Partial<Ticket>) => Promise<Ticket | null>;
      deleteTicket: (id: string) => Promise<boolean>;
      validateTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
@@ -203,6 +204,68 @@ export const useTicket = (): UseTicketReturn => {
                 : error instanceof Error
                     ? error.message
                     : 'Failed to create ticket';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return null;
+        }
+    }, [user]);
+
+    // Bulk import tickets
+    const bulkImportTickets = useCallback(async (
+        tickets: Array<{ ticket_id: string; password: string; valid_until: string }>,
+        offer_id?: string,
+        company_id?: string
+    ): Promise<{ status: string; summary: { total: number; created: number; failed: number }; tickets: any[] } | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const bulkData: any = { tickets };
+
+            // Add offer_id if provided
+            if (offer_id) {
+                bulkData.offer_id = offer_id;
+            }
+
+            // Add company_id for superusers if provided, otherwise from active company
+            if (user && user.is_superuser && company_id) {
+                bulkData.company_id = company_id;
+            } else if (user && !user.is_superuser && user.active_company) {
+                bulkData.company_id = user.active_company.id;
+            }
+
+            const response = await axiosInstance.post('/tickets/bulk-import/', bulkData);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    successMessage: response.data.message || 'Bulk import completed successfully',
+                }));
+                return response.data;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to import tickets',
+                }));
+            }
+            return null;
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || error.message
+                : error instanceof Error
+                    ? error.message
+                    : 'Failed to import tickets';
             setState(prev => ({
                 ...prev,
                 isLoading: false,
@@ -454,6 +517,7 @@ export const useTicket = (): UseTicketReturn => {
         getTickets,
         getTicketById,
         createTicket,
+        bulkImportTickets,
         updateTicket,
         deleteTicket,
         validateTicket,

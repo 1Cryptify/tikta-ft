@@ -767,31 +767,28 @@ export const TicketsPage: React.FC = () => {
                 throw new Error('JSON deve conter um array de tickets');
             }
 
-            let successCount = 0;
-            let errorCount = 0;
+            // Use backend bulk import endpoint
+            const result = await ticketData.bulkImportTickets(
+                ticketsToCreate.map(ticket => ({
+                    ticket_id: ticket.ticket_id,
+                    password: ticket.password,
+                    valid_until: ticket.valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                })),
+                selectedOffer || undefined
+            );
 
-            for (const ticket of ticketsToCreate) {
-                try {
-                    await ticketData.createTicket({
-                        ...ticket,
-                        valid_until: ticket.valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-                    });
-                    successCount++;
-                } catch (err) {
-                    errorCount++;
-                    console.error('Erro ao criar ticket:', err);
-                }
-            }
-
-            if (successCount > 0) {
+            if (result) {
                 setBulkJsonInput('');
                 setIsBulkModalOpen(false);
                 setBulkError(null);
-                alert(`${successCount} ticket(s) criado(s) com sucesso!`);
-            }
-
-            if (errorCount > 0) {
-                setBulkError(`${errorCount} ticket(s) falharam ao serem criados`);
+                alert(`${result.summary.created}/${result.summary.total} ticket(s) criado(s) com sucesso!`);
+                
+                if (result.summary.failed > 0) {
+                    setBulkError(`${result.summary.failed} ticket(s) falharam ao serem criados`);
+                }
+                
+                // Refresh tickets
+                await ticketData.getTickets();
             }
         } catch (err) {
             setBulkError(err instanceof Error ? err.message : 'Erro ao processar JSON');
