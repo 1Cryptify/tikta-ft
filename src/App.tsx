@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Routes, Route, useLocation } from 'react-router-dom';
+import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useAuth, User } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './components/Auth/LoginPage';
@@ -50,8 +50,15 @@ function App() {
     return (
         <>
             <Routes>
-                {/* Home Page - Public */}
-                <Route path="/" element={<HomePage />} />
+                {/* Home Page - Redirect authenticated users to dashboard */}
+                <Route 
+                    path="/" 
+                    element={
+                        isAuthenticated && !isLoading ? 
+                            <Navigate to="/dashboard" replace /> : 
+                            <HomePage />
+                    } 
+                />
 
                 {/* Auth Routes */}
                 <Route path="/login" element={<LoginPage />} />
