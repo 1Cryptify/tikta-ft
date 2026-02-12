@@ -778,17 +778,28 @@ export const TicketsPage: React.FC = () => {
             );
 
             if (result) {
-                setBulkJsonInput('');
-                setIsBulkModalOpen(false);
-                setBulkError(null);
-                alert(`${result.summary.created}/${result.summary.total} ticket(s) criado(s) com sucesso!`);
-                
-                if (result.summary.failed > 0) {
-                    setBulkError(`${result.summary.failed} ticket(s) falharam ao serem criados`);
+                if (result.summary.created > 0) {
+                    setBulkJsonInput('');
+                    setIsBulkModalOpen(false);
+                    alert(`${result.summary.created}/${result.summary.total} ticket(s) criado(s) com sucesso!`);
+                    // Refresh tickets
+                    await ticketData.getTickets();
                 }
                 
-                // Refresh tickets
-                await ticketData.getTickets();
+                if (result.summary.failed > 0) {
+                    // Show sample errors for debugging
+                    const failedTickets = result.tickets.filter((t: any) => t.status === 'error').slice(0, 5);
+                    const errorMessages = new Set<string>();
+                    failedTickets.forEach((t: any) => {
+                        errorMessages.add(t.message);
+                    });
+                    const errorSummary = Array.from(errorMessages).join('; ');
+                    setBulkError(`${result.summary.failed} ticket(s) falharam. Erros: ${errorSummary}. Verifique o formato JSON: ticket_id/id/code, password/secret, valid_until/expires`);
+                } else if (result.summary.created === 0) {
+                    setBulkError('Nenhum ticket foi criado. Verifique o JSON e tente novamente.');
+                } else {
+                    setBulkError(null);
+                }
             }
         } catch (err) {
             setBulkError(err instanceof Error ? err.message : 'Erro ao processar JSON');
