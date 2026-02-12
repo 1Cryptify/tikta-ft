@@ -100,6 +100,14 @@ export const PaymentCheckoutPage: React.FC = () => {
             is_active: pm.is_active,
           }));
           setPaymentMethods(mappedMethods);
+          
+          // Set first payment method as default
+          if (mappedMethods.length > 0) {
+            setFormData((prev) => ({
+              ...prev,
+              paymentMethod: mappedMethods[0].id,
+            }));
+          }
         }
 
         // Fetch the specific item being purchased
