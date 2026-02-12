@@ -383,7 +383,7 @@ export const PaymentSuccessPage: React.FC = () => {
   const hasTickets = paymentData?.tickets && paymentData.tickets.length > 0;
   const hasAdminContactMessage = paymentData?.adminContactMessage;
   const isTicketUnavailable = paymentData?.ticketAvailable === false || paymentData?.allTicketsAvailable === false;
-
+  console.log(paymentData)
   return (
     <div className="payment-success">
       <div className="success-container">
@@ -396,19 +396,7 @@ export const PaymentSuccessPage: React.FC = () => {
           {isTicketUnavailable && ' Cependant, nous rencontrons un problème avec vos tickets.'}
         </p>
 
-        {/* Admin Contact Message - Show when tickets are not available */}
-        {hasAdminContactMessage && (
-          <div className="admin-contact-banner">
-            <div className="admin-contact-icon">⚠️</div>
-            <div className="admin-contact-content">
-              <h3>Action requise</h3>
-              <p>{paymentData.adminContactMessage}</p>
-              <p className="admin-contact-note">
-                Votre paiement a bien été enregistré. Contactez l'administrateur pour recevoir votre(vos) ticket(s).
-              </p>
-            </div>
-          </div>
-        )}
+
 
         {/* Tickets Section */}
         {hasTickets && (
