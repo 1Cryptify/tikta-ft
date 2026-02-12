@@ -2,10 +2,10 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 // @ts-ignore
 import QRCode from 'qrcode.react';
-import { FiPrinter, FiEye, FiEyeOff, FiCheck, FiX, FiCopy, FiPlus, FiTrash2, FiFilter, FiXCircle } from 'react-icons/fi';
+import { FiPrinter, FiEye, FiEyeOff, FiX, FiCopy, FiPlus, FiTrash2, FiXCircle } from 'react-icons/fi';
 import { colors, spacing } from '../config/theme';
 import { useTicket, Ticket } from '../hooks/useTicket';
-import { useOffer, Offer } from '../hooks/useOffer';
+import { useOffer } from '../hooks/useOffer';
 import LoadingSpinner from '../components/LoadingSpinner';
 import CreateTicketModal from '../components/CreateTicketModal';
 
@@ -774,7 +774,7 @@ export const TicketsPage: React.FC = () => {
                     password: ticket.password,
                     valid_until: ticket.valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                 })),
-                selectedOffer || undefined
+                selectedOfferId !== 'all' ? selectedOfferId : undefined
             );
 
             if (result) {
