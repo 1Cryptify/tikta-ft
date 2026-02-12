@@ -512,6 +512,35 @@
   margin-top: var(--space-sm);
 }
 
+/* Admin Notice - shown when no tickets are available */
+.admin-notice {
+  background-color: #fef2f2;
+  border: 2px solid #fca5a5;
+  border-radius: var(--radius-lg);
+  padding: var(--space-lg);
+  margin: var(--space-xl) 0;
+  text-align: center;
+}
+
+.admin-notice.error {
+  background-color: #fef2f2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+.admin-notice strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: var(--space-sm);
+  font-weight: 700;
+}
+
+.admin-notice p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 @media (max-width: 480px) {
   .admin-contact-banner {
     flex-direction: column;
@@ -530,5 +559,9 @@
 
   .admin-contact-content p {
     font-size: 14px;
+  }
+  
+  .admin-notice {
+    padding: var(--space-md);
   }
 }

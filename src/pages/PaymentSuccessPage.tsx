@@ -384,6 +384,10 @@ export const PaymentSuccessPage: React.FC = () => {
   const hasAdminContactMessage = paymentData?.adminContactMessage;
   const isTicketUnavailable = paymentData?.ticketAvailable === false || paymentData?.allTicketsAvailable === false;
   console.log(paymentData)
+  
+  // Show admin contact message ONLY if there are NO tickets
+  const shouldShowAdminMessage = hasAdminContactMessage && !hasTickets;
+  
   return (
     <div className="payment-success">
       <div className="success-container">
@@ -394,6 +398,14 @@ export const PaymentSuccessPage: React.FC = () => {
           {hasTickets && ' Vos tickets sont disponibles ci-dessous.'}
           {!hasTickets && !isTicketUnavailable && ' Un email de confirmation vous sera envoyé.'}
         </p>
+        
+        {/* Show admin contact message ONLY if no tickets are available */}
+        {shouldShowAdminMessage && (
+          <div className="admin-notice error">
+            <strong>Action requise</strong>
+            <p>{hasAdminContactMessage}</p>
+          </div>
+        )}
 
 
 
