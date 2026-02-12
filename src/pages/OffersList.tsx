@@ -15,6 +15,8 @@ import {
     FiImage,
 } from 'react-icons/fi';
 import { useOffer, Offer, OfferGroup } from '../hooks/useOffer';
+import { useAuth } from '../hooks/useAuth';
+import { useBusiness } from '../hooks/useBusiness';
 import { OfferModal } from '../components/OfferModal';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 import { getMediaUrl } from '../services/api';
@@ -592,7 +594,7 @@ const OffersSelector = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: ${spacing.md};
-    max-height: 300px;
+    max-height: 500px;
     overflow-y: auto;
     padding: ${spacing.md};
     border: 1px solid ${colors.border};
@@ -772,6 +774,9 @@ interface OffersListProps {
 }
 
 export const OffersList: React.FC<OffersListProps> = () => {
+    const { user } = useAuth();
+    const { businesses } = useBusiness();
+
     const {
         offers,
         offerGroups,
@@ -790,7 +795,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
         getOfferGroups,
         uploadOfferGroupImage,
     } = useOffer();
-    
+
     // Refs for file inputs
     const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
     const groupFileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
@@ -813,6 +818,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
         description: '',
         price: '',
         currency_id: '',
+        company_id: '',
         is_package: false,
         is_active: true,
         is_featured: false,
@@ -900,6 +906,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                 description: group.description || '',
                 price: group.price ? String(group.price) : '',
                 currency_id: group.currency_id || '',
+                company_id: group.company_id || '',
                 is_package: group.is_package || false,
                 is_active: group.is_active ?? true,
                 is_featured: group.is_featured ?? false,
@@ -907,11 +914,14 @@ export const OffersList: React.FC<OffersListProps> = () => {
             setSelectedOfferIds(group.offers?.map(o => o.id) || []);
         } else {
             setEditingGroup(null);
+            // For new groups, auto-select company based on user type
+            const defaultCompanyId = user && !user.is_superuser && user.active_company ? user.active_company.id : '';
             setGroupFormData({
                 name: '',
                 description: '',
                 price: '',
                 currency_id: '',
+                company_id: defaultCompanyId,
                 is_package: false,
                 is_active: true,
                 is_featured: false,
@@ -929,6 +939,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
             description: '',
             price: '',
             currency_id: '',
+            company_id: '',
             is_package: false,
             is_active: true,
             is_featured: false,
@@ -939,6 +950,12 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const handleSubmitGroup = async () => {
         if (!groupFormData.name.trim()) {
             alert('Group name is required');
+            return;
+        }
+
+        // Validation for superuser: company_id is required
+        if (user?.is_superuser && !groupFormData.company_id) {
+            alert('Please select a company');
             return;
         }
 
@@ -964,6 +981,11 @@ export const OffersList: React.FC<OffersListProps> = () => {
                 is_active: groupFormData.is_active,
                 is_featured: groupFormData.is_featured,
             };
+
+            // Include company_id for superuser
+            if (user?.is_superuser) {
+                data.company_id = groupFormData.company_id;
+            }
 
             // Only include price and currency if it's a package
             if (groupFormData.is_package) {
@@ -1035,22 +1057,22 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const handleFileChange = async (offerId: string, event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        
+
         // Validate file type
         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
             alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
             return;
         }
-        
+
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
             alert('Image size should be less than 5MB');
             return;
         }
-        
+
         await uploadOfferImage(offerId, file);
-        
+
         // Reset file input
         if (fileInputRefs.current[offerId]) {
             fileInputRefs.current[offerId]!.value = '';
@@ -1064,22 +1086,22 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const handleGroupFileChange = async (groupId: string, event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file) return;
-        
+
         // Validate file type
         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
             alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
             return;
         }
-        
+
         // Validate file size (max 5MB)
         if (file.size > 5 * 1024 * 1024) {
             alert('Image size should be less than 5MB');
             return;
         }
-        
+
         await uploadOfferGroupImage(groupId, file);
-        
+
         // Reset file input
         if (groupFileInputRefs.current[groupId]) {
             groupFileInputRefs.current[groupId]!.value = '';
@@ -1717,6 +1739,33 @@ export const OffersList: React.FC<OffersListProps> = () => {
                             disabled={isSaving}
                         />
                     </FormGroup>
+
+                    {user?.is_superuser && (
+                        <FormGroup>
+                            <label>Company *</label>
+                            <select
+                                value={groupFormData.company_id}
+                                onChange={(e) =>
+                                    setGroupFormData({ ...groupFormData, company_id: e.target.value })
+                                }
+                                disabled={isSaving}
+                                style={{
+                                    width: '100%',
+                                    padding: spacing.md,
+                                    border: `1px solid ${colors.border}`,
+                                    borderRadius: borderRadius.md,
+                                    fontSize: '0.875rem',
+                                }}
+                            >
+                                <option value="">Select a company</option>
+                                {businesses.map((business) => (
+                                    <option key={business.id} value={business.id}>
+                                        {business.name}
+                                    </option>
+                                ))}
+                            </select>
+                        </FormGroup>
+                    )}
 
                     <FormGroup>
                         <label>Description</label>
