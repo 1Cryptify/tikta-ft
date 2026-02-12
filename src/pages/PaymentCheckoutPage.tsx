@@ -58,6 +58,26 @@ export const PaymentCheckoutPage: React.FC = () => {
   // Determine if form should be disabled
   const isFormDisabled = dataLoading || isVerifying;
 
+  // Cookie management helpers
+  const saveMobileMoneyToCookie = (phoneNumber: string) => {
+    const expires = new Date();
+    expires.setTime(expires.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    document.cookie = `lastMobileMoneyNumber=${encodeURIComponent(phoneNumber)};expires=${expires.toUTCString()};path=/`;
+  };
+
+  const getSavedMobileMoneyFromCookie = (): string => {
+    const name = 'lastMobileMoneyNumber=';
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const cookieArray = decodedCookie.split(';');
+    for (let cookie of cookieArray) {
+      cookie = cookie.trim();
+      if (cookie.indexOf(name) === 0) {
+        return cookie.substring(name.length, cookie.length);
+      }
+    }
+    return '';
+  };
+
   // Toast helper functions - limit to max 2 toasts and shorter duration
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToasts((prev) => {
@@ -106,6 +126,8 @@ export const PaymentCheckoutPage: React.FC = () => {
             setFormData((prev) => ({
               ...prev,
               paymentMethod: mappedMethods[0].id,
+              // Load saved mobile money number from cookie
+              mobileMoneyNumber: getSavedMobileMoneyFromCookie() || prev.mobileMoneyNumber,
             }));
           }
         }
@@ -420,6 +442,11 @@ export const PaymentCheckoutPage: React.FC = () => {
       }
 
       if (response.status === 'success') {
+        // Save mobile money number to cookie if present
+        if (formData.mobileMoneyNumber) {
+          saveMobileMoneyToCookie(formData.mobileMoneyNumber);
+        }
+        
         // Store initial payment info in localStorage first
         const successData: any = {
           paymentInfo: {
