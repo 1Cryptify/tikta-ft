@@ -36,9 +36,10 @@ interface UsePaymentVerificationReturn {
 }
 
 // Polling configuration
-const POLLING_INTERVAL = 5000; // 5 seconds between checks
-const MAX_ATTEMPTS = 60; // 60 attempts = 5 minutes total (60 * 5s)
-const INITIAL_DELAY = 3000; // Wait 3 seconds before first check
+const INITIAL_DELAY = 60000; // 1 minute before first check
+const SECOND_DELAY = 120000; // 2 minutes for second check (1 min + 2 min = 3 min total)
+const POLLING_INTERVAL = 300000; // 5 minutes between subsequent checks
+const MAX_ATTEMPTS = 7; // 28 minutes total (1 + 2 + 5*5)
 
 export const usePaymentVerification = (): UsePaymentVerificationReturn => {
   const [status, setStatus] = useState<PaymentStatus>('pending');
@@ -238,20 +239,30 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
         setVerificationMessage('Payment verification timed out. Please check your payment status later.');
         setVerificationResult({
           status: 'timeout',
-          message: 'Payment verification timed out after 5 minutes',
+          message: 'Payment verification timed out after 30 minutes',
         });
       }
-      // If pending, continue polling (interval will trigger next attempt)
+      // If pending, continue polling (next scheduled check will trigger)
     };
 
-    // Initial delay before first check
+    // First check after 1 minute
     timeoutRef.current = setTimeout(() => {
       performVerification();
 
-      // Set up interval for subsequent checks
-      intervalRef.current = setInterval(() => {
-        performVerification();
-      }, POLLING_INTERVAL);
+      // Second check after 2 more minutes (3 minutes total)
+      const secondTimeoutRef = setTimeout(() => {
+        if (currentAttempt < MAX_ATTEMPTS) {
+          performVerification();
+
+          // Subsequent checks every 5 minutes
+          intervalRef.current = setInterval(() => {
+            performVerification();
+          }, POLLING_INTERVAL);
+        }
+      }, SECOND_DELAY);
+
+      // Store second timeout for cleanup
+      timeoutRef.current = secondTimeoutRef as any;
     }, INITIAL_DELAY);
   }, [clearAllTimers, verifyPayment]);
 
