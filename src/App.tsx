@@ -6,6 +6,7 @@ import { LoginPage } from './components/Auth/LoginPage';
 import { ConfirmationPage } from './components/Auth/ConfirmationPage';
 import { HomePage } from './pages/HomePage';
 import { Dashboard } from './pages/Dashboard';
+import LoadingSpinner from './components/LoadingSpinner';
 import PaymentRoutes from './config/payment-routes';
 import { UserRole } from './config/menuPermissions';
 import './styles/global.css';
@@ -54,9 +55,13 @@ function App() {
                 <Route 
                     path="/" 
                     element={
-                        isAuthenticated && !isLoading ? 
-                            <Navigate to="/dashboard" replace /> : 
+                        isLoading ? (
+                            <LoadingSpinner />
+                        ) : isAuthenticated ? (
+                            <Navigate to="/dashboard" replace />
+                        ) : (
                             <HomePage />
+                        )
                     } 
                 />
 
