@@ -172,14 +172,14 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
 
   const renderOfferCard = (offer: Offer) => {
     return (
-      <div key={offer.id} className="offer-card">
+      <div key={offer.id} className="offer-card" onClick={() => handleOfferClick(offer.id)} style={{ cursor: 'pointer' }}>
         {offer.discount && (
           <div className="offer-badge">
             <div className="offer-badge-value">{offer.discount}%</div>
             <div>OFF</div>
           </div>
         )}
-        <div className="offer-image">
+        <div className="offer-image" onClick={() => handleOfferClick(offer.id)}>
           <img src={API_BASE_URL+offer.image} alt={offer.name} />
         </div>
         <div className="offer-content">
