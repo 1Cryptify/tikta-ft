@@ -107,24 +107,24 @@ interface WithdrawalState {
 }
 
 interface UseWithdrawalReturn extends WithdrawalState {
-    getWithdrawalAccounts: () => Promise<void>;
-    getWithdrawalAccountById: (id: string) => Promise<WithdrawalAccount | null>;
-    createWithdrawalAccount: (data: Partial<WithdrawalAccount>) => Promise<WithdrawalAccount | null>;
-    updateWithdrawalAccount: (id: string, data: Partial<WithdrawalAccount>) => Promise<WithdrawalAccount | null>;
-    deleteWithdrawalAccount: (id: string) => Promise<boolean>;
-    verifyWithdrawalAccount: (id: string) => Promise<boolean>;
-    rejectWithdrawalAccount: (id: string, reason?: string) => Promise<boolean>;
-    getCompanyWithdrawalAccounts: (companyId: string) => Promise<WithdrawalAccount[]>;
-    getPaymentMethods: () => Promise<PaymentMethod[]>;
-    getCompanies: () => Promise<Company[]>;
-    linkPaymentMethod: (withdrawalId: string, paymentMethodName: string) => Promise<WithdrawalAccount | null>;
-    unlinkPaymentMethod: (withdrawalId: string) => Promise<WithdrawalAccount | null>;
-    getBalance: () => Promise<PaymentBalance | null>;
-    getCompanyBalance: (companyId: string) => Promise<PaymentBalance | null>;
-    adminSetRecipientId: (accountId: string, data?: any) => Promise<WithdrawalAccount | null>;
-    adminActivatePaymentAccount: (accountId: string, data?: any) => Promise<WithdrawalAccount | null>;
-    initiateWithdrawal: (data: any) => Promise<any>;
-    verifyWithdrawalStatus: (paymentId: string) => Promise<any>;
+     getWithdrawalAccounts: () => Promise<void>;
+     getWithdrawalAccountById: (id: string) => Promise<WithdrawalAccount | null>;
+     createWithdrawalAccount: (data: Partial<WithdrawalAccount>) => Promise<WithdrawalAccount | null>;
+     updateWithdrawalAccount: (id: string, data: Partial<WithdrawalAccount>) => Promise<WithdrawalAccount | null>;
+     deleteWithdrawalAccount: (id: string) => Promise<boolean>;
+     verifyWithdrawalAccount: (id: string, channel?: string) => Promise<boolean>;
+     rejectWithdrawalAccount: (id: string, reason?: string) => Promise<boolean>;
+     getCompanyWithdrawalAccounts: (companyId: string) => Promise<WithdrawalAccount[]>;
+     getPaymentMethods: () => Promise<PaymentMethod[]>;
+     getCompanies: () => Promise<Company[]>;
+     linkPaymentMethod: (withdrawalId: string, paymentMethodName: string) => Promise<WithdrawalAccount | null>;
+     unlinkPaymentMethod: (withdrawalId: string) => Promise<WithdrawalAccount | null>;
+     getBalance: () => Promise<PaymentBalance | null>;
+     getCompanyBalance: (companyId: string) => Promise<PaymentBalance | null>;
+     adminSetRecipientId: (accountId: string, data?: any) => Promise<WithdrawalAccount | null>;
+     adminActivatePaymentAccount: (accountId: string, data?: any) => Promise<WithdrawalAccount | null>;
+     initiateWithdrawal: (data: any) => Promise<any>;
+     verifyWithdrawalStatus: (paymentId: string) => Promise<any>;
 }
 
 export const useWithdrawal = (): UseWithdrawalReturn => {
@@ -337,12 +337,13 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
     }, []);
 
     // Verify withdrawal account
-    const verifyWithdrawalAccount = useCallback(async (id: string): Promise<boolean> => {
+    const verifyWithdrawalAccount = useCallback(async (id: string, channel?: string): Promise<boolean> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         try {
-            const response = await axiosInstance.post(`/withdrawal-accounts/${id}/verify/`);
+            const data = channel ? { channel } : {};
+            const response = await axiosInstance.post(`/withdrawal-accounts/${id}/verify/`, data);
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
 

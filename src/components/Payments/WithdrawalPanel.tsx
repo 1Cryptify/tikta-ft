@@ -481,6 +481,7 @@ export const WithdrawalPanel: React.FC = () => {
     const [selectedAccountForAdmin, setSelectedAccountForAdmin] = useState<any | null>(null);
     const [adminAction, setAdminAction] = useState<'activate' | 'set_recipient' | null>(null);
     const [adminRecipientId, setAdminRecipientId] = useState('');
+    const [adminChannel, setAdminChannel] = useState('');
     const [withdrawalToVerify, setWithdrawalToVerify] = useState<any | null>(null);
 
     // Update withdrawal currency when balance currency changes
@@ -649,8 +650,8 @@ export const WithdrawalPanel: React.FC = () => {
         }
     };
 
-    const handleVerify = async (id: string) => {
-        const result = await verifyWithdrawalAccount(id);
+    const handleVerify = async (id: string, channel?: string) => {
+        const result = await verifyWithdrawalAccount(id, channel);
         if (result) {
             await getWithdrawalAccounts();
         }
@@ -761,6 +762,7 @@ export const WithdrawalPanel: React.FC = () => {
 
         try {
             const result = await adminActivatePaymentAccount(selectedAccountForAdmin.id, {
+                channel: adminChannel || undefined,
                 verification_notes: 'Account activated by admin',
             });
 
@@ -768,6 +770,7 @@ export const WithdrawalPanel: React.FC = () => {
                 alert('Account activated successfully!');
                 setShowAdminActionsModal(false);
                 setSelectedAccountForAdmin(null);
+                setAdminChannel('');
                 await getWithdrawalAccounts();
             }
         } catch (err: any) {
@@ -781,6 +784,7 @@ export const WithdrawalPanel: React.FC = () => {
 
         try {
             const result = await adminSetRecipientId(selectedAccountForAdmin.id, {
+                channel: adminChannel || undefined,
                 recipient_id: adminRecipientId || undefined,
             });
 
@@ -789,6 +793,7 @@ export const WithdrawalPanel: React.FC = () => {
                 setShowAdminActionsModal(false);
                 setSelectedAccountForAdmin(null);
                 setAdminRecipientId('');
+                setAdminChannel('');
                 await getWithdrawalAccounts();
             }
         } catch (err: any) {
@@ -1027,6 +1032,8 @@ export const WithdrawalPanel: React.FC = () => {
                                              onClick={() => {
                                                  setSelectedAccountForAdmin(account);
                                                  setAdminAction('activate');
+                                                 setAdminChannel('');
+                                                 setAdminRecipientId('');
                                                  setShowAdminActionsModal(true);
                                              }}
                                          >
@@ -1037,6 +1044,8 @@ export const WithdrawalPanel: React.FC = () => {
                                              onClick={() => {
                                                  setSelectedAccountForAdmin(account);
                                                  setAdminAction('set_recipient');
+                                                 setAdminChannel('');
+                                                 setAdminRecipientId('');
                                                  setShowAdminActionsModal(true);
                                              }}
                                          >
@@ -1195,104 +1204,126 @@ export const WithdrawalPanel: React.FC = () => {
                         </ModalHeader>
 
                         {adminAction === 'set_recipient' ? (
-                            <form onSubmit={(e) => {
-                                e.preventDefault();
-                                handleAdminSetRecipient();
-                            }}>
-                                <FormGroup>
-                                    <label>Account Provider</label>
-                                    <input
-                                        type="text"
-                                        value={selectedAccountForAdmin.provider}
-                                        disabled
-                                    />
-                                </FormGroup>
+                             <form onSubmit={(e) => {
+                                 e.preventDefault();
+                                 handleAdminSetRecipient();
+                             }}>
+                                 <FormGroup>
+                                     <label>Account Provider</label>
+                                     <input
+                                         type="text"
+                                         value={selectedAccountForAdmin.provider}
+                                         disabled
+                                     />
+                                 </FormGroup>
 
-                                <FormGroup>
-                                    <label>Account Number</label>
-                                    <input
-                                        type="text"
-                                        value={selectedAccountForAdmin.account_number}
-                                        disabled
-                                    />
-                                </FormGroup>
+                                 <FormGroup>
+                                     <label>Account Number</label>
+                                     <input
+                                         type="text"
+                                         value={selectedAccountForAdmin.account_number}
+                                         disabled
+                                     />
+                                 </FormGroup>
 
-                                <FormGroup>
-                                    <label>Recipient ID (auto-generated if empty)</label>
-                                    <input
-                                        type="text"
-                                        value={adminRecipientId}
-                                        onChange={(e) => setAdminRecipientId(e.target.value)}
-                                        placeholder="Leave empty to auto-generate from payment gateway"
-                                    />
-                                </FormGroup>
+                                 <FormGroup>
+                                     <label>Channel (e.g., cm.mtn, cm.orange) *</label>
+                                     <input
+                                         type="text"
+                                         value={adminChannel}
+                                         onChange={(e) => setAdminChannel(e.target.value)}
+                                         placeholder="e.g., cm.mtn, cm.orange"
+                                         required
+                                     />
+                                 </FormGroup>
 
-                                <ModalFooter>
-                                    <CancelButton
-                                        type="button"
-                                        onClick={() => setShowAdminActionsModal(false)}
-                                    >
-                                        Cancel
-                                    </CancelButton>
-                                    <SubmitButton type="submit" disabled={isLoading}>
-                                        {isLoading ? 'Processing...' : 'Set Recipient ID'}
-                                    </SubmitButton>
-                                </ModalFooter>
-                            </form>
-                        ) : (
-                            <form onSubmit={(e) => {
-                                e.preventDefault();
-                                handleAdminActivateAccount();
-                            }}>
-                                <FormGroup>
-                                    <label>Account Provider</label>
-                                    <input
-                                        type="text"
-                                        value={selectedAccountForAdmin.provider}
-                                        disabled
-                                    />
-                                </FormGroup>
+                                 <FormGroup>
+                                     <label>Recipient ID (auto-generated if empty)</label>
+                                     <input
+                                         type="text"
+                                         value={adminRecipientId}
+                                         onChange={(e) => setAdminRecipientId(e.target.value)}
+                                         placeholder="Leave empty to auto-generate from payment gateway"
+                                     />
+                                 </FormGroup>
 
-                                <FormGroup>
-                                    <label>Account Number</label>
-                                    <input
-                                        type="text"
-                                        value={selectedAccountForAdmin.account_number}
-                                        disabled
-                                    />
-                                </FormGroup>
+                                 <ModalFooter>
+                                     <CancelButton
+                                         type="button"
+                                         onClick={() => setShowAdminActionsModal(false)}
+                                     >
+                                         Cancel
+                                     </CancelButton>
+                                     <SubmitButton type="submit" disabled={isLoading}>
+                                         {isLoading ? 'Processing...' : 'Set Recipient ID'}
+                                     </SubmitButton>
+                                 </ModalFooter>
+                             </form>
+                         ) : (
+                             <form onSubmit={(e) => {
+                                 e.preventDefault();
+                                 handleAdminActivateAccount();
+                             }}>
+                                 <FormGroup>
+                                     <label>Account Provider</label>
+                                     <input
+                                         type="text"
+                                         value={selectedAccountForAdmin.provider}
+                                         disabled
+                                     />
+                                 </FormGroup>
 
-                                <FormGroup>
-                                    <label>Current Status</label>
-                                    <input
-                                        type="text"
-                                        value={selectedAccountForAdmin.verification_status}
-                                        disabled
-                                    />
-                                </FormGroup>
+                                 <FormGroup>
+                                     <label>Account Number</label>
+                                     <input
+                                         type="text"
+                                         value={selectedAccountForAdmin.account_number}
+                                         disabled
+                                     />
+                                 </FormGroup>
 
-                                <p style={{ color: colors.textSecondary, fontSize: '0.875rem' }}>
-                                    This will:
-                                    <ul>
-                                        <li>Verify the account</li>
-                                        <li>Create a recipient ID if needed</li>
-                                        <li>Activate the account for withdrawals</li>
-                                    </ul>
-                                </p>
+                                 <FormGroup>
+                                     <label>Current Status</label>
+                                     <input
+                                         type="text"
+                                         value={selectedAccountForAdmin.verification_status}
+                                         disabled
+                                     />
+                                 </FormGroup>
 
-                                <ModalFooter>
-                                    <CancelButton
-                                        type="button"
-                                        onClick={() => setShowAdminActionsModal(false)}
-                                    >
-                                        Cancel
-                                    </CancelButton>
-                                    <SubmitButton type="submit" disabled={isLoading}>
-                                        {isLoading ? 'Activating...' : 'Activate Account'}
-                                    </SubmitButton>
-                                </ModalFooter>
-                            </form>
-                        )}
+                                 <FormGroup>
+                                     <label>Channel (e.g., cm.mtn, cm.orange) *</label>
+                                     <input
+                                         type="text"
+                                         value={adminChannel}
+                                         onChange={(e) => setAdminChannel(e.target.value)}
+                                         placeholder="e.g., cm.mtn, cm.orange"
+                                         required
+                                     />
+                                 </FormGroup>
+
+                                 <p style={{ color: colors.textSecondary, fontSize: '0.875rem' }}>
+                                     This will:
+                                     <ul>
+                                         <li>Verify the account</li>
+                                         <li>Create a recipient ID automatically</li>
+                                         <li>Activate the account for withdrawals</li>
+                                     </ul>
+                                 </p>
+
+                                 <ModalFooter>
+                                     <CancelButton
+                                         type="button"
+                                         onClick={() => setShowAdminActionsModal(false)}
+                                     >
+                                         Cancel
+                                     </CancelButton>
+                                     <SubmitButton type="submit" disabled={isLoading}>
+                                         {isLoading ? 'Activating...' : 'Activate Account'}
+                                     </SubmitButton>
+                                 </ModalFooter>
+                             </form>
+                         )}
                     </ModalContent>
                     </ModalOverlay>
                     )}
