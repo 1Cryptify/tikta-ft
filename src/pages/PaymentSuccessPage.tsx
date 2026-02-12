@@ -393,7 +393,6 @@ export const PaymentSuccessPage: React.FC = () => {
           Merci ! Votre paiement a été traité avec succès.
           {hasTickets && ' Vos tickets sont disponibles ci-dessous.'}
           {!hasTickets && !isTicketUnavailable && ' Un email de confirmation vous sera envoyé.'}
-          {isTicketUnavailable && ' Cependant, nous rencontrons un problème avec vos tickets.'}
         </p>
 
 
@@ -464,7 +463,7 @@ export const PaymentSuccessPage: React.FC = () => {
             <div className="tickets-notice">
               <div className="notice-box warning">
                 <strong> Important</strong>
-                <p>Conservez précieusement vos identifiants. Chaque ticket ne peut être utilisé qu'une seule fois.</p>
+                <p>Conservez précieusement vos identifiants.</p>
               </div>
               
               <div className="notice-box info">
