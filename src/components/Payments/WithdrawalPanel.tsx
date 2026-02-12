@@ -746,8 +746,10 @@ export const WithdrawalPanel: React.FC = () => {
                 // Refresh withdrawal accounts and balance
                 await getWithdrawalAccounts();
                 await getBalance();
+            } else if (result && result.status === 'error') {
+                alert(result.message);
             } else {
-                alert(result?.message || 'Failed to initiate withdrawal');
+                alert('Failed to initiate withdrawal');
             }
         } catch (err: any) {
             alert(err.response?.data?.message || 'Failed to process withdrawal');
@@ -1118,7 +1120,7 @@ export const WithdrawalPanel: React.FC = () => {
 
                             <FormRow>
                                 <FormGroup>
-                                    <label>Montant * (multiple de 50)</label>
+                                    <label>Montant *</label>
                                     <input
                                         type="number"
                                         name="amount"
@@ -1126,7 +1128,7 @@ export const WithdrawalPanel: React.FC = () => {
                                         onChange={handleWithdrawalInputChange}
                                         placeholder="Entrez le montant"
                                         step="50"
-                                        min="50"
+                                        min="1000"
                                         required
                                     />
                                 </FormGroup>

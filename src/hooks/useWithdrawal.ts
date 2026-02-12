@@ -744,44 +744,51 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
     }, []);
 
     // Initiate withdrawal
-    const initiateWithdrawal = useCallback(async (data: any): Promise<any> => {
-        const startTime = Date.now();
-        setState(prev => ({ ...prev, isLoading: true, error: null }));
+     const initiateWithdrawal = useCallback(async (data: any): Promise<any> => {
+         const startTime = Date.now();
+         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-        try {
-            const response = await axiosInstance.post('/withdrawals/initiate/', data);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+         try {
+             const response = await axiosInstance.post('/withdrawals/initiate/', data);
+             const elapsed = Date.now() - startTime;
+             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
 
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
+             if (delayNeeded > 0) {
+                 await new Promise(resolve => setTimeout(resolve, delayNeeded));
+             }
 
-            if (response.data.status === 'success') {
-                setState(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    successMessage: response.data.message || 'Withdrawal initiated successfully',
-                }));
-                return response.data;
-            } else if (response.data.status === 'error') {
-                setState(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    error: response.data.message || 'Failed to initiate withdrawal',
-                }));
-            }
-            return null;
-        } catch (error: any) {
-            const errorMsg = error.response?.data?.message || 'Failed to initiate withdrawal';
-            setState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: errorMsg,
-            }));
-            return null;
-        }
-    }, []);
+             if (response.data.status === 'success') {
+                 setState(prev => ({
+                     ...prev,
+                     isLoading: false,
+                     successMessage: response.data.message || 'Withdrawal initiated successfully',
+                 }));
+                 return response.data;
+             } else if (response.data.status === 'error') {
+                 setState(prev => ({
+                     ...prev,
+                     isLoading: false,
+                     error: response.data.message || 'Failed to initiate withdrawal',
+                 }));
+                 return {
+                     status: 'error',
+                     message: response.data.message || 'Failed to initiate withdrawal',
+                 };
+             }
+             return null;
+         } catch (error: any) {
+             const errorMsg = error.response?.data?.message || 'Failed to initiate withdrawal';
+             setState(prev => ({
+                 ...prev,
+                 isLoading: false,
+                 error: errorMsg,
+             }));
+             return {
+                 status: 'error',
+                 message: errorMsg,
+             };
+         }
+     }, []);
 
     // Verify withdrawal status
     const verifyWithdrawalStatus = useCallback(async (paymentId: string): Promise<any> => {
