@@ -234,11 +234,25 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
 
   return (
     <div className="pay-page">
-      <div className="container">
-        <div className="pay-header">
-          <h1>{group.name}</h1>
-          <p>{group.description}</p>
+      {/* Cover Image Header */}
+      {(group.coverImage || group.image) && (
+        <div className="pay-cover-header">
+          <img src={API_BASE_URL + (group.coverImage || group.image)} alt={group.name} />
+          <div className="pay-cover-overlay"></div>
+          <div className="pay-cover-content">
+            <h1>{group.name}</h1>
+            <p>{group.description}</p>
+          </div>
         </div>
+      )}
+      
+      <div className="container">
+        {!group.coverImage && !group.image && (
+          <div className="pay-header">
+            <h1>{group.name}</h1>
+            <p>{group.description}</p>
+          </div>
+        )}
 
         {/* Buy Group Bundle Section - Only if is_package is true */}
         {group.is_package && (
