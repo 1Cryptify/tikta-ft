@@ -27,6 +27,16 @@ export interface Currency {
     updated_at?: string;
 }
 
+/**
+ * Represent une offre disponible pour achat
+ * 
+ * IMPORTANT: Les offres de type 'ticket' SANS billets disponibles sont
+ * automatiquement filtrées par le backend et ne sont jamais retournées.
+ * 
+ * Garanties:
+ * - Si offer_type === 'ticket': Des billets valides et non utilisés existent
+ * - Si offer_type === 'digital_product': L'offre est active si retournée
+ */
 export interface Offer {
     id: string;
     group_id?: string;
@@ -43,6 +53,11 @@ export interface Offer {
     final_price?: number;
     is_active: boolean;
     is_deleted?: boolean;
+    /**
+     * Type d'offre:
+     * - 'ticket': Offre de billets (filtrée si pas de billets disponibles)
+     * - 'digital_product': Produit numérique (toujours incluse si active)
+     */
     offer_type?: 'ticket' | 'digital_product';
     category?: string;
     tags?: string[];

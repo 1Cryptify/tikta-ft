@@ -264,7 +264,9 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
           </div>
         )}
 
-        {/* Group Products/Offers Section */}
+        {/* Group Products/Offers Section
+            NOTE: Backend automatically filters out ticket offers without available tickets,
+            so all items here are guaranteed to be purchasable */}
         <div className="pay-section">
           <h2 className="pay-section-title">
             {group.is_package ? 'Or Choose Individual Products' : 'Available Products'}
