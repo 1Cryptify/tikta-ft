@@ -1,4 +1,5 @@
-const API_BASE = import.meta.env.VITE_API_URL || 'https://tikta-bk.webafri.com';
+// const API_BASE =  'https://tikta-bk.webafri.com';
+const API_BASE =  'http://127.0.0.1:8000';
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
