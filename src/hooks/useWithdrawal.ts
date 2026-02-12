@@ -711,6 +711,7 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
             const response = await axiosInstance.post(`/withdrawal-accounts/${accountId}/activate/`, data || {});
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            console.log(response.data)
 
             if (delayNeeded > 0) {
                 await new Promise(resolve => setTimeout(resolve, delayNeeded));

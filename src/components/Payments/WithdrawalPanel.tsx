@@ -1037,7 +1037,7 @@ export const WithdrawalPanel: React.FC = () => {
                                                  setShowAdminActionsModal(true);
                                              }}
                                          >
-                                             🔧 Activate Account
+                                              Activate Account
                                          </ActionButton>
                                          <ActionButton
                                              className="success"
@@ -1049,7 +1049,7 @@ export const WithdrawalPanel: React.FC = () => {
                                                  setShowAdminActionsModal(true);
                                              }}
                                          >
-                                             🆔 Set Recipient ID
+                                              Set Recipient ID
                                          </ActionButton>
                                      </>
                                  )}
@@ -1196,7 +1196,7 @@ export const WithdrawalPanel: React.FC = () => {
                     <ModalContent onClick={(e) => e.stopPropagation()}>
                         <ModalHeader>
                             <h2>
-                                {adminAction === 'activate' ? '🔧 Activate Payment Account' : '🆔 Set Recipient ID'}
+                                {adminAction === 'activate' ? ' Activate Payment Account' : ' Set Recipient ID'}
                             </h2>
                             <CloseButton onClick={() => setShowAdminActionsModal(false)}>
                                 ×
