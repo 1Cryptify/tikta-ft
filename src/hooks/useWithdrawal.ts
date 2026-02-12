@@ -121,6 +121,10 @@ interface UseWithdrawalReturn extends WithdrawalState {
     unlinkPaymentMethod: (withdrawalId: string) => Promise<WithdrawalAccount | null>;
     getBalance: () => Promise<PaymentBalance | null>;
     getCompanyBalance: (companyId: string) => Promise<PaymentBalance | null>;
+    adminSetRecipientId: (accountId: string, data?: any) => Promise<WithdrawalAccount | null>;
+    adminActivatePaymentAccount: (accountId: string, data?: any) => Promise<WithdrawalAccount | null>;
+    initiateWithdrawal: (data: any) => Promise<any>;
+    verifyWithdrawalStatus: (paymentId: string) => Promise<any>;
 }
 
 export const useWithdrawal = (): UseWithdrawalReturn => {
@@ -656,6 +660,168 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
         }
     }, []);
 
+    // Admin: Set recipient ID for withdrawal account
+    const adminSetRecipientId = useCallback(async (accountId: string, data?: any): Promise<WithdrawalAccount | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.post(`/withdrawal-accounts/${accountId}/set-recipient/`, data || {});
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const updatedAccount = response.data.withdrawal_account;
+                setState(prev => ({
+                    ...prev,
+                    withdrawalAccounts: prev.withdrawalAccounts.map(a => a.id === accountId ? updatedAccount : a),
+                    isLoading: false,
+                    successMessage: response.data.message || 'Recipient ID set successfully',
+                }));
+                return updatedAccount;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to set recipient ID',
+                }));
+            }
+            return null;
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to set recipient ID',
+            }));
+            return null;
+        }
+    }, []);
+
+    // Admin: Activate payment account
+    const adminActivatePaymentAccount = useCallback(async (accountId: string, data?: any): Promise<WithdrawalAccount | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.post(`/withdrawal-accounts/${accountId}/activate/`, data || {});
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const updatedAccount = response.data.withdrawal_account;
+                setState(prev => ({
+                    ...prev,
+                    withdrawalAccounts: prev.withdrawalAccounts.map(a => a.id === accountId ? updatedAccount : a),
+                    isLoading: false,
+                    successMessage: response.data.message || 'Payment account activated successfully',
+                }));
+                return updatedAccount;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to activate payment account',
+                }));
+            }
+            return null;
+        } catch (error) {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: 'Failed to activate payment account',
+            }));
+            return null;
+        }
+    }, []);
+
+    // Initiate withdrawal
+    const initiateWithdrawal = useCallback(async (data: any): Promise<any> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.post('/withdrawals/initiate/', data);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    successMessage: response.data.message || 'Withdrawal initiated successfully',
+                }));
+                return response.data;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to initiate withdrawal',
+                }));
+            }
+            return null;
+        } catch (error: any) {
+            const errorMsg = error.response?.data?.message || 'Failed to initiate withdrawal';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMsg,
+            }));
+            return null;
+        }
+    }, []);
+
+    // Verify withdrawal status
+    const verifyWithdrawalStatus = useCallback(async (paymentId: string): Promise<any> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.get(`/withdrawals/${paymentId}/verify-status/`);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    successMessage: 'Withdrawal status verified',
+                }));
+                return response.data;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to verify withdrawal status',
+                }));
+            }
+            return null;
+        } catch (error: any) {
+            const errorMsg = error.response?.data?.message || 'Failed to verify withdrawal status';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMsg,
+            }));
+            return null;
+        }
+    }, []);
+
     // Initialize - fetch data on mount
     useEffect(() => {
         getWithdrawalAccounts();
@@ -678,5 +844,9 @@ export const useWithdrawal = (): UseWithdrawalReturn => {
         unlinkPaymentMethod,
         getBalance,
         getCompanyBalance,
+        adminSetRecipientId,
+        adminActivatePaymentAccount,
+        initiateWithdrawal,
+        verifyWithdrawalStatus,
     };
 };

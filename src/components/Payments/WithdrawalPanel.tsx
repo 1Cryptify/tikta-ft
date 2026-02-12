@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import axios from 'axios';
 import { colors, spacing } from '../../config/theme';
-import { useWithdrawal, PaymentMethod, Company, PaymentBalance, Currency } from '../../hooks/useWithdrawal';
+import { useWithdrawal, PaymentMethod, Company, Currency } from '../../hooks/useWithdrawal';
 import { useAuth } from '../../hooks/useAuth';
 import { API_PAYMENTS_BASE_URL } from '../../services/api';
 import LoadingSpinner from '../LoadingSpinner';
@@ -422,23 +422,26 @@ interface WithdrawalRequestData {
 }
 
 export const WithdrawalPanel: React.FC = () => {
-    const { user } = useAuth();
-    const {
-        withdrawalAccounts,
-        balance,
-        isLoading,
-        error,
-        successMessage,
-        getWithdrawalAccounts,
-        createWithdrawalAccount,
-        deleteWithdrawalAccount,
-        verifyWithdrawalAccount,
-        linkPaymentMethod,
-        unlinkPaymentMethod,
-        getCompanies,
-        getBalance,
-        getCompanyBalance,
-    } = useWithdrawal();
+     const { user } = useAuth();
+     const {
+         withdrawalAccounts,
+         balance,
+         isLoading,
+         error,
+         successMessage,
+         getWithdrawalAccounts,
+         createWithdrawalAccount,
+         deleteWithdrawalAccount,
+         verifyWithdrawalAccount,
+         linkPaymentMethod,
+         unlinkPaymentMethod,
+         getCompanies,
+         getBalance,
+         adminSetRecipientId,
+         adminActivatePaymentAccount,
+         initiateWithdrawal,
+         verifyWithdrawalStatus,
+     } = useWithdrawal();
 
     const [showForm, setShowForm] = useState(false);
     const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -474,6 +477,11 @@ export const WithdrawalPanel: React.FC = () => {
         currency: 'USD',
     });
     const [isProcessingWithdrawal, setIsProcessingWithdrawal] = useState(false);
+    const [showAdminActionsModal, setShowAdminActionsModal] = useState(false);
+    const [selectedAccountForAdmin, setSelectedAccountForAdmin] = useState<any | null>(null);
+    const [adminAction, setAdminAction] = useState<'activate' | 'set_recipient' | null>(null);
+    const [adminRecipientId, setAdminRecipientId] = useState('');
+    const [withdrawalToVerify, setWithdrawalToVerify] = useState<any | null>(null);
 
     // Update withdrawal currency when balance currency changes
     useEffect(() => {
@@ -712,18 +720,17 @@ export const WithdrawalPanel: React.FC = () => {
 
         setIsProcessingWithdrawal(true);
         try {
-            const axiosInstance = axios.create({
-                baseURL: API_PAYMENTS_BASE_URL,
-                withCredentials: true,
-            });
-
-            const response = await axiosInstance.post('/withdrawals/', {
+            // Initiate withdrawal
+            const result = await initiateWithdrawal({
                 account_id: withdrawalData.account_id,
                 amount: withdrawalData.amount,
-                currency: withdrawalData.currency,
+                currency_code: withdrawalData.currency,
             });
 
-            if (response.data.status === 'success') {
+            if (result && result.status === 'success') {
+                // Store withdrawal info for verification
+                setWithdrawalToVerify(result);
+                
                 // Reset form
                 setWithdrawalData({
                     account_id: '',
@@ -731,15 +738,79 @@ export const WithdrawalPanel: React.FC = () => {
                     currency: 'USD',
                 });
                 setShowWithdrawalModal(false);
+                
+                // Show success and start polling for status
+                alert('Withdrawal initiated! Reference: ' + result.reference);
+                
                 // Refresh withdrawal accounts and balance
                 await getWithdrawalAccounts();
                 await getBalance();
+            } else {
+                alert(result?.message || 'Failed to initiate withdrawal');
             }
         } catch (err: any) {
             alert(err.response?.data?.message || 'Failed to process withdrawal');
             console.error('Withdrawal error:', err);
         } finally {
             setIsProcessingWithdrawal(false);
+        }
+    };
+
+    const handleAdminActivateAccount = async () => {
+        if (!selectedAccountForAdmin) return;
+
+        try {
+            const result = await adminActivatePaymentAccount(selectedAccountForAdmin.id, {
+                verification_notes: 'Account activated by admin',
+            });
+
+            if (result) {
+                alert('Account activated successfully!');
+                setShowAdminActionsModal(false);
+                setSelectedAccountForAdmin(null);
+                await getWithdrawalAccounts();
+            }
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to activate account');
+            console.error('Error:', err);
+        }
+    };
+
+    const handleAdminSetRecipient = async () => {
+        if (!selectedAccountForAdmin) return;
+
+        try {
+            const result = await adminSetRecipientId(selectedAccountForAdmin.id, {
+                recipient_id: adminRecipientId || undefined,
+            });
+
+            if (result) {
+                alert('Recipient ID set successfully! ID: ' + result.recipient_id);
+                setShowAdminActionsModal(false);
+                setSelectedAccountForAdmin(null);
+                setAdminRecipientId('');
+                await getWithdrawalAccounts();
+            }
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to set recipient ID');
+            console.error('Error:', err);
+        }
+    };
+
+    const handleVerifyWithdrawalStatus = async (paymentId: string) => {
+        try {
+            const result = await verifyWithdrawalStatus(paymentId);
+
+            if (result && result.status === 'success') {
+                const withdrawal = result.withdrawal;
+                alert(`Withdrawal status: ${withdrawal.status}\nAmount: ${withdrawal.amount} ${withdrawal.currency.code}`);
+                await getBalance();
+            } else {
+                alert(result?.message || 'Failed to verify withdrawal');
+            }
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Failed to verify withdrawal');
+            console.error('Error:', err);
         }
     };
 
@@ -936,8 +1007,8 @@ export const WithdrawalPanel: React.FC = () => {
                                     <InfoRow>
                                         <span>Verified By:</span>
                                         <strong>
-                                            {account.verified_by.first_name || account.verified_by.username}
-                                            {account.verified_by.last_name && ` ${account.verified_by.last_name}`}
+                                            {account.verified_by?.first_name || (account.verified_by as any)?.username || 'Admin'}
+                                            {account.verified_by?.last_name && ` ${account.verified_by.last_name}`}
                                         </strong>
                                     </InfoRow>
                                 )}
@@ -949,44 +1020,60 @@ export const WithdrawalPanel: React.FC = () => {
                                 </InfoRow>
                             </CardInfo>
                             <CardActions>
-                                {account.verification_status === 'pending' && user?.is_superuser && (
-                                    <ActionButton
-                                        className="success"
-                                        onClick={() => handleVerify(account.id)}
-                                    >
-                                        Verify
-                                    </ActionButton>
-                                )}
-                                {linkedPaymentMethod[account.id] ? (
-                                    <ActionButton
-                                        onClick={() => handleUnlinkPaymentMethod(account.id)}
-                                    >
-                                        Unlink Method
-                                    </ActionButton>
-                                ) : (
-                                    <LinkMethodSelect
-                                        value=""
-                                        onChange={(e) => {
-                                            if (e.target.value) {
-                                                handleLinkPaymentMethod(account.id, e.target.value);
-                                            }
-                                        }}
-                                    >
-                                        <option value="">Link Method...</option>
-                                        {paymentMethods.map(method => (
-                                            <option key={method.id} value={method.name}>
-                                                {method.name}
-                                            </option>
-                                        ))}
-                                    </LinkMethodSelect>
-                                )}
-                                <ActionButton
-                                    className="danger"
-                                    onClick={() => handleDelete(account.id)}
-                                >
-                                    Delete
-                                </ActionButton>
-                            </CardActions>
+                                 {user?.is_superuser && account.verification_status === 'pending' && (
+                                     <>
+                                         <ActionButton
+                                             className="success"
+                                             onClick={() => {
+                                                 setSelectedAccountForAdmin(account);
+                                                 setAdminAction('activate');
+                                                 setShowAdminActionsModal(true);
+                                             }}
+                                         >
+                                             🔧 Activate Account
+                                         </ActionButton>
+                                         <ActionButton
+                                             className="success"
+                                             onClick={() => {
+                                                 setSelectedAccountForAdmin(account);
+                                                 setAdminAction('set_recipient');
+                                                 setShowAdminActionsModal(true);
+                                             }}
+                                         >
+                                             🆔 Set Recipient ID
+                                         </ActionButton>
+                                     </>
+                                 )}
+                                 {linkedPaymentMethod[account.id] ? (
+                                     <ActionButton
+                                         onClick={() => handleUnlinkPaymentMethod(account.id)}
+                                     >
+                                         Unlink Method
+                                     </ActionButton>
+                                 ) : (
+                                     <LinkMethodSelect
+                                         value=""
+                                         onChange={(e) => {
+                                             if (e.target.value) {
+                                                 handleLinkPaymentMethod(account.id, e.target.value);
+                                             }
+                                         }}
+                                     >
+                                         <option value="">Link Method...</option>
+                                         {paymentMethods.map(method => (
+                                             <option key={method.id} value={method.name}>
+                                                 {method.name}
+                                             </option>
+                                         ))}
+                                     </LinkMethodSelect>
+                                 )}
+                                 <ActionButton
+                                     className="danger"
+                                     onClick={() => handleDelete(account.id)}
+                                 >
+                                     Delete
+                                 </ActionButton>
+                             </CardActions>
                         </Card>
                     ))}
                 </CardContainer>
@@ -1092,8 +1179,123 @@ export const WithdrawalPanel: React.FC = () => {
                             </ModalFooter>
                         </form>
                     </ModalContent>
-                </ModalOverlay>
-            )}
-        </PanelContainer>
-    );
-};
+                    </ModalOverlay>
+                    )}
+
+                    {showAdminActionsModal && selectedAccountForAdmin && (
+                    <ModalOverlay onClick={() => setShowAdminActionsModal(false)}>
+                    <ModalContent onClick={(e) => e.stopPropagation()}>
+                        <ModalHeader>
+                            <h2>
+                                {adminAction === 'activate' ? '🔧 Activate Payment Account' : '🆔 Set Recipient ID'}
+                            </h2>
+                            <CloseButton onClick={() => setShowAdminActionsModal(false)}>
+                                ×
+                            </CloseButton>
+                        </ModalHeader>
+
+                        {adminAction === 'set_recipient' ? (
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                handleAdminSetRecipient();
+                            }}>
+                                <FormGroup>
+                                    <label>Account Provider</label>
+                                    <input
+                                        type="text"
+                                        value={selectedAccountForAdmin.provider}
+                                        disabled
+                                    />
+                                </FormGroup>
+
+                                <FormGroup>
+                                    <label>Account Number</label>
+                                    <input
+                                        type="text"
+                                        value={selectedAccountForAdmin.account_number}
+                                        disabled
+                                    />
+                                </FormGroup>
+
+                                <FormGroup>
+                                    <label>Recipient ID (auto-generated if empty)</label>
+                                    <input
+                                        type="text"
+                                        value={adminRecipientId}
+                                        onChange={(e) => setAdminRecipientId(e.target.value)}
+                                        placeholder="Leave empty to auto-generate from payment gateway"
+                                    />
+                                </FormGroup>
+
+                                <ModalFooter>
+                                    <CancelButton
+                                        type="button"
+                                        onClick={() => setShowAdminActionsModal(false)}
+                                    >
+                                        Cancel
+                                    </CancelButton>
+                                    <SubmitButton type="submit" disabled={isLoading}>
+                                        {isLoading ? 'Processing...' : 'Set Recipient ID'}
+                                    </SubmitButton>
+                                </ModalFooter>
+                            </form>
+                        ) : (
+                            <form onSubmit={(e) => {
+                                e.preventDefault();
+                                handleAdminActivateAccount();
+                            }}>
+                                <FormGroup>
+                                    <label>Account Provider</label>
+                                    <input
+                                        type="text"
+                                        value={selectedAccountForAdmin.provider}
+                                        disabled
+                                    />
+                                </FormGroup>
+
+                                <FormGroup>
+                                    <label>Account Number</label>
+                                    <input
+                                        type="text"
+                                        value={selectedAccountForAdmin.account_number}
+                                        disabled
+                                    />
+                                </FormGroup>
+
+                                <FormGroup>
+                                    <label>Current Status</label>
+                                    <input
+                                        type="text"
+                                        value={selectedAccountForAdmin.verification_status}
+                                        disabled
+                                    />
+                                </FormGroup>
+
+                                <p style={{ color: colors.textSecondary, fontSize: '0.875rem' }}>
+                                    This will:
+                                    <ul>
+                                        <li>Verify the account</li>
+                                        <li>Create a recipient ID if needed</li>
+                                        <li>Activate the account for withdrawals</li>
+                                    </ul>
+                                </p>
+
+                                <ModalFooter>
+                                    <CancelButton
+                                        type="button"
+                                        onClick={() => setShowAdminActionsModal(false)}
+                                    >
+                                        Cancel
+                                    </CancelButton>
+                                    <SubmitButton type="submit" disabled={isLoading}>
+                                        {isLoading ? 'Activating...' : 'Activate Account'}
+                                    </SubmitButton>
+                                </ModalFooter>
+                            </form>
+                        )}
+                    </ModalContent>
+                    </ModalOverlay>
+                    )}
+                    </PanelContainer>
+                    );
+                    };
