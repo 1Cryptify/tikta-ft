@@ -4,6 +4,7 @@ import { useAuth, User } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './components/Auth/LoginPage';
 import { ConfirmationPage } from './components/Auth/ConfirmationPage';
+import { HomePage } from './pages/HomePage';
 import { Dashboard } from './pages/Dashboard';
 import PaymentRoutes from './config/payment-routes';
 import { UserRole } from './config/menuPermissions';
@@ -49,6 +50,9 @@ function App() {
     return (
         <>
             <Routes>
+                {/* Home Page - Public */}
+                <Route path="/" element={<HomePage />} />
+
                 {/* Auth Routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/confirm" element={<ConfirmationPage email="" onSuccess={() => { }} onBack={() => { }} />} />
