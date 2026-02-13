@@ -1,5 +1,5 @@
-const API_BASE =  'https://tikta-bk.webafri.com/api';
-// const API_BASE =  'http://127.0.0.1:8000/api';
+import { API_BASE_URL } from "./api";
+const API_BASE=API_BASE_URL 
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
