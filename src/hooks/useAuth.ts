@@ -152,6 +152,7 @@ export const useAuth = (): UseAuthReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/confirm/', { email, code });
+            console.log('Confirm login response:', response.data);
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
             
@@ -160,7 +161,7 @@ export const useAuth = (): UseAuthReturn => {
             }
 
             if (response.data.status === 'error') {
-                const errorMessage = response.data.message || 'Confirmation failed';
+                const errorMessage = response.data.message ;
                 setState(prev => ({
                     ...prev,
                     isLoading: false,
@@ -170,7 +171,8 @@ export const useAuth = (): UseAuthReturn => {
             }
 
             if (response.data.status === 'success') {
-                // After confirmation, fetch current user
+                // Cookies are automatically stored by axios when withCredentials: true
+                // and server returns Set-Cookie header
                 await getCurrentUser();
                 return { success: true };
             }
@@ -182,12 +184,12 @@ export const useAuth = (): UseAuthReturn => {
             if (delayNeeded > 0) {
                 await new Promise(resolve => setTimeout(resolve, delayNeeded));
             }
-            
+
             const errorMessage = error instanceof axios.AxiosError
                 ? error.response?.data?.message || error.message
                 : error instanceof Error
                     ? error.message
-                    : 'An error occurred during confirmation';
+                    : 'An error occurred';
             setState(prev => ({
                 ...prev,
                 isLoading: false,

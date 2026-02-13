@@ -245,7 +245,7 @@ export const useTicket = (): UseTicketReturn => {
                 await new Promise(resolve => setTimeout(resolve, delayNeeded));
             }
 
-            if (response.data.status === 'success') {
+            if (response.data.status === 'success' || response.data.status === 'partial') {
                 setState(prev => ({
                     ...prev,
                     isLoading: false,

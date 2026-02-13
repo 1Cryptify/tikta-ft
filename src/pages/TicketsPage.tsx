@@ -760,49 +760,50 @@ export const TicketsPage: React.FC = () => {
         try {
             const data = JSON.parse(bulkJsonInput);
 
-            // Suporta ambos os formatos: array ou objeto com array
+            // Support both formats: array or object with array
             const ticketsToCreate = Array.isArray(data) ? data : (data.tickets || []);
 
             if (!Array.isArray(ticketsToCreate) || ticketsToCreate.length === 0) {
-                throw new Error('JSON deve conter um array de tickets');
+                throw new Error('JSON must contain an array of tickets');
             }
 
             // Use backend bulk import endpoint
             const result = await ticketData.bulkImportTickets(
                 ticketsToCreate.map(ticket => ({
-                    ticket_id: ticket.ticket_id,
-                    password: ticket.password,
+                    ticket_code: ticket.ticket_code,
+                    ticket_secret: ticket.ticket_secret,
                     valid_until: ticket.valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+                    offer_id: ticket.offer_id
                 })),
                 selectedOfferId !== 'all' ? selectedOfferId : undefined
             );
 
             if (result) {
-                if (result.summary.created > 0) {
+                if (result.imported_count > 0) {
                     setBulkJsonInput('');
                     setIsBulkModalOpen(false);
-                    alert(`${result.summary.created}/${result.summary.total} ticket(s) criado(s) com sucesso!`);
+                    alert(`✓ Successfully created ${result.imported_count}/${result.total_items} tickets!`);
                     // Refresh tickets
                     await ticketData.getTickets();
                 }
                 
-                if (result.summary.failed > 0) {
+                if (result.failed_count > 0) {
                     // Show sample errors for debugging
-                    const failedTickets = result.tickets.filter((t: any) => t.status === 'error').slice(0, 5);
+                    const failedItems = result.failed_items?.slice(0, 5) || [];
                     const errorMessages = new Set<string>();
-                    failedTickets.forEach((t: any) => {
-                        errorMessages.add(t.message);
+                    failedItems.forEach((item: any) => {
+                        errorMessages.add(`[Row ${item.index + 1}] ${item.error}`);
                     });
-                    const errorSummary = Array.from(errorMessages).join('; ');
-                    setBulkError(`${result.summary.failed} ticket(s) falharam. Erros: ${errorSummary}. Verifique o formato JSON: ticket_id/id/code, password/secret, valid_until/expires`);
-                } else if (result.summary.created === 0) {
-                    setBulkError('Nenhum ticket foi criado. Verifique o JSON e tente novamente.');
+                    const errorSummary = Array.from(errorMessages).join('\n');
+                    setBulkError(`${result.failed_count} ticket(s) failed:\n${errorSummary}`);
+                } else if (result.imported_count === 0) {
+                    setBulkError('No tickets were created. Please check the JSON format and try again.');
                 } else {
                     setBulkError(null);
                 }
             }
         } catch (err) {
-            setBulkError(err instanceof Error ? err.message : 'Erro ao processar JSON');
+            setBulkError(err instanceof Error ? err.message : 'Error processing JSON');
         } finally {
             setBulkLoading(false);
         }
