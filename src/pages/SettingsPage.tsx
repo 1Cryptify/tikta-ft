@@ -17,7 +17,7 @@ const PageHeader = styled.div`
     color: ${colors.textPrimary};
     margin-bottom: ${spacing.sm};
   }   
-
+ 
   p {
     color: ${colors.textSecondary};
     font-size: 0.875rem;
