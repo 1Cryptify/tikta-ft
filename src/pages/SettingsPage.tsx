@@ -8,7 +8,7 @@ const ContentSection = styled.div`
   margin: 0 auto;
   width: 100%;
 `;
-
+ 
 const PageHeader = styled.div`
   margin-bottom: ${spacing.xxl};
 
