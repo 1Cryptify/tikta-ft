@@ -21,7 +21,7 @@ const PageHeader = styled.div`
   p {
     color: ${colors.textSecondary};
     font-size: 0.875rem;
-  }
+  } 
 `;
 
 
