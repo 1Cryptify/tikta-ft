@@ -17,31 +17,18 @@ export interface VerificationResult {
   offersWithoutTickets?: string[];
 }
 
-interface UsePaymentVerificationReturn {
-  status: PaymentStatus;
-  isVerifying: boolean;
-  verificationMessage: string;
-  verificationResult: VerificationResult | null;
-  attempts: number;
-  startVerification: (params: {
-    reference: string;
-    gatewayReference: string;
-    paymentType: 'offer' | 'product' | 'group';
-    offerId?: string;
-    productId?: string;
-    groupId?: string;
-  }) => void;
-  stopVerification: () => void;
-  resetVerification: () => void;
+interface UsePaymentVerificationParams {
+  gatewayReference: string;
+  paymentType: 'offer' | 'product' | 'group';
+  offerId?: string;
+  productId?: string;
+  groupId?: string;
 }
 
-// Polling configuration
-const INITIAL_DELAY = 60000; // 1 minute before first check
-const SECOND_DELAY = 120000; // 2 minutes for second check (1 min + 2 min = 3 min total)
-const POLLING_INTERVAL = 300000; // 5 minutes between subsequent checks
-const MAX_ATTEMPTS = 7; // 28 minutes total (1 + 2 + 5*5)
+const POLL_INTERVAL_MS = 7000;
+const MAX_ATTEMPTS = 40;
 
-export const usePaymentVerification = (): UsePaymentVerificationReturn => {
+export const usePaymentVerification = (params?: UsePaymentVerificationParams) => {
   const [status, setStatus] = useState<PaymentStatus>('pending');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState('');
@@ -49,39 +36,26 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
   const [attempts, setAttempts] = useState(0);
 
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const abortControllerRef = useRef<AbortController | null>(null);
+  const attemptsRef = useRef(0);
+  const stoppedRef = useRef(false);
 
-  // Cleanup function
-  const clearAllTimers = useCallback(() => {
+  const clearTimer = useCallback(() => {
     if (intervalRef.current) {
       clearInterval(intervalRef.current);
       intervalRef.current = null;
     }
-    if (timeoutRef.current) {
-      clearTimeout(timeoutRef.current);
-      timeoutRef.current = null;
-    }
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
-    return () => {
-      clearAllTimers();
-    };
-  }, [clearAllTimers]);
+    return () => clearTimer();
+  }, [clearTimer]);
 
   const verifyPayment = useCallback(async (
     gatewayReference: string,
     paymentType: 'offer' | 'product' | 'group',
-    currentAttempt: number,
-    offerId: string | undefined,
-    productId: string | undefined,
-    groupId: string | undefined
+    offerId?: string,
+    productId?: string,
+    groupId?: string,
   ): Promise<VerificationResult | null> => {
     try {
       let response;
@@ -104,78 +78,38 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
       }
 
       if (response?.status === 'success') {
-        // Payment completed successfully
-        const result: VerificationResult = {
-          status: 'completed',
-          message: response.message || 'Payment completed successfully',
-        };
+        const result: VerificationResult = { status: 'completed', message: response.message || 'Paiement confirme' };
 
         if (response.ticket) {
-          // Single ticket
           result.ticket = response.ticket;
           result.offerName = response.ticket.offer_name;
           result.offerType = response.offer_type;
         } else if (response.tickets) {
-          // Multiple tickets (package)
           result.tickets = response.tickets.filter((t: any) => t.ticket_id);
           result.groupName = response.group_name;
           result.offerType = 'package';
         }
 
-        // Handle ticket availability flags from backend
-        if (response.ticket_available !== undefined) {
-          result.ticketAvailable = response.ticket_available;
-        }
-        if (response.all_tickets_available !== undefined) {
-          result.allTicketsAvailable = response.all_tickets_available;
-        }
-        if (response.admin_contact_message) {
-          result.adminContactMessage = response.admin_contact_message;
-        }
-        if (response.offers_without_tickets) {
-          result.offersWithoutTickets = response.offers_without_tickets;
-        }
+        if (response.ticket_available !== undefined) result.ticketAvailable = response.ticket_available;
+        if (response.all_tickets_available !== undefined) result.allTicketsAvailable = response.all_tickets_available;
+        if (response.admin_contact_message) result.adminContactMessage = response.admin_contact_message;
+        if (response.offers_without_tickets) result.offersWithoutTickets = response.offers_without_tickets;
 
-        // No toast notifications during verification - results shown on success/failed pages
         return result;
       } else if (response?.status === 'pending') {
-        // Payment still pending - no toast to avoid spam
-        return {
-          status: 'pending',
-          message: response.message || `Waiting for payment confirmation... (Attempt ${currentAttempt}/${MAX_ATTEMPTS})`,
-        };
+        return { status: 'pending', message: 'En attente du paiement...' };
       } else if (response?.status === 'error') {
-        // Payment failed - errors shown on failed page
-        return {
-          status: 'failed',
-          message: response.message || 'Payment verification failed',
-        };
+        return { status: 'failed', message: response.message || 'Echec de la verification' };
       }
 
       return null;
     } catch (error: any) {
-      // If the request was aborted, don't treat it as an error
-      if (error.name === 'AbortError') {
-        return null;
-      }
-
       console.log('Verification error:', error);
-      // Return pending to retry - error shown on failed page if persistent
-      return {
-        status: 'pending',
-        message: `Checking payment status... (Attempt ${currentAttempt}/${MAX_ATTEMPTS})`,
-      };
+      return { status: 'pending', message: 'Verification en cours...' };
     }
   }, []);
 
-  const startVerification = useCallback(({
-    reference,
-    gatewayReference,
-    paymentType,
-    offerId,
-    productId,
-    groupId,
-  }: {
+  const startVerification = useCallback((params: {
     reference: string;
     gatewayReference: string;
     paymentType: 'offer' | 'product' | 'group';
@@ -183,104 +117,70 @@ export const usePaymentVerification = (): UsePaymentVerificationReturn => {
     productId?: string;
     groupId?: string;
   }) => {
-    // Reset state
-    clearAllTimers();
+    clearTimer();
+    stoppedRef.current = false;
+    attemptsRef.current = 0;
+    setAttempts(0);
     setStatus('processing');
     setIsVerifying(true);
-    setAttempts(0);
-    setVerificationMessage('Initializing payment verification...');
+    setVerificationMessage('Verification en cours...');
     setVerificationResult(null);
 
-    let currentAttempt = 0;
+    const performCheck = async () => {
+      if (stoppedRef.current) return;
 
-    // Create new abort controller for this verification session
-    abortControllerRef.current = new AbortController();
-
-    // Function to perform a single verification attempt
-    const performVerification = async () => {
-      currentAttempt += 1;
-      setAttempts(currentAttempt);
-
-      setVerificationMessage(`Waiting for payment confirmation... (Attempt ${currentAttempt}/${MAX_ATTEMPTS})`);
+      attemptsRef.current += 1;
+      setAttempts(attemptsRef.current);
+      setVerificationMessage('Verification en cours...');
 
       const result = await verifyPayment(
-        gatewayReference,
-        paymentType,
-        currentAttempt,
-        offerId,
-        productId,
-        groupId
+        params.gatewayReference,
+        params.paymentType,
+        params.offerId,
+        params.productId,
+        params.groupId,
       );
 
-      if (!result) {
-        // Request was aborted or no result
-        return;
-      }
+      if (!result || stoppedRef.current) return;
 
       if (result.status === 'completed') {
-        // Payment successful - stop polling
-        clearAllTimers();
+        clearTimer();
         setStatus('completed');
         setIsVerifying(false);
-        setVerificationMessage(result.message || 'Payment completed successfully!');
         setVerificationResult(result);
       } else if (result.status === 'failed') {
-        // Payment failed - stop polling
-        clearAllTimers();
+        clearTimer();
         setStatus('failed');
         setIsVerifying(false);
-        setVerificationMessage(result.message || 'Payment failed');
         setVerificationResult(result);
-      } else if (currentAttempt >= MAX_ATTEMPTS) {
-        // Timeout reached
-        clearAllTimers();
+      } else if (attemptsRef.current >= MAX_ATTEMPTS) {
+        clearTimer();
         setStatus('timeout');
         setIsVerifying(false);
-        setVerificationMessage('Payment verification timed out. Please check your payment status later.');
-        setVerificationResult({
-          status: 'timeout',
-          message: 'Payment verification timed out after 30 minutes',
-        });
+        setVerificationResult({ status: 'timeout', message: 'Verification expiree. Verifiez vos tickets plus tard.' });
       }
-      // If pending, continue polling (next scheduled check will trigger)
     };
 
-    // First check after 1 minute
-    timeoutRef.current = setTimeout(() => {
-      performVerification();
-
-      // Second check after 2 more minutes (3 minutes total)
-      const secondTimeoutRef = setTimeout(() => {
-        if (currentAttempt < MAX_ATTEMPTS) {
-          performVerification();
-
-          // Subsequent checks every 5 minutes
-          intervalRef.current = setInterval(() => {
-            performVerification();
-          }, POLLING_INTERVAL);
-        }
-      }, SECOND_DELAY);
-
-      // Store second timeout for cleanup
-      timeoutRef.current = secondTimeoutRef as any;
-    }, INITIAL_DELAY);
-  }, [clearAllTimers, verifyPayment]);
+    intervalRef.current = setInterval(performCheck, POLL_INTERVAL_MS);
+  }, [clearTimer, verifyPayment]);
 
   const stopVerification = useCallback(() => {
-    clearAllTimers();
+    stoppedRef.current = true;
+    clearTimer();
     setIsVerifying(false);
     setStatus('pending');
-    setVerificationMessage('Verification stopped');
-  }, [clearAllTimers]);
+  }, [clearTimer]);
 
   const resetVerification = useCallback(() => {
-    clearAllTimers();
+    stoppedRef.current = true;
+    clearTimer();
     setStatus('pending');
     setIsVerifying(false);
     setVerificationMessage('');
     setVerificationResult(null);
     setAttempts(0);
-  }, [clearAllTimers]);
+    attemptsRef.current = 0;
+  }, [clearTimer]);
 
   return {
     status,

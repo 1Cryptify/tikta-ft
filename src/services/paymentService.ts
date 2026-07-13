@@ -1,5 +1,5 @@
-import { API_BASE_URL } from "./api";
-const API_BASE=API_BASE_URL 
+import { API_PAYMENTS_BASE_URL } from "./api";
+const API_BASE = API_PAYMENTS_BASE_URL;
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
@@ -13,7 +13,7 @@ export const paymentService = {
   async getOfferGroup(groupId: string) {
     console.log('getOfferGroup called with groupId:', groupId);
     const response = await fetch(
-      `${API_BASE}/payments/offer-groups/${groupId}/`,
+      `${API_BASE}/offer-groups/${groupId}/`,
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch offer group');
@@ -25,7 +25,7 @@ export const paymentService = {
 
   async listOfferGroups() {
     console.log('listOfferGroups called');
-    const response = await fetch(`${API_BASE}/payments/offer-groups/`, {
+    const response = await fetch(`${API_BASE}/offer-groups/`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch offer groups');
@@ -37,7 +37,7 @@ export const paymentService = {
   // Offers
   async getOffer(offerId: string) {
     const response = await fetch(
-      `${API_BASE}/payments/offers/${offerId}/`,
+      `${API_BASE}/offers/${offerId}/`,
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch offer');
@@ -45,7 +45,7 @@ export const paymentService = {
   },
 
   async listOffers() {
-    const response = await fetch(`${API_BASE}/payments/offers/`, {
+    const response = await fetch(`${API_BASE}/offers/`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch offers');
@@ -55,7 +55,7 @@ export const paymentService = {
   // Products
   async getProduct(productId: string) {
     const response = await fetch(
-      `${API_BASE}/payments/products/${productId}/`,
+      `${API_BASE}/products/${productId}/`,
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch product');
@@ -63,7 +63,7 @@ export const paymentService = {
   },
 
   async listProducts() {
-    const response = await fetch(`${API_BASE}/payments/products/`, {
+    const response = await fetch(`${API_BASE}/products/`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch products');
@@ -74,16 +74,19 @@ export const paymentService = {
 
   async initiateOfferPayment(payload: {
     offer_id: string;
-    email: string;
+    email?: string;
     phone: string;
     payment_method_id: string;
     channel?: string;
     amount?: number;
     currency?: string;
     client_ip?: string;
+    send_sms?: boolean;
+    send_email?: boolean;
+    sms_phone?: string;
   }) {
     const response = await fetch(
-      `${API_BASE}/payments/offers-payment/initiate/`,
+      `${API_BASE}/offers-payment/initiate/`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -93,8 +96,8 @@ export const paymentService = {
 
     const data = await response.json();
 
-    if (data.status === 'error') {
-      throw new Error(data.message || 'Failed to initiate offer payment');
+    if (!response.ok || data.status === 'error') {
+      throw new Error(data.message || `Failed to initiate offer payment: HTTP ${response.status}`);
     }
 
     return data;
@@ -102,16 +105,19 @@ export const paymentService = {
 
   async initiateProductPayment(payload: {
     product_id: string;
-    email: string;
+    email?: string;
     phone: string;
     payment_method_id: string;
     channel?: string;
     amount?: number;
     currency?: string;
     client_ip?: string;
+    send_sms?: boolean;
+    send_email?: boolean;
+    sms_phone?: string;
   }) {
     const response = await fetch(
-      `${API_BASE}/payments/product-payment/initiate/`,
+      `${API_BASE}/product-payment/initiate/`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -122,24 +128,26 @@ export const paymentService = {
     const data = await response.json();
     
 
-    if (data.status === 'error') {
-      throw new Error(data.message || 'Failed to initiate product payment');
+    if (!response.ok || data.status === 'error') {
+      throw new Error(data.message || `Failed to initiate product payment: HTTP ${response.status}`);
     }
 
     return data;
   },
 
   async verifyOfferPayment(payload: {
-    gateway_reference: string;
+    gateway_reference?: string;
+    payment_id?: string;
     offer_id: string;
   }) {
     const response = await fetch(
-      `${API_BASE}/payments/offers-payment/verify/`,
+      `${API_BASE}/offers-payment/verify/`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
           reference: payload.gateway_reference,
+          payment_id: payload.payment_id,
           offer_id: payload.offer_id,
         }),
       }
@@ -150,16 +158,18 @@ export const paymentService = {
   },
 
   async verifyProductPayment(payload: {
-    gateway_reference: string;
+    gateway_reference?: string;
+    payment_id?: string;
     product_id: string;
   }) {
     const response = await fetch(
-      `${API_BASE}/payments/product-payment/verify/`,
+      `${API_BASE}/product-payment/verify/`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
           reference: payload.gateway_reference,
+          payment_id: payload.payment_id,
           product_id: payload.product_id,
         }),
       }
@@ -171,17 +181,20 @@ export const paymentService = {
 
   async initiateGroupPayment(payload: {
     group_id: string;
-    email: string;
+    email?: string;
     phone: string;
     payment_method_id: string;
     channel?: string;
     amount?: number;
     currency?: string;
     client_ip?: string;
+    send_sms?: boolean;
+    send_email?: boolean;
+    sms_phone?: string;
   }) {
     console.log('initiateGroupPayment called with payload:', payload);
     const response = await fetch(
-      `${API_BASE}/payments/offer-groups-payment/initiate/`,
+      `${API_BASE}/offer-groups-payment/initiate/`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -192,25 +205,27 @@ export const paymentService = {
     const data = await response.json();
     console.log('initiateGroupPayment response:', data);
 
-    if (data.status === 'error') {
-      throw new Error(data.message || 'Failed to initiate group payment');
+    if (!response.ok || data.status === 'error') {
+      throw new Error(data.message || `Failed to initiate group payment: HTTP ${response.status}`);
     }
 
     return data;
   },
 
   async verifyGroupPayment(payload: {
-    gateway_reference: string;
+    gateway_reference?: string;
+    payment_id?: string;
     group_id: string;
   }) {
     console.log('verifyGroupPayment called with payload:', payload);
     const response = await fetch(
-      `${API_BASE}/payments/offer-groups-payment/verify/`,
+      `${API_BASE}/offer-groups-payment/verify/`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
           reference: payload.gateway_reference,
+          payment_id: payload.payment_id,
           group_id: payload.group_id,
         }),
       }
@@ -224,7 +239,7 @@ export const paymentService = {
   // ============ Payment List Operations ============
 
   async listPayments() {
-    const response = await fetch(`${API_BASE}/payments/payments/`, {
+    const response = await fetch(`${API_BASE}/payments/`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch payments');
@@ -233,7 +248,7 @@ export const paymentService = {
 
   async getPayment(paymentId: string) {
     const response = await fetch(
-      `${API_BASE}/payments/payments/${paymentId}/`,
+      `${API_BASE}/payments/${paymentId}/`,
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch payment');
@@ -242,7 +257,7 @@ export const paymentService = {
 
   async completePayment(paymentId: string) {
     const response = await fetch(
-      `${API_BASE}/payments/payments/${paymentId}/complete/`,
+      `${API_BASE}/payments/${paymentId}/complete/`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -254,7 +269,7 @@ export const paymentService = {
 
   async cancelPayment(paymentId: string) {
     const response = await fetch(
-      `${API_BASE}/payments/payments/${paymentId}/cancel/`,
+      `${API_BASE}/payments/${paymentId}/cancel/`,
       {
         method: 'POST',
         headers: getAuthHeaders(),
@@ -267,7 +282,7 @@ export const paymentService = {
   // ============ Transactions ============
 
   async listTransactions() {
-    const response = await fetch(`${API_BASE}/payments/transactions/`, {
+    const response = await fetch(`${API_BASE}/transactions/`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch transactions');
@@ -276,7 +291,7 @@ export const paymentService = {
 
   async getTransaction(transactionId: string) {
     const response = await fetch(
-      `${API_BASE}/payments/transactions/${transactionId}/`,
+      `${API_BASE}/transactions/${transactionId}/`,
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch transaction');
@@ -286,7 +301,7 @@ export const paymentService = {
   // ============ Currencies ============
 
   async listCurrencies() {
-    const response = await fetch(`${API_BASE}/payments/currencies/`, {
+    const response = await fetch(`${API_BASE}/currencies/`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch currencies');
@@ -295,7 +310,7 @@ export const paymentService = {
 
   async getCurrency(currencyId: string) {
     const response = await fetch(
-      `${API_BASE}/payments/currencies/${currencyId}/`,
+      `${API_BASE}/currencies/${currencyId}/`,
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch currency');
@@ -305,7 +320,7 @@ export const paymentService = {
   // ============ Payment Methods ============
 
   async listPaymentMethods() {
-    const response = await fetch(`${API_BASE}/payments/payment-methods/`, {
+    const response = await fetch(`${API_BASE}/payment-methods/`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch payment methods');
@@ -314,7 +329,7 @@ export const paymentService = {
 
   async getPaymentMethod(methodId: string) {
     const response = await fetch(
-      `${API_BASE}/payments/payment-methods/${methodId}/`,
+      `${API_BASE}/payment-methods/${methodId}/`,
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch payment method');
@@ -325,8 +340,8 @@ export const paymentService = {
 
   async getBalance(companyId?: string) {
     const url = companyId
-      ? `${API_BASE}/payments/balances/${companyId}/`
-      : `${API_BASE}/payments/balances/`;
+      ? `${API_BASE}/balances/${companyId}/`
+      : `${API_BASE}/balances/`;
 
     const response = await fetch(url, { headers: getAuthHeaders() });
     if (!response.ok) throw new Error('Failed to fetch balance');
@@ -336,7 +351,7 @@ export const paymentService = {
   // ============ Logs ============
 
   async listPaymentLogs() {
-    const response = await fetch(`${API_BASE}/payments/logs/`, {
+    const response = await fetch(`${API_BASE}/logs/`, {
       headers: getAuthHeaders(),
     });
     if (!response.ok) throw new Error('Failed to fetch logs');
@@ -345,7 +360,7 @@ export const paymentService = {
 
   async getUserPaymentLogs(userId: string) {
     const response = await fetch(
-      `${API_BASE}/payments/logs/user/${userId}/`,
+      `${API_BASE}/logs/user/${userId}/`,
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch user logs');
@@ -354,7 +369,7 @@ export const paymentService = {
 
   async getCompanyPaymentLogs(companyId: string) {
     const response = await fetch(
-      `${API_BASE}/payments/logs/company/${companyId}/`,
+      `${API_BASE}/logs/company/${companyId}/`,
       { headers: getAuthHeaders() }
     );
     if (!response.ok) throw new Error('Failed to fetch company logs');

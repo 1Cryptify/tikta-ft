@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
-import PaymentMethodSelector from '../components/Payment/PaymentMethodSelector';
 import PaymentMethodFields from '../components/Payment/PaymentMethodFields';
 import { ToastContainer, ToastMessage } from '../components/Toast';
 import { paymentService } from '../services/paymentService';
@@ -11,15 +10,40 @@ import '../styles/payment.css';
 import '../styles/payment-checkout.css';
 import { API_BASE_URL } from '../services/api.ts';
 
+const getIconForType = (type: string): string => {
+  switch (type) {
+    case 'card': case 'credit_card': return 'credit_card';
+    case 'mobile_money': return 'phone';
+    case 'bank_account': case 'bank_transfer': return 'account_balance';
+    case 'wallet': case 'paypal': return 'account_balance_wallet';
+    default: return 'payment';
+  }
+};
+
+const formatChannel = (channel?: string): string => {
+  if (!channel) return '';
+  const c = channel.toLowerCase();
+  const labels: Record<string, string> = {
+    'mtn_momo': 'MTN MoMo',
+    'orange_money': 'Orange Money',
+    'stripe': 'Carte Bancaire',
+  };
+  return labels[c] || channel;
+};
+
+const formatPhoneForDisplay = (raw: string): string => {
+  if (!raw) return '';
+  if (raw.length <= 3) return raw;
+  return raw.slice(0, 3) + ' ' + raw.slice(3).replace(/(\d{2})/g, ' $1').trim();
+};
+
 export const PaymentCheckoutPage: React.FC = () => {
   const { groupId, productId, offerId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Detect if we're buying the group itself (package)
   const isBuyingGroup = location.pathname.endsWith('/buy') && groupId;
 
-  // State for data loading
   const [item, setItem] = useState<any>(null);
   const [groupContext, setGroupContext] = useState<any>(null);
   const [paymentMethods, setPaymentMethods] = useState<PaymentMethod[]>([]);
@@ -29,378 +53,212 @@ export const PaymentCheckoutPage: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
-  // Contact info only requires email
   const [contactEmail, setContactEmail] = useState('');
+  const [sendEmail, setSendEmail] = useState(false);
+  const [sendSms, setSendSms] = useState(true);
+  const [smsPhoneNumber, setSmsPhoneNumber] = useState('');
+  const [payUrl, setPayUrl] = useState<string | null>(null);
 
-  // Form data
   const [formData, setFormData] = useState<PaymentFormData>({
-    email: '',
-    firstName: '',
-    lastName: '',
-    address: '',
-    city: '',
-    country: '',
-    postalCode: '',
-    paymentMethod: '',
-    acceptTerms: false,
+    email: '', firstName: '', lastName: '', address: '', city: '',
+    country: '', postalCode: '', paymentMethod: '', acceptTerms: false,
+    sendSms: true, sendEmail: false, smsPhoneNumber: '',
   });
 
-  // Payment verification hook
-  const {
-    status: verificationStatus,
-    isVerifying,
-    verificationMessage,
-    verificationResult,
-    startVerification,
-    stopVerification,
-  } = usePaymentVerification();
+  const { status: verificationStatus, isVerifying, verificationMessage, verificationResult, startVerification, stopVerification } = usePaymentVerification();
 
-  // Determine if form should be disabled
   const isFormDisabled = dataLoading || isVerifying;
 
-  // Cookie management helpers
   const saveMobileMoneyToCookie = (phoneNumber: string) => {
     const expires = new Date();
-    expires.setTime(expires.getTime() + 30 * 24 * 60 * 60 * 1000); // 30 days
+    expires.setTime(expires.getTime() + 30 * 24 * 60 * 60 * 1000);
     document.cookie = `lastMobileMoneyNumber=${encodeURIComponent(phoneNumber)};expires=${expires.toUTCString()};path=/`;
   };
 
   const getSavedMobileMoneyFromCookie = (): string => {
     const name = 'lastMobileMoneyNumber=';
     const decodedCookie = decodeURIComponent(document.cookie);
-    const cookieArray = decodedCookie.split(';');
-    for (let cookie of cookieArray) {
+    for (let cookie of decodedCookie.split(';')) {
       cookie = cookie.trim();
-      if (cookie.indexOf(name) === 0) {
-        return cookie.substring(name.length, cookie.length);
-      }
+      if (cookie.indexOf(name) === 0) return cookie.substring(name.length);
     }
     return '';
   };
 
-  // Toast helper functions - limit to max 2 toasts and shorter duration
   const addToast = (message: string, type: 'success' | 'error' | 'info' = 'info') => {
     setToasts((prev) => {
-      // Remove duplicate messages of the same type
       const filtered = prev.filter(t => !(t.type === type && t.message === message));
-      const newToast: ToastMessage = {
-        id: Date.now().toString(),
-        message,
-        type,
-        duration: 2500, // Reduced from 5000ms to 2500ms
-      };
-      // Maximum 2 toasts at a time
+      const newToast: ToastMessage = { id: Date.now().toString(), message, type, duration: 2500 };
       return [...filtered, newToast].slice(-2);
     });
   };
 
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id));
-  };
+  const removeToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
 
-  // Fetch payment methods and item data on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setErrorMessage(null);
 
-        // Fetch payment methods from API
         const methodsResponse = await paymentService.listPaymentMethods();
         if (methodsResponse.status === 'success' && methodsResponse.payment_methods) {
-          // Map backend payment methods to frontend format
           const mappedMethods = methodsResponse.payment_methods.map((pm: any) => ({
-            id: pm.id,
-            name: pm.name,
-            type: pm.type,
-            icon: getIconForType(pm.type),
-            channel: pm.channel,
-            country: pm.country,
-            logo: pm.logo,
-            is_active: pm.is_active,
+            id: pm.id, name: pm.name, type: pm.type,
+            icon: getIconForType(pm.type), channel: pm.channel,
+            country: pm.country, logo: pm.logo, is_active: pm.is_active,
           }));
           setPaymentMethods(mappedMethods);
-          
-          // Set first payment method as default
           if (mappedMethods.length > 0) {
+            const savedPhone = getSavedMobileMoneyFromCookie();
             setFormData((prev) => ({
               ...prev,
-              paymentMethod: mappedMethods[0].id,
-              // Load saved mobile money number from cookie
-              mobileMoneyNumber: getSavedMobileMoneyFromCookie() || prev.mobileMoneyNumber,
+              mobileMoneyNumber: savedPhone || prev.mobileMoneyNumber,
             }));
           }
         }
 
-        // Fetch the specific item being purchased
         if (isBuyingGroup && groupId) {
-          // Buying the group as a package
           const groupData = await paymentService.getOfferGroup(groupId);
           if (groupData.status === 'success' && groupData) {
-            // Check if group is a payable package
-            if (!groupData.is_package) {
-              setErrorMessage('This group is not available for purchase as a package');
-            } else {
-              // Map group data to item format
-              setItem({
-                id: groupData.id,
-                name: groupData.name,
-                description: groupData.description,
-                price: parseFloat(groupData.price) || 0,
-                currency: groupData.currency?.code || groupData.currency || 'XAF',
-                image: groupData.image,
-                type: 'group_package',
-              });
+            if (!groupData.is_package) setErrorMessage('This group is not available for purchase as a package');
+            else {
+              setItem({ id: groupData.id, name: groupData.name, description: groupData.description, price: parseFloat(groupData.price) || 0, currency: groupData.currency?.code || groupData.currency || 'XAF', image: groupData.image, type: 'group_package' });
               setGroupContext(groupData);
             }
-          } else {
-            setErrorMessage('Group not found or unavailable');
-          }
+          } else setErrorMessage('Group not found or unavailable');
         } else if (offerId) {
           const offerData = await paymentService.getOffer(offerId);
-          if (offerData.status === 'success' && offerData.offer) {
-            setItem(offerData.offer);
-          } else {
-            setErrorMessage('Offer not found or unavailable');
-          }
+          if (offerData.status === 'success' && offerData.offer) setItem(offerData.offer);
+          else setErrorMessage('Offer not found or unavailable');
         } else if (productId) {
           const productData = await paymentService.getProduct(productId);
-          if (productData.status === 'success' && productData.product) {
-            setItem(productData.product);
-          } else {
-            setErrorMessage('Product not found or unavailable');
-          }
+          if (productData.status === 'success' && productData.product) setItem(productData.product);
+          else setErrorMessage('Product not found or unavailable');
         }
 
-        // Fetch group context if groupId is provided and not already fetched
         if (groupId && !isBuyingGroup) {
           try {
-            const groupData = await paymentService.getOfferGroup(groupId);
-            if (groupData.status === 'success' && groupData) {
-              setGroupContext(groupData);
-            }
-          } catch (err) {
-            console.log('Group not found, continuing without group context');
-          }
+            const gd = await paymentService.getOfferGroup(groupId);
+            if (gd.status === 'success' && gd) setGroupContext(gd);
+          } catch { console.log('Group not found'); }
         }
       } catch (error) {
-        console.error('Error fetching data:', error);
-        setErrorMessage('Failed to load payment data. Please try again.');
-      } finally {
-        setLoading(false);
-      }
+        console.error('Fetch error:', error);
+        setErrorMessage('Failed to load payment data.');
+      } finally { setLoading(false); }
     };
-
     fetchData();
   }, [offerId, productId, groupId, isBuyingGroup]);
 
-  // Handle verification status changes
   useEffect(() => {
     if (!verificationResult) return;
-
     if (verificationStatus === 'completed') {
-      // Payment completed successfully
       const storedPayment = localStorage.getItem('pendingPayment');
       const successData: any = storedPayment ? JSON.parse(storedPayment) : {};
-      
-      // Add ticket data from verification result
       if (verificationResult.ticket) {
-        // Single ticket
         successData.tickets = [verificationResult.ticket];
         successData.offerName = verificationResult.offerName;
         successData.offerType = verificationResult.offerType;
       } else if (verificationResult.tickets) {
-        // Multiple tickets (package)
         successData.tickets = verificationResult.tickets;
         successData.offerName = verificationResult.groupName;
         successData.offerType = 'package';
       }
-      
-      // Add ticket availability information
-      if (verificationResult.adminContactMessage) {
-        successData.adminContactMessage = verificationResult.adminContactMessage;
-      }
-      if (verificationResult.ticketAvailable !== undefined) {
-        successData.ticketAvailable = verificationResult.ticketAvailable;
-      }
-      if (verificationResult.allTicketsAvailable !== undefined) {
-        successData.allTicketsAvailable = verificationResult.allTicketsAvailable;
-      }
-      if (verificationResult.offersWithoutTickets) {
-        successData.offersWithoutTickets = verificationResult.offersWithoutTickets;
-      }
-      
-      // Update localStorage with complete data
+      if (verificationResult.adminContactMessage) successData.adminContactMessage = verificationResult.adminContactMessage;
+      if (verificationResult.ticketAvailable !== undefined) successData.ticketAvailable = verificationResult.ticketAvailable;
+      if (verificationResult.allTicketsAvailable !== undefined) successData.allTicketsAvailable = verificationResult.allTicketsAvailable;
+      if (verificationResult.offersWithoutTickets) successData.offersWithoutTickets = verificationResult.offersWithoutTickets;
       localStorage.setItem('pendingPayment', JSON.stringify(successData));
-
-      // Navigate to success page immediately - no toast needed as the page will show success
       navigate('/pay/success', { state: { paymentData: successData } });
     } else if (verificationStatus === 'failed') {
-      // Payment failed - navigate directly, error shown on failed page
       navigate('/pay/failed', { state: { errorMessage: verificationResult.message } });
     } else if (verificationStatus === 'timeout') {
-      // Payment verification timed out - still navigate to success page
-      // The success page will handle showing appropriate message
       const storedPayment = localStorage.getItem('pendingPayment');
       const successData: any = storedPayment ? JSON.parse(storedPayment) : {};
-      
       navigate('/pay/success', { state: { paymentData: successData, timeout: true } });
     }
   }, [verificationStatus, verificationResult, groupId, navigate]);
 
-  // Helper to map payment method types to icons
-  const getIconForType = (type: string): string => {
-    switch (type) {
-      case 'card':
-      case 'credit_card':
-        return 'credit_card';
-      case 'mobile_money':
-        return 'phone';
-      case 'bank_account':
-      case 'bank_transfer':
-        return 'account_balance';
-      case 'wallet':
-      case 'paypal':
-        return 'account_balance_wallet';
-      default:
-        return 'payment';
-    }
-  };
-
-  // If still loading, show spinner
   if (loading) {
-    return (
-      <div className="payment-checkout">
-        <ToastContainer toasts={toasts} onRemove={removeToast} />
-        <div className="checkout-container">
-          <LoadingSpinner />
-        </div>
-      </div>
-    );
+    return <div className="payment-checkout"><ToastContainer toasts={toasts} onRemove={removeToast} /><div className="checkout-container"><LoadingSpinner /></div></div>;
   }
 
-  // If error occurred
   if (errorMessage) {
     return (
       <div className="payment-checkout">
         <ToastContainer toasts={toasts} onRemove={removeToast} />
         <div className="checkout-container">
-          <div className="checkout-header">
-            <h1>Error</h1>
-            <p style={{ color: 'var(--color-error)' }}>{errorMessage}</p>
-            <button
-              className="btn-secondary"
-              onClick={() => groupId ? navigate(`/pay/g/${groupId}`) : navigate('/')}
-              style={{ marginTop: '20px' }}
-            >
-              Back
-            </button>
-          </div>
+          <div className="checkout-header"><h1>Error</h1><p style={{ color: 'var(--color-error)' }}>{errorMessage}</p></div>
         </div>
       </div>
     );
   }
 
-  // If item not found
   if (!item) {
     return (
       <div className="payment-checkout">
         <ToastContainer toasts={toasts} onRemove={removeToast} />
         <div className="checkout-container">
-          <div className="checkout-header">
-            <h1>Item not found</h1>
-            <button
-              className="btn-secondary"
-              onClick={() => groupId ? navigate(`/pay/g/${groupId}`) : navigate('/')}
-            >
-              Back
-            </button>
-          </div>
+          <div className="checkout-header"><h1>Item not found</h1></div>
         </div>
       </div>
     );
   }
 
-  // Calculate pricing
   const price = item?.price || 0;
-  const subtotal = price;
-  const tax = subtotal * 0.1;
-  const total = subtotal + tax;
-
-  // Get item details for display
+  const total = price;
   const itemName = item?.name || 'Unknown Item';
-  const itemDesc = item?.description || '';
-  const itemImage = API_BASE_URL + (item?.image || '');
+  const itemImage = item?.image ? API_BASE_URL + item.image : '';
   const currency = item?.currency?.code || item?.currency || 'XAF';
-
-  // Get selected payment method
   const selectedPaymentMethod = paymentMethods.find(m => m.id === formData.paymentMethod);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!contactEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-      newErrors.email = 'Valid email is required';
+    if (sendEmail && (!contactEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))) {
+      newErrors.email = 'Veuillez entrer une adresse email valide';
     }
 
     if (!formData.paymentMethod) {
-      newErrors.paymentMethod = 'Payment method is required';
+      newErrors.paymentMethod = 'Veuillez choisir un moyen de paiement';
     }
 
-    // Validate payment method specific fields
     if (selectedPaymentMethod?.type === 'mobile_money') {
-      if (!formData.mobileMoneyNumber || !/^[\d\+\-\(\)]+$/.test(formData.mobileMoneyNumber)) {
-        newErrors.mobileMoneyNumber = 'Valid mobile money number is required';
+      if (!formData.mobileMoneyNumber || formData.mobileMoneyNumber.replace(/\D/g, '').length < 9) {
+        newErrors.mobileMoneyNumber = 'Veuillez entrer un numero valide (9 chiffres)';
       }
-    } else if (selectedPaymentMethod?.type === 'bank_account') {
-      if (!formData.bankAccountName) {
-        newErrors.bankAccountName = 'Account holder name is required';
+    }
+    if (selectedPaymentMethod?.type === 'card') {
+      if (!contactEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
+        newErrors.email = 'Veuillez entrer une adresse email valide';
       }
-      if (!formData.bankCode) {
-        newErrors.bankCode = 'Bank code is required';
-      }
-      if (!formData.bankAccountNumber || !/^\d+$/.test(formData.bankAccountNumber)) {
-        newErrors.bankAccountNumber = 'Valid account number is required';
-      }
-    } else if (selectedPaymentMethod?.type === 'card') {
-      if (!formData.cardNumber || !/^\d{4}\s?\d{4}\s?\d{4}\s?\d{4}$/.test(formData.cardNumber.replace(/\s/g, ''))) {
-        newErrors.cardNumber = 'Valid card number is required';
-      }
-      if (!formData.cardExpiry || !/^\d{2}\/\d{2}$/.test(formData.cardExpiry)) {
-        newErrors.cardExpiry = 'Valid expiry date (MM/YY) is required';
-      }
-      if (!formData.cardCvc || !/^\d{3,4}$/.test(formData.cardCvc)) {
-        newErrors.cardCvc = 'Valid CVC is required';
-      }
+    }
+
+    if (!sendSms && !sendEmail) {
+      newErrors.delivery = 'Choisissez au moins un moyen de reception';
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
-    const newValue =
-      type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
+    const isCheckbox = type === 'checkbox';
+    const newValue = isCheckbox ? (e.target as HTMLInputElement).checked : value;
 
     if (name === 'email') {
       setContactEmail(value);
+    } else if (name === 'mobileMoneyNumber' || name === 'smsPhoneNumber') {
+      const digits = value.replace(/\D/g, '').slice(0, 9);
+      if (name === 'smsPhoneNumber') setSmsPhoneNumber(digits);
+      else setFormData((prev) => ({ ...prev, mobileMoneyNumber: digits }));
     } else {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: newValue,
-      }));
+      setFormData((prev) => ({ ...prev, [name]: newValue }));
     }
 
-    if (errors[name]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[name];
-        return newErrors;
-      });
-    }
+    if (errors[name]) { const n = { ...errors }; delete n[name]; setErrors(n); }
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -409,230 +267,233 @@ export const PaymentCheckoutPage: React.FC = () => {
 
     setDataLoading(true);
     try {
-      // Get the selected payment method's channel
       const channel = selectedPaymentMethod?.channel;
+      const smsPhone = sendSms ? (smsPhoneNumber || formData.mobileMoneyNumber || '') : '';
 
-      // Prepare payload based on what's being purchased
       let payload: any = {
         email: contactEmail,
-        phone: formData.mobileMoneyNumber || '',
+        phone: selectedPaymentMethod?.type === 'mobile_money' ? (formData.mobileMoneyNumber || '') : '',
         payment_method_id: formData.paymentMethod,
-        channel: channel,
-        client_ip: '', // Can be filled from request if needed
+        channel: channel, client_ip: '',
+        send_sms: sendSms, send_email: sendEmail, sms_phone: smsPhone,
       };
 
-      let response;
-      let paymentType: 'offer' | 'product' | 'group';
+      let response; let paymentType: 'offer' | 'product' | 'group';
 
       if (isBuyingGroup && groupId) {
-        // Paying for a group package
-        payload.group_id = groupId;
-        response = await paymentService.initiateGroupPayment(payload);
-        paymentType = 'group';
+        payload.group_id = groupId; response = await paymentService.initiateGroupPayment(payload); paymentType = 'group';
       } else if (offerId) {
-        payload.offer_id = offerId;
-        response = await paymentService.initiateOfferPayment(payload);
-        paymentType = 'offer';
+        payload.offer_id = offerId; response = await paymentService.initiateOfferPayment(payload); paymentType = 'offer';
       } else if (productId) {
-        payload.product_id = productId;
-        response = await paymentService.initiateProductPayment(payload);
-        paymentType = 'product';
-      } else {
-        throw new Error('No item specified for purchase');
-      }
+        payload.product_id = productId; response = await paymentService.initiateProductPayment(payload); paymentType = 'product';
+      } else throw new Error('No item specified');
 
       if (response.status === 'success') {
-        // Save mobile money number to cookie if present
-        if (formData.mobileMoneyNumber) {
-          saveMobileMoneyToCookie(formData.mobileMoneyNumber);
-        }
-        
-        // Store initial payment info in localStorage first
+        if (formData.mobileMoneyNumber) saveMobileMoneyToCookie(formData.mobileMoneyNumber);
+
         const successData: any = {
           paymentInfo: {
-            paymentId: response.payment_id,
-            transactionId: response.transaction_id,
-            reference: response.reference,
-            gatewayReference: response.gateway_reference,
-            amount: response.amount,
-            currency: response.currency,
-          }
+            paymentId: response.payment_id, transactionId: response.transaction_id,
+            reference: response.reference, gatewayReference: response.gateway_reference,
+            amount: response.amount, currency: response.currency,
+          },
+          paymentType, offerId, productId, groupId,
         };
         localStorage.setItem('pendingPayment', JSON.stringify(successData));
-        
-        // Show single toast for payment initiation
-        addToast(response.message || 'Payment initiated successfully!', 'success');
-        
-        // Start the payment verification polling (without toast callback to reduce notifications)
-        startVerification({
-          reference: response.reference,
-          gatewayReference: response.gateway_reference,
-          paymentType: paymentType,
-          offerId,
-          productId,
-          groupId,
-        });
+
+        if (response.pay_url) {
+          setPayUrl(response.pay_url);
+          // For card/Stripe: open payment page in new tab, keep polling here
+          if (channel === 'stripe') {
+            window.open(response.pay_url, '_blank');
+          }
+        }
+
+        startVerification({ reference: response.reference, gatewayReference: response.gateway_reference, paymentType, offerId, productId, groupId });
       } else {
-        // Show error toast and navigate to failed page
-        addToast(response.message || 'Payment failed. Please try again.', 'error');
+        addToast(response.message || 'Echec du paiement', 'error');
         navigate('/pay/failed', { state: { errorMessage: response.message } });
       }
     } catch (error: any) {
       console.error('Payment error:', error);
-      // Show error toast and navigate to failed page
-      addToast(error.message || 'An error occurred during payment. Please try again.', 'error');
+      addToast(error.message || 'Une erreur est survenue', 'error');
       navigate('/pay/failed', { state: { errorMessage: error.message } });
-    } finally {
-      setDataLoading(false);
-    }
-  };
-
-  const getItemType = (): string => {
-    if (isBuyingGroup) return 'Bundle Package';
-    if (productId) return 'Product';
-    if (offerId) return 'Offer';
-    return 'Item';
+    } finally { setDataLoading(false); }
   };
 
   const formatPrice = (amount: number, curr: string = currency): string => {
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: curr,
-    }).format(amount);
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: curr }).format(amount);
+  };
+
+  const LogoImg: React.FC<{ src: string; alt: string }> = ({ src, alt }) => {
+    try { const u = new URL(src); return <img src={u.href} alt={alt} className="pm-card-logo" />; } catch { return <img src={API_BASE_URL + src} alt={alt} className="pm-card-logo" />; }
   };
 
   return (
     <div className="payment-checkout">
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       <div className="checkout-container">
+        {/* Compact header */}
         <div className="checkout-header">
-          <h1>Checkout</h1>
-          <div className="breadcrumb">
-            Payment › {getItemType()} › Confirmation
-          </div>
+          <h1>{itemName}</h1>
+          <span className="checkout-price">{formatPrice(total)}</span>
         </div>
 
         <div className="checkout-wrapper">
-          {/* Main Form */}
-          <form onSubmit={handleSubmit} className="checkout-form-section">
-            {/* Verification Status - Prominent at top during verification */}
+          <form id="main-checkout-form" onSubmit={handleSubmit} className="checkout-form-section">
             {isVerifying && (
               <div className="verification-status verification-status-top">
                 <LoadingSpinner />
-                <p>{verificationMessage}</p>
-                <p>Please complete the payment on your mobile device if prompted.</p>
-                <button
-                  type="button"
-                  className="btn-secondary"
-                  onClick={stopVerification}
-                >
-                  Cancel Verification
-                </button>
+                <p className="verify-title">Veuillez confirmer le paiement pour finaliser la transaction</p>
+                <p className="verify-sub">Ne fermez pas cette page pendant l'operation.</p>
+                {payUrl && selectedPaymentMethod?.type === 'card' && (
+                  <a href={payUrl} target="_blank" rel="noopener noreferrer" className="checkout-submit pay-link-btn">
+                    Acceder a la page de paiement
+                  </a>
+                )}
+                <button type="button" className="btn-secondary" onClick={stopVerification}>Annuler</button>
               </div>
             )}
 
-            {/* Contact Section */}
-            <h3 className="form-section-title">Contact Information</h3>
-            <div className={`form-group ${errors.email ? 'error' : ''}`}>
-              <label>Email Address</label>
-              <input
-                type="email"
-                name="email"
-                value={contactEmail}
-                onChange={handleChange}
-                placeholder="john@example.com"
-                disabled={isFormDisabled}
-              />
-              {errors.email && (
-                <span className="form-error">{errors.email}</span>
-              )}
-            </div>
+            {/* Step 1: ALL payment methods visible as cards */}
+            <div className="form-section">
+              <h3 className="form-section-title">
+                <span className="step-badge">1</span>
+                Choisissez comment payer
+              </h3>
 
-            <p style={{ fontSize: '12px', color: 'var(--color-text-secondary)', marginTop: '-8px', marginBottom: 'var(--space-lg)' }}>
-              The product details will be sent to this email address.
-            </p>
+              <div className="pm-card-grid">
+                {paymentMethods.map((pm) => (
+                  <button
+                    key={pm.id}
+                    type="button"
+                    className={`pm-card ${formData.paymentMethod === pm.id ? 'active' : ''}`}
+                    onClick={() => {
+                      setFormData((prev) => ({ ...prev, paymentMethod: pm.id }));
+                      if (errors.paymentMethod) { const n = { ...errors }; delete n.paymentMethod; setErrors(n); }
+                      if (pm.type === 'card') {
+                        setSendEmail(true);
+                        setSendSms(false);
+                      } else if (pm.type === 'mobile_money') {
+                        setSendSms(true);
+                        setSendEmail(false);
+                      }
+                    }}
+                    disabled={isFormDisabled}
+                  >
+                    <div className="pm-card-icon">
+                      {pm.logo ? <LogoImg src={pm.logo} alt={pm.name} /> :
+                        pm.type === 'mobile_money' ? <span className="pm-emoji">📱</span> :
+                        pm.channel?.includes('mtn') ? <span className="pm-emoji">🟡</span> :
+                        pm.channel?.includes('orange') ? <span className="pm-emoji">🟠</span> :
+                        pm.type === 'card' ? <span className="pm-emoji">💳</span> :
+                        <span className="pm-emoji">💰</span>}
+                    </div>
+                    <div className="pm-card-label">{pm.name}</div>
+                    <div className="pm-card-channel">{formatChannel(pm.channel)}</div>
+                    {formData.paymentMethod === pm.id && <div className="pm-card-check">&#10003;</div>}
+                  </button>
+                ))}
+              </div>
 
-            {/* Payment Method Section */}
-            <h3 className="form-section-title">Payment Method</h3>
-            <div className={`form-group ${errors.paymentMethod ? 'error' : ''}`}>
-              <PaymentMethodSelector
-                methods={paymentMethods}
-                selected={formData.paymentMethod}
-                onChange={(methodId) => {
-                  setFormData((prev) => ({
-                    ...prev,
-                    paymentMethod: methodId,
-                  }));
-                  if (errors.paymentMethod) {
-                    setErrors((prev) => {
-                      const newErrors = { ...prev };
-                      delete newErrors.paymentMethod;
-                      return newErrors;
-                    });
-                  }
-                }}
-                disabled={isFormDisabled}
-                error={!!errors.paymentMethod}
-              />
-              {errors.paymentMethod && (
-                <span className="form-error" style={{ marginTop: 'var(--space-md)' }}>
-                  {errors.paymentMethod}
-                </span>
-              )}
-            </div>
+              {errors.paymentMethod && <span className="form-error">{errors.paymentMethod}</span>}
 
-            {/* Payment Method Specific Fields */}
-            {formData.paymentMethod && (
-              <PaymentMethodFields
-                paymentMethod={selectedPaymentMethod?.type || ''}
-                formData={formData}
-                onChange={handleChange}
-                errors={errors}
-                disabled={isFormDisabled}
-              />
-            )}
-
-            {/* Submit Button */}
-            {dataLoading && <LoadingSpinner />}
-            {!dataLoading && !isVerifying && (
-              <button
-                type="submit"
-                className="checkout-submit"
-                disabled={isFormDisabled}
-              >
-                Complete Purchase
-              </button>
-            )}
-          </form>
-
-          {/* Order Summary Sidebar */}
-          <aside className="order-summary">
-            <h3 className="summary-title">Order Summary</h3>
-
-            <div className="summary-item">
-              {itemImage && (
-                <div className="summary-item-image">
-                  <img src={itemImage} alt={itemName} />
+              {/* Phone field for mobile money, Email field for card */}
+              {formData.paymentMethod && selectedPaymentMethod?.type === 'mobile_money' && (
+                <div style={{ marginTop: 'var(--space-lg)' }}>
+                  <PaymentMethodFields
+                    paymentMethod={selectedPaymentMethod.type}
+                    formData={formData}
+                    onChange={handleChange}
+                    errors={errors}
+                    disabled={isFormDisabled}
+                  />
                 </div>
               )}
-              <div style={{ flex: 1 }}>
-                <div className="summary-item-name">{itemName}</div>
-                <div className="summary-item-price">{formatPrice(price)}</div>
+              {formData.paymentMethod && selectedPaymentMethod?.type === 'card' && (
+                <div style={{ marginTop: 'var(--space-lg)' }}>
+                  <div className={`form-group ${errors.email ? 'error' : ''}`}>
+                    <label>Adresse email pour le paiement</label>
+                    <input
+                      type="email" name="email"
+                      value={contactEmail}
+                      onChange={handleChange}
+                      placeholder="exemple@email.com"
+                      disabled={isFormDisabled}
+                      className="big-input"
+                    />
+                    {errors.email && <span className="form-error">{errors.email}</span>}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Step 2: Delivery options */}
+            <div className="form-section">
+              <h3 className="form-section-title">
+                <span className="step-badge">2</span>
+                Reception des identifiants
+              </h3>
+
+              {errors.delivery && <div className="form-error" style={{ marginBottom: 'var(--space-md)' }}>{errors.delivery}</div>}
+
+              <div className={`delivery-option ${sendSms ? 'active' : ''}`}>
+                <label className="delivery-checkbox-label">
+                  <input type="checkbox" checked={sendSms} onChange={(e) => setSendSms(e.target.checked)} className="checkbox-input" disabled={isFormDisabled} />
+                  <span className="delivery-checkbox-text">Recevoir par SMS</span>
+                </label>
+                {sendSms && (
+                  <div className="delivery-sub">
+                    <input
+                      type="tel" name="smsPhoneNumber"
+                      value={formatPhoneForDisplay(smsPhoneNumber || formData.mobileMoneyNumber || '')}
+                      onChange={handleChange} placeholder="670 40 68 90"
+                      disabled={isFormDisabled} className="big-input"
+                    />
+                    <small className="field-hint">Par defaut, votre numero de paiement</small>
+                  </div>
+                )}
+              </div>
+
+              <div className={`delivery-option ${sendEmail ? 'active' : ''}`}>
+                <label className="delivery-checkbox-label">
+                  <input type="checkbox" checked={sendEmail} onChange={(e) => setSendEmail(e.target.checked)} className="checkbox-input" disabled={isFormDisabled} />
+                  <span className="delivery-checkbox-text">Recevoir par Email</span>
+                </label>
+                {sendEmail && (
+                  <div className="delivery-sub">
+                    <input type="email" name="email" value={contactEmail} onChange={handleChange} placeholder="exemple@email.com" disabled={isFormDisabled} className="big-input" />
+                    {errors.email && <span className="form-error">{errors.email}</span>}
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="summary-totals">
-              <div className="total-row">
-                <span className="total-label">Subtotal</span>
-                <span className="total-value">{formatPrice(subtotal)}</span>
-              </div>
-              <div className="total-row final">
-                <span>Total</span>
-                <span>{formatPrice(total)}</span>
-              </div>
+            {/* Desktop submit */}
+            {!dataLoading && !isVerifying && (
+              <button type="submit" className="checkout-submit desktop-only" disabled={isFormDisabled}>
+                Payer {formatPrice(total)}
+              </button>
+            )}
+
+            {dataLoading && <LoadingSpinner />}
+
+            <div className="security-info">
+              <strong>Paiement securise</strong> — Aucune donnee bancaire n'est stockee.
             </div>
-          </aside>
+          </form>
         </div>
+      </div>
+
+      {/* Mobile sticky bottom bar */}
+      <div className="checkout-bottom-bar">
+        <div className="bottom-bar-info">
+          <span className="bottom-bar-name">{itemName}</span>
+          <span className="bottom-bar-price">{formatPrice(total)}</span>
+        </div>
+        <button type="submit" className="checkout-submit" form="main-checkout-form" disabled={isFormDisabled || isVerifying}>
+          {isVerifying ? 'Verification...' : `Payer ${formatPrice(total)}`}
+        </button>
       </div>
     </div>
   );

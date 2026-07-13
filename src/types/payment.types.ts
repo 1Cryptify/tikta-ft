@@ -75,6 +75,10 @@ export interface PaymentFormData {
   cardNumber?: string;
   cardExpiry?: string;
   cardCvc?: string;
+  // Delivery options
+  sendEmail?: boolean;
+  sendSms?: boolean;
+  smsPhoneNumber?: string;
 }
 
 export interface PaymentDetails {

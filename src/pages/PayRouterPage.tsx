@@ -74,7 +74,7 @@ export const PayRouterPage: React.FC<PayRouterPageProps> = ({ type }) => {
                 return;
               }
               // Group is a package - redirect to group checkout
-              navigate(`/checkout/group/${targetId}/buy`, { replace: true });
+              navigate(`/pay/g/${targetId}/buy`, { replace: true });
               return;
             }
           } catch (err) {
@@ -89,7 +89,7 @@ export const PayRouterPage: React.FC<PayRouterPageProps> = ({ type }) => {
             if (groupResponse.status === 'success' && groupResponse) {
               if (groupResponse.is_package) {
                 // Group is a package - redirect to payment checkout
-                navigate(`/checkout/group/${targetId}/buy`, { replace: true });
+                navigate(`/pay/g/${targetId}/buy`, { replace: true });
                 return;
               }
               

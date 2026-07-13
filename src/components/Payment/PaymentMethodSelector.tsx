@@ -64,9 +64,16 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
     }
   };
 
-  // Format channel for display (e.g., "cm.mtn" -> "MTN Cameroon")
+  // Format channel for display
   const formatChannel = (channel?: string): string => {
     if (!channel) return '';
+    const c = channel.toLowerCase();
+    const labels: Record<string, string> = {
+      'mtn_momo': 'MTN Mobile Money',
+      'orange_money': 'Orange Money',
+      'stripe': 'Bank Card',
+    };
+    if (labels[c]) return labels[c];
     const parts = channel.split('.');
     if (parts.length >= 2) {
       const provider = parts[1].toUpperCase();

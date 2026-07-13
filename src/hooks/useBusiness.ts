@@ -79,6 +79,7 @@ interface UseBusinessReturn extends BusinessState {
     deleteBusiness: (id: string) => Promise<boolean>;
     blockBusiness: (id: string, reason?: string) => Promise<boolean>;
     unblockBusiness: (id: string) => Promise<boolean>;
+    verifyCompany: (id: string) => Promise<boolean>;
     markActiveCompany: (id: string) => Promise<boolean>;
     uploadDocuments: (id: string, documents: FormData) => Promise<boolean>;
     uploadLogo: (id: string, file: File) => Promise<boolean>;
@@ -223,7 +224,7 @@ export const useBusiness = (): UseBusinessReturn => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post(`/${id}/update/`, data);
+            const response = await axiosInstance.post('/update-company/', { company_id: id, ...data });
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
             
@@ -375,6 +376,49 @@ export const useBusiness = (): UseBusinessReturn => {
         }
     }, []);
 
+    // Verify company (staff only)
+    const verifyCompany = useCallback(async (id: string): Promise<boolean> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        try {
+            const response = await axiosInstance.post('/verify-company/', { company_id: id });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
+            if (response.data.status === 'success') {
+                const updatedBusiness = response.data.company;
+                setState(prev => ({
+                    ...prev,
+                    businesses: prev.businesses.map(b => b.id === id ? updatedBusiness : b),
+                    isLoading: false,
+                }));
+                return true;
+            }
+            return false;
+        } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+            
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+            
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || 'Failed to verify company'
+                : 'An error occurred';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return false;
+        }
+    }, []);
+
     // Mark company as active
     const markActiveCompany = useCallback(async (id: string): Promise<boolean> => {
         const startTime = Date.now();
@@ -389,7 +433,11 @@ export const useBusiness = (): UseBusinessReturn => {
             }
             
             if (response.data.status === 'success') {
-                setState(prev => ({ ...prev, isLoading: false }));
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    businesses: prev.businesses.map(b => ({ ...b, is_active: b.id === id })),
+                }));
                 return true;
             }
             return false;
@@ -776,6 +824,7 @@ export const useBusiness = (): UseBusinessReturn => {
         deleteBusiness,
         blockBusiness,
         unblockBusiness,
+        verifyCompany,
         markActiveCompany,
         uploadDocuments,
         uploadLogo,

@@ -8,6 +8,7 @@ import {
     ActionType,
 } from '../config/menuPermissions';
 import { useBusiness, Business as BusinessType } from '../hooks/useBusiness';
+import { useAuth } from '../hooks/useAuth';
 import { getMediaUrl } from '../services/api';
 import DocumentUploadModal from '../components/DocumentUploadModal';
 import LogoUploadModal from '../components/LogoUploadModal';
@@ -665,6 +666,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         error: apiError,
         blockBusiness,
         unblockBusiness,
+        verifyCompany,
         deleteBusiness,
         uploadDocuments,
         uploadLogo: uploadLogoAPI,
@@ -677,6 +679,8 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         updateCompanyStatusMessage,
         updateBusiness,
     } = useBusiness();
+
+    const { user } = useAuth();
 
     const [filteredBusinesses, setFilteredBusinesses] = useState<BusinessWithDocuments[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
@@ -833,6 +837,15 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
             }
         } else {
             setError('Failed to set active company');
+        }
+    };
+
+    const handleVerify = async (id: string) => {
+        const success = await verifyCompany(id);
+        if (success) {
+            setError(null);
+        } else {
+            setError('Failed to verify company');
         }
     };
 
@@ -1234,6 +1247,16 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                                             {business.is_blocked ? 'Unblock' : 'Block'}
                                         </ActionButton>
                                     )}
+
+                                {user?.is_staff && !business.is_verified && !business.is_blocked && (
+                                    <ActionButton
+                                        title="Verify"
+                                        variant="success"
+                                        onClick={() => handleVerify(business.id)}
+                                    >
+                                        <FiCheck /> Verify
+                                    </ActionButton>
+                                )}
 
                                 {hasPermission(
                                     userRole,

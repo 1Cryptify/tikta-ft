@@ -6,6 +6,7 @@ import {
   PaymentSuccessPage,
   PaymentFailedPage,
   PayRouterPage,
+  PaymentReturnPage,
 } from '../pages/payment.index';
 
 /**
@@ -43,6 +44,9 @@ export const PaymentRoutes: React.FC = () => {
       <Route path="/pay/offer/:offerId" element={<PaymentCheckoutPage />} />
       <Route path="/pay/g/:groupId/buy" element={<PaymentCheckoutPage />} />
       <Route path="/pay/product/:productId" element={<PaymentCheckoutPage />} />
+
+      {/* Return URL after provider payment redirect */}
+      <Route path="/return" element={<PaymentReturnPage />} />
 
       {/* Success/Failure Routes */}
       <Route path="/success" element={<PaymentSuccessPage />} />
