@@ -419,6 +419,7 @@ interface WithdrawalRequestData {
     account_id: string;
     amount: number;
     currency: string;
+    company_id?: string;
 }
 
 export const WithdrawalPanel: React.FC = () => {
@@ -479,9 +480,10 @@ export const WithdrawalPanel: React.FC = () => {
     const [isProcessingWithdrawal, setIsProcessingWithdrawal] = useState(false);
     const [showAdminActionsModal, setShowAdminActionsModal] = useState(false);
     const [selectedAccountForAdmin, setSelectedAccountForAdmin] = useState<any | null>(null);
-    const [adminAction, setAdminAction] = useState<'activate' | 'set_recipient' | null>(null);
+    const [adminAction, setAdminAction] = useState<'activate' | 'set_recipient' | 'set_fee' | null>(null);
     const [adminRecipientId, setAdminRecipientId] = useState('');
     const [adminChannel, setAdminChannel] = useState('');
+    const [adminFeePercentage, setAdminFeePercentage] = useState('');
     const [withdrawalToVerify, setWithdrawalToVerify] = useState<any | null>(null);
 
     // Update withdrawal currency when balance currency changes
@@ -726,6 +728,7 @@ export const WithdrawalPanel: React.FC = () => {
                 account_id: withdrawalData.account_id,
                 amount: withdrawalData.amount,
                 currency_code: withdrawalData.currency,
+                company_id: withdrawalData.company_id || undefined,
             });
 
             if (result && result.status === 'success') {
@@ -737,6 +740,7 @@ export const WithdrawalPanel: React.FC = () => {
                     account_id: '',
                     amount: 0,
                     currency: 'USD',
+                    company_id: '',
                 });
                 setShowWithdrawalModal(false);
                 
@@ -801,6 +805,32 @@ export const WithdrawalPanel: React.FC = () => {
         } catch (err: any) {
             alert(err.response?.data?.message || 'Failed to set recipient ID');
             console.error('Error:', err);
+        }
+    };
+
+    const handleAdminSetFee = async () => {
+        if (!selectedAccountForAdmin) return;
+        try {
+            const axiosInstance = await import('axios').then(m => m.default);
+            const api = axiosInstance.create({
+                baseURL: API_PAYMENTS_BASE_URL,
+                withCredentials: true,
+                headers: { 'Content-Type': 'application/json' },
+            });
+            const response = await api.post(`/withdrawal-accounts/${selectedAccountForAdmin.id}/update/`, {
+                withdrawal_fee_percentage: adminFeePercentage,
+            });
+            if (response.data.status === 'success') {
+                alert(`Frais definis a ${adminFeePercentage}%`);
+                setShowAdminActionsModal(false);
+                setSelectedAccountForAdmin(null);
+                setAdminFeePercentage('');
+                await getWithdrawalAccounts();
+            } else {
+                alert(response.data.message || 'Erreur');
+            }
+        } catch (err: any) {
+            alert(err.response?.data?.message || 'Erreur lors de la definition des frais');
         }
     };
 
@@ -1041,18 +1071,28 @@ export const WithdrawalPanel: React.FC = () => {
                                          >
                                               Activate Account
                                          </ActionButton>
-                                         <ActionButton
-                                             className="success"
-                                             onClick={() => {
-                                                 setSelectedAccountForAdmin(account);
-                                                 setAdminAction('set_recipient');
-                                                 setAdminChannel('');
-                                                 setAdminRecipientId('');
-                                                 setShowAdminActionsModal(true);
-                                             }}
-                                         >
-                                              Set Recipient ID
-                                         </ActionButton>
+                                          <ActionButton
+                                              className="success"
+                                              onClick={() => {
+                                                  setSelectedAccountForAdmin(account);
+                                                  setAdminAction('set_recipient');
+                                                  setAdminChannel('');
+                                                  setAdminRecipientId('');
+                                                  setShowAdminActionsModal(true);
+                                              }}
+                                          >
+                                               Set Recipient ID
+                                          </ActionButton>
+                                          <ActionButton
+                                              onClick={() => {
+                                                  setSelectedAccountForAdmin(account);
+                                                  setAdminAction('set_fee');
+                                                  setAdminFeePercentage(account.withdrawal_fee_percentage || '0');
+                                                  setShowAdminActionsModal(true);
+                                              }}
+                                          >
+                                               Frais de retrait ({account.withdrawal_fee_percentage || '0'}%)
+                                          </ActionButton>
                                      </>
                                  )}
                                  {linkedPaymentMethod[account.id] ? (
@@ -1101,6 +1141,25 @@ export const WithdrawalPanel: React.FC = () => {
                         </ModalHeader>
 
                         <form onSubmit={handleProcessWithdrawal}>
+                            {user?.is_superuser && (
+                                <FormGroup>
+                                    <label>Entreprise *</label>
+                                    <select
+                                        name="company_id"
+                                        value={withdrawalData.company_id || ''}
+                                        onChange={handleWithdrawalInputChange}
+                                        disabled={loadingCompanies}
+                                    >
+                                        <option value="">Compagnie active (par defaut)</option>
+                                        {companies.map(company => (
+                                            <option key={company.id} value={company.id}>
+                                                {company.name}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </FormGroup>
+                            )}
+
                             <FormGroup>
                                 <label>Compte de retrait *</label>
                                 <select
@@ -1156,6 +1215,42 @@ export const WithdrawalPanel: React.FC = () => {
                                 </FormGroup>
                             </FormRow>
 
+                            {/* Fee breakdown */}
+                            {withdrawalData.amount > 0 && (() => {
+                                const selectedAccount = withdrawalAccounts.find(a => a.id === withdrawalData.account_id);
+                                const feePercent = selectedAccount?.withdrawal_fee_percentage ? parseFloat(selectedAccount.withdrawal_fee_percentage) : 0;
+                                if (feePercent > 0) {
+                                    const feeAmount = (withdrawalData.amount * feePercent) / 100;
+                                    const netAmount = withdrawalData.amount - feeAmount;
+                                    return (
+                                        <div style={{
+                                            background: 'rgba(30, 58, 95, 0.04)',
+                                            border: '1px solid var(--color-border)',
+                                            borderRadius: '8px',
+                                            padding: '12px 16px',
+                                            marginBottom: '16px',
+                                        }}>
+                                            <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px', color: 'var(--color-text-primary)' }}>
+                                                Detail du retrait
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--color-text-secondary)', marginBottom: '4px' }}>
+                                                <span>Montant brut</span>
+                                                <span>{withdrawalData.amount.toLocaleString()} {withdrawalData.currency}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--color-danger)', marginBottom: '4px' }}>
+                                                <span>Frais ({feePercent}%)</span>
+                                                <span>-{feeAmount.toLocaleString()} {withdrawalData.currency}</span>
+                                            </div>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 700, color: 'var(--color-primary)', borderTop: '1px solid var(--color-border)', paddingTop: '8px', marginTop: '4px' }}>
+                                                <span>Vous recevrez</span>
+                                                <span>{netAmount.toLocaleString()} {withdrawalData.currency}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                }
+                                return null;
+                            })()}
+
                             <ModalFooter>
                                 <CancelButton
                                     type="button"
@@ -1205,7 +1300,41 @@ export const WithdrawalPanel: React.FC = () => {
                             </CloseButton>
                         </ModalHeader>
 
-                        {adminAction === 'set_recipient' ? (
+                        {adminAction === 'set_fee' ? (
+                             <form onSubmit={(e) => {
+                                 e.preventDefault();
+                                 handleAdminSetFee();
+                             }}>
+                                 <FormGroup>
+                                     <label>Compte</label>
+                                     <input type="text" value={`${selectedAccountForAdmin.provider} - ${selectedAccountForAdmin.account_number}`} disabled />
+                                 </FormGroup>
+                                 <FormGroup>
+                                     <label>Pourcentage de frais (%)</label>
+                                     <input
+                                         type="number"
+                                         value={adminFeePercentage}
+                                         onChange={(e) => setAdminFeePercentage(e.target.value)}
+                                         placeholder="Ex: 20"
+                                         step="0.01"
+                                         min="0"
+                                         max="100"
+                                         required
+                                     />
+                                 </FormGroup>
+                                 <p style={{ color: colors.textSecondary, fontSize: '0.875rem' }}>
+                                     Exemple : si 20%, un retrait de 1000 FCFA enverra 800 FCFA au destinataire.
+                                 </p>
+                                 <ModalFooter>
+                                     <CancelButton type="button" onClick={() => setShowAdminActionsModal(false)}>
+                                         Annuler
+                                     </CancelButton>
+                                     <SubmitButton type="submit" disabled={isLoading}>
+                                         {isLoading ? 'Enregistrement...' : 'Appliquer les frais'}
+                                     </SubmitButton>
+                                 </ModalFooter>
+                             </form>
+                        ) : adminAction === 'set_recipient' ? (
                              <form onSubmit={(e) => {
                                  e.preventDefault();
                                  handleAdminSetRecipient();

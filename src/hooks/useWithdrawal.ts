@@ -60,6 +60,7 @@ export interface WithdrawalAccount {
     created_at?: string;
     updated_at?: string;
     verified_at?: string;
+    withdrawal_fee_percentage?: string;
 }
 
 export interface Company {

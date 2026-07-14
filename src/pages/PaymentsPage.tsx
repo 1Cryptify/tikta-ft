@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import { TransactionsPanel } from '../components/Payments/TransactionsPanel';
 import { WithdrawalPanel } from '../components/Payments/WithdrawalPanel';
 import { LogsPanel } from '../components/Payments/LogsPanel';
+import { AdminRevenuePanel } from '../components/Payments/AdminRevenuePanel';
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -153,7 +154,7 @@ interface PaymentStats {
 
 export const PaymentsPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'withdrawal' | 'transactions' | 'logs'>('withdrawal');
+  const [activeTab, setActiveTab] = useState<'withdrawal' | 'transactions' | 'logs' | 'revenue'>('withdrawal');
   const [stats, setStats] = useState<PaymentStats>({
     totalTransactions: 0,
     totalWithdrawals: 0,
@@ -203,12 +204,21 @@ export const PaymentsPage: React.FC = () => {
         >
           Logs
         </MenuButton>
+        {user?.is_superuser && (
+          <MenuButton
+            isActive={activeTab === 'revenue'}
+            onClick={() => setActiveTab('revenue')}
+          >
+            Revenus
+          </MenuButton>
+        )}
       </MenuNav>
 
       <PanelContent>
         {activeTab === 'withdrawal' && <WithdrawalPanel />}
         {activeTab === 'transactions' && <TransactionsPanel />}
         {activeTab === 'logs' && <LogsPanel />}
+        {activeTab === 'revenue' && <AdminRevenuePanel />}
       </PanelContent>
     </ContentSection>
   );
