@@ -4,6 +4,10 @@ import { useAuth, User } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './components/Auth/LoginPage';
 import { ConfirmationPage } from './components/Auth/ConfirmationPage';
+import { RegisterPage } from './components/Auth/RegisterPage';
+import { EmailVerificationPage } from './components/Auth/EmailVerificationPage';
+import { ForgotPasswordPage } from './components/Auth/ForgotPasswordPage';
+import { FirstLoginChangePage } from './components/Auth/FirstLoginChangePage';
 import { HomePage } from './pages/HomePage';
 import { Dashboard } from './pages/Dashboard';
 import LoadingSpinner from './components/LoadingSpinner';
@@ -67,6 +71,10 @@ function App() {
 
                 {/* Auth Routes */}
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
+                <Route path="/verify-email" element={<EmailVerificationPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/change-password" element={<FirstLoginChangePage />} />
                 <Route path="/confirm" element={<ConfirmationPage email="" onSuccess={() => { }} onBack={() => { }} />} />
 
                 {/* Payment Routes - Public */}

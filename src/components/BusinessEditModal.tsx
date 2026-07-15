@@ -249,8 +249,15 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
         commerce_register: business.commerce_register,
         website: business.website,
       });
-      setError(null);
+    } else {
+      setFormData({
+        name: '',
+        nui: '',
+        commerce_register: '',
+        website: '',
+      });
     }
+    setError(null);
   }, [business, isOpen]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -285,7 +292,7 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     <ModalOverlay isOpen={isOpen} onClick={onClose}>
       <ModalContent onClick={(e) => e.stopPropagation()}>
         <ModalHeader>
-          <ModalTitle>Edit Business</ModalTitle>
+          <ModalTitle>{business ? 'Edit Business' : 'Create Business'}</ModalTitle>
           <CloseButton onClick={onClose}>
             <FiX />
           </CloseButton>

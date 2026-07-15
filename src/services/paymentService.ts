@@ -1,10 +1,17 @@
 import { API_PAYMENTS_BASE_URL } from "./api";
+import { getUserFriendlyErrorMessage } from "../utils/errorMessages";
+
 const API_BASE = API_PAYMENTS_BASE_URL;
 
 const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
+
+const throwPaymentError = (data: any, fallback: string) => {
+  const rawMessage = data?.message || fallback;
+  throw new Error(getUserFriendlyErrorMessage(rawMessage, rawMessage));
+};
 
 // ============ Offer Group Operations ============
 
@@ -97,7 +104,7 @@ export const paymentService = {
     const data = await response.json();
 
     if (!response.ok || data.status === 'error') {
-      throw new Error(data.message || `Failed to initiate offer payment: HTTP ${response.status}`);
+      throwPaymentError(data, `Failed to initiate offer payment: HTTP ${response.status}`);
     }
 
     return data;
@@ -129,7 +136,7 @@ export const paymentService = {
     
 
     if (!response.ok || data.status === 'error') {
-      throw new Error(data.message || `Failed to initiate product payment: HTTP ${response.status}`);
+      throwPaymentError(data, `Failed to initiate product payment: HTTP ${response.status}`);
     }
 
     return data;
@@ -206,7 +213,7 @@ export const paymentService = {
     console.log('initiateGroupPayment response:', data);
 
     if (!response.ok || data.status === 'error') {
-      throw new Error(data.message || `Failed to initiate group payment: HTTP ${response.status}`);
+      throwPaymentError(data, `Failed to initiate group payment: HTTP ${response.status}`);
     }
 
     return data;

@@ -225,6 +225,10 @@ export const ConfirmationPage: React.FC<ConfirmationPageProps> = ({
 
       if (!result.success) {
          setCodeError2(result.error || 'Confirmation failed');
+       } else if (result.mustChangePassword) {
+         console.log('Confirmation success, password change required');
+         onSuccess?.();
+         navigate('/change-password');
        } else {
          console.log('Confirmation success, navigating to /dashboard/overview');
          onSuccess?.();

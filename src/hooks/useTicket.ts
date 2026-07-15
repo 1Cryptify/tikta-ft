@@ -48,8 +48,9 @@ interface TicketState {
 interface UseTicketReturn extends TicketState {
      getTickets: () => Promise<void>;
      getTicketById: (id: string) => Promise<Ticket | null>;
-     createTicket: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string; company_id?: string; ticket_id?: string; password?: string }) => Promise<Ticket | null>;
-    bulkImportTickets: (tickets: Array<{ ticket_id: string; password: string; valid_until: string }>, offer_id?: string, company_id?: string) => Promise<{ status: string; summary: { total: number; created: number; failed: number }; tickets: any[] } | null>;
+     createTicket: (data: Partial<Ticket> & { valid_until?: string; offer_id?: string; payment_id?: string; company_id?: string; ticket_id?: string; password?: string }) => Promise<Ticket | null>;
+    bulkImportTickets: (tickets: Array<{ ticket_id: string; password: string; valid_until?: string }>, offer_id?: string, company_id?: string) => Promise<{ status: string; summary: { total: number; created: number; failed: number }; tickets: any[] } | null>;
+    bulkUseTickets: (ticket_ids: string[]) => Promise<{ status: string; message: string; updated_count: number; failed_count: number; failed_items: any[] } | null>;
      updateTicket: (id: string, data: Partial<Ticket>) => Promise<Ticket | null>;
      deleteTicket: (id: string) => Promise<boolean>;
      validateTicket: (id: string, ticket_code: string, ticket_secret: string) => Promise<Ticket | null>;
@@ -153,7 +154,7 @@ export const useTicket = (): UseTicketReturn => {
     }, []);
 
     // Create new ticket
-    const createTicket = useCallback(async (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string; company_id?: string; ticket_id?: string; password?: string }): Promise<Ticket | null> => {
+    const createTicket = useCallback(async (data: Partial<Ticket> & { valid_until?: string; offer_id?: string; payment_id?: string; company_id?: string; ticket_id?: string; password?: string }): Promise<Ticket | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
@@ -162,9 +163,12 @@ export const useTicket = (): UseTicketReturn => {
             const ticketData: any = {
                 ticket_id: data.ticket_id || data.ticket_code,
                 password: data.password || data.ticket_secret,
-                valid_until: data.valid_until,
                 offer_id: data.offer_id
             };
+
+            if (data.valid_until) {
+                ticketData.valid_until = data.valid_until;
+            }
 
             // Add company_id for superusers if provided, otherwise from active company
             if (user && user.is_superuser && data.company_id) {
@@ -215,7 +219,7 @@ export const useTicket = (): UseTicketReturn => {
 
     // Bulk import tickets
     const bulkImportTickets = useCallback(async (
-        tickets: Array<{ ticket_id: string; password: string; valid_until: string }>,
+        tickets: Array<{ ticket_id: string; password: string; valid_until?: string }>,
         offer_id?: string,
         company_id?: string
     ): Promise<{ status: string; summary: { total: number; created: number; failed: number }; tickets: any[] } | null> => {
@@ -362,6 +366,50 @@ export const useTicket = (): UseTicketReturn => {
                 : error instanceof Error
                     ? error.message
                     : 'Failed to use ticket';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return null;
+        }
+    }, []);
+
+    // Bulk use tickets (mark multiple as used)
+    const bulkUseTickets = useCallback(async (ticket_ids: string[]): Promise<{ status: string; message: string; updated_count: number; failed_count: number; failed_items: any[] } | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const response = await axiosInstance.post('/tickets/bulk-use/', { ticket_ids });
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    successMessage: response.data.message || 'Tickets marked as used',
+                }));
+                return response.data;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to mark tickets as used',
+                }));
+            }
+            return null;
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || error.message
+                : error instanceof Error
+                    ? error.message
+                    : 'Failed to mark tickets as used';
             setState(prev => ({
                 ...prev,
                 isLoading: false,
@@ -518,6 +566,7 @@ export const useTicket = (): UseTicketReturn => {
         getTicketById,
         createTicket,
         bulkImportTickets,
+        bulkUseTickets,
         updateTicket,
         deleteTicket,
         validateTicket,

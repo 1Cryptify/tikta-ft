@@ -10,7 +10,7 @@ import { useBusiness, Business } from '../hooks/useBusiness';
 interface CreateTicketModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit: (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string; company_id?: string }) => Promise<void>;
+    onSubmit: (data: Partial<Ticket> & { valid_until?: string; offer_id?: string; payment_id?: string; company_id?: string }) => Promise<void>;
     isLoading: boolean;
 }
 
@@ -303,10 +303,6 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
             setError('Password is required');
             return;
         }
-        if (!formData.valid_until) {
-            setError('Valid until date is required');
-            return;
-        }
         if (isSuperuser && !formData.company_id) {
             setError('Company is required for superusers');
             return;
@@ -400,7 +396,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                         )}
 
                         <FormGroup>
-                            <Label htmlFor="valid_until">Valid Until Date *</Label>
+                            <Label htmlFor="valid_until">Valid Until Date</Label>
                             <Input
                                 id="valid_until"
                                 type="date"

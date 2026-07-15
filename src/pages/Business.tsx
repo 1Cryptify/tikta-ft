@@ -8,7 +8,7 @@ import {
     ActionType,
 } from '../config/menuPermissions';
 import { useBusiness, Business as BusinessType } from '../hooks/useBusiness';
-import { useAuth } from '../hooks/useAuth';
+import { useAuth, axiosInstance } from '../hooks/useAuth';
 import { getMediaUrl } from '../services/api';
 import DocumentUploadModal from '../components/DocumentUploadModal';
 import LogoUploadModal from '../components/LogoUploadModal';
@@ -16,6 +16,7 @@ import BusinessEditModal from '../components/BusinessEditModal';
 import BusinessAssociateModal from '../components/BusinessAssociateModal';
 import DocumentViewer from '../components/DocumentViewer';
 import UpdateStatusMessageModal from '../components/UpdateStatusMessageModal';
+import CreateUserModal from '../components/CreateUserModal';
 import {
     FiEdit,
     FiTrash2,
@@ -26,6 +27,7 @@ import {
     FiPlus,
     FiSearch,
     FiX,
+    FiUserPlus,
 } from 'react-icons/fi';
 
 interface BusinessPageProps {
@@ -664,6 +666,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         businesses,
         isLoading: loading,
         error: apiError,
+        createBusiness,
         blockBusiness,
         unblockBusiness,
         verifyCompany,
@@ -690,6 +693,8 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
     const [selectedBusinessForLogo, setSelectedBusinessForLogo] = useState<BusinessWithDocuments | null>(null);
     const [statusFilter, setStatusFilter] = useState<'all' | 'verified' | 'pending' | 'blocked'>('all');
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isCreateUserModalOpen, setIsCreateUserModalOpen] = useState(false);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [selectedBusinessForEdit, setSelectedBusinessForEdit] = useState<BusinessWithDocuments | null>(null);
     const [isAssociateModalOpen, setIsAssociateModalOpen] = useState(false);
@@ -756,8 +761,38 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     };
 
     const handleCreate = () => {
-        console.log('Créer nouvelle entreprise');
-        // TODO: Implémenter modal/page de création
+        setIsCreateModalOpen(true);
+    };
+
+    const handleCreateUser = () => {
+        setIsCreateUserModalOpen(true);
+    };
+
+    const handleCreateUserSubmit = async (data: { email: string; first_name: string; last_name: string; is_staff: boolean }) => {
+        try {
+            const response = await axiosInstance.post('/create-user/', data);
+            if (response.data.status === 'error') {
+                setError(response.data.message || 'Failed to create user');
+                throw new Error(response.data.message || 'Failed to create user');
+            }
+            setError(null);
+            setIsCreateUserModalOpen(false);
+        } catch (err: any) {
+            const message = err.response?.data?.message || err.message || 'Failed to create user';
+            setError(message);
+            throw new Error(message);
+        }
+    };
+
+    const handleCreateSubmit = async (data: Partial<BusinessType>) => {
+        const success = await createBusiness(data);
+        if (success) {
+            setError(null);
+            setIsCreateModalOpen(false);
+        } else {
+            setError('Failed to create business');
+            throw new Error('Failed to create business');
+        }
     };
 
     const handleEdit = (id: string) => {
@@ -988,11 +1023,18 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         <Container>
             <Header>
                 <Title>Businesses</Title>
-                {hasPermission(userRole, MenuName.BUSINESS, ActionType.BUSINESS_CREATE) && (
-                    <Button variant="primary" onClick={handleCreate}>
-                        <FiPlus /> Create
-                    </Button>
-                )}
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    {hasPermission(userRole, MenuName.BUSINESS, ActionType.BUSINESS_CREATE) && (
+                        <Button variant="primary" onClick={handleCreate}>
+                            <FiPlus /> Create Business
+                        </Button>
+                    )}
+                    {user?.is_superuser && (
+                        <Button variant="primary" onClick={handleCreateUser} style={{ backgroundColor: '#28a745' }}>
+                            <FiUserPlus /> Create User
+                        </Button>
+                    )}
+                </div>
             </Header>
 
             <SearchContainer>
@@ -1327,6 +1369,21 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                     setSelectedBusinessForLogo(null);
                 }}
                 onSubmit={handleLogoSubmit}
+            />
+
+            <BusinessEditModal
+                isOpen={isCreateModalOpen}
+                business={null}
+                onClose={() => {
+                    setIsCreateModalOpen(false);
+                }}
+                onSubmit={handleCreateSubmit}
+            />
+
+            <CreateUserModal
+                isOpen={isCreateUserModalOpen}
+                onClose={() => setIsCreateUserModalOpen(false)}
+                onSubmit={handleCreateUserSubmit}
             />
 
             <BusinessEditModal

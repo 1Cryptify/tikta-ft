@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { colors, spacing, borderRadius, shadows } from '../../config/theme';
 import { Button } from '../Form/Button';
 import { User } from '../../hooks/useAuth';
+import { NotificationBell } from './NotificationBell';
 
 const HeaderWrapper = styled.header`
   background: ${colors.surface};
@@ -237,6 +238,7 @@ export const Header: React.FC<HeaderProps> = ({
                 )}
                 {user && (
                     <NavContainer>
+                        <NotificationBell />
                         <UserInfo>
                             <UserEmail title={user.email}>{maskEmail(user.email)}</UserEmail>
                             <UserRole>{getRoleLabel()}</UserRole>

@@ -181,7 +181,7 @@ export const useBusiness = (): UseBusinessReturn => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post('/create/', data);
+            const response = await axiosInstance.post('/create-company/', data);
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
             

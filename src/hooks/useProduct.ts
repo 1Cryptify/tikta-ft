@@ -112,7 +112,7 @@ export const useProduct = (): UseProductReturn => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         
-        const response = await axiosInstance.get('/products/');
+        const response = await axiosInstance.get('/my-products/');
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
         

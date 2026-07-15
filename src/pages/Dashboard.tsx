@@ -1,17 +1,19 @@
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useState, useCallback } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import { MainLayout } from '../components/Layout/MainLayout';
-import { User } from '../hooks/useAuth';
+import { useAuth, User } from '../hooks/useAuth';
+import { useSupport } from '../hooks/useSupport';
 import { Business } from './Business';
 import { UserRole } from '../config/menuPermissions';
 import { OverviewPage } from './OverviewPage';
 import { OffersPage } from './OffersPage';
-import { PaymentAPIPage } from './PaymentAPIPage';
 import { PaymentsPage } from './PaymentsPage';
 import { TicketsPage } from './TicketsPage';
 import { SettingsPage } from './SettingsPage';
+import { NotificationsPage } from './NotificationsPage';
+import { SupportPage } from './SupportPage';
 import { PaymentMethodsCurrencyPage } from './PaymentMethodsCurrencyPage';
-import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiCode, FiTag, FiSliders } from 'react-icons/fi';
+import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiTag, FiSliders, FiBell, FiMessageSquare } from 'react-icons/fi';
 
 interface DashboardProps {
     user: User;
@@ -23,6 +25,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
     const navigate = useNavigate();
     const location = useLocation();
     const [activeCompany, setActiveCompany] = React.useState<{ id: string; name: string; logo?: string } | null>(null);
+    const { getNotifications } = useAuth();
+    const { getUnreadCount } = useSupport();
+
+    const [notificationCount, setNotificationCount] = useState(0);
+    const [supportCount, setSupportCount] = useState(0);
 
     // Synchronize active company from auth user on mount and when user changes
     useEffect(() => {
@@ -35,18 +42,35 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
         }
     }, [user?.active_company?.id]);
 
+    // Fetch notification and support badge counts
+    const fetchBadgeCounts = useCallback(async () => {
+        const [notifResult, supportResult] = await Promise.all([
+            getNotifications(true).catch(() => ({ notifications: [], unread_count: 0 })),
+            getUnreadCount(),
+        ]);
+        setNotificationCount(notifResult.unread_count || 0);
+        setSupportCount(supportResult);
+    }, [getNotifications, getUnreadCount]);
+
+    useEffect(() => {
+        fetchBadgeCounts();
+        const interval = setInterval(fetchBadgeCounts, 30000);
+        return () => clearInterval(interval);
+    }, [fetchBadgeCounts]);
+
     // Get active section from URL path
     const getActiveSection = () => {
         const path = location.pathname;
         // if (path.includes('overview') || path === '/dashboard' || path === '/dashboard/') return 'overview';
         if (path.includes('business')) return 'business';
         if (path.includes('offers')) return 'offers_produits';
-        if (path.includes('payment-api')) return 'payment_api';
         if (path.includes('payments')) return 'payments';
         if (path.includes('payment-config')) return 'payment_config';
         if (path.includes('tickets')) return 'tickets';
         if (path.includes('transactions')) return 'transactions';
         if (path.includes('settings')) return 'settings';
+        if (path.includes('notifications')) return 'notifications';
+        if (path.includes('support')) return 'support';
         return 'overview';
     };
 
@@ -99,15 +123,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 onClick: () => navigate('/dashboard/tickets'),
             },
             {
-                id: 'payment_api',
-                label: 'Payment API',
-                icon: <FiCode size={20} />,
-                active: activeNav === 'payment_api',
-                onClick: () => navigate('/dashboard/payment-api'),
-                badge: 'Coming Soon',
-                disabled: true,
+                id: 'notifications',
+                label: 'Notifications',
+                icon: <FiBell size={20} />,
+                active: activeNav === 'notifications',
+                onClick: () => navigate('/dashboard/notifications'),
+                badge: notificationCount > 0 ? String(notificationCount) : undefined,
             },
-
+            {
+                id: 'support',
+                label: 'Support',
+                icon: <FiMessageSquare size={20} />,
+                active: activeNav === 'support',
+                onClick: () => navigate('/dashboard/support'),
+                badge: supportCount > 0 ? String(supportCount) : undefined,
+            },
             {
                 id: 'settings',
                 label: 'Settings',
@@ -124,7 +154,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
             }
             return true;
         });
-    }, [activeNav, navigate, userRole]);
+    }, [activeNav, navigate, userRole, notificationCount, supportCount]);
 
     return (
         <MainLayout
@@ -139,7 +169,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 <Route path="/overview" element={<OverviewPage user={user} />} />
                 <Route path="/business" element={<Business userRole={userRole} onCompanyActivated={setActiveCompany} />} />
                 <Route path="/offers" element={<OffersPage />} />
-                <Route path="/payment-api" element={<PaymentAPIPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
                 <Route 
                     path="/payment-config" 
@@ -152,6 +181,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                     } 
                 />
                 <Route path="/tickets" element={<TicketsPage />} />
+                <Route path="/notifications" element={<NotificationsPage />} />
+                <Route path="/support" element={<SupportPage />} />
                 <Route path="/settings" element={<SettingsPage />} />
             </Routes>
         </MainLayout>

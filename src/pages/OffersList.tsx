@@ -792,7 +792,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
         createOfferGroup,
         updateOfferGroup,
         deleteOfferGroup,
-        getOfferGroups,
+        getMyOfferGroups,
         uploadOfferGroupImage,
     } = useOffer();
 
@@ -999,7 +999,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                 await createOfferGroup(data);
             }
             handleCloseGroupModal();
-            await getOfferGroups();
+            await getMyOfferGroups();
         } catch (error) {
             console.error('Failed to save group:', error);
         } finally {
@@ -1014,7 +1014,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
 
         try {
             await deleteOfferGroup(groupId);
-            await getOfferGroups();
+            await getMyOfferGroups();
         } catch (error) {
             console.error('Failed to delete group:', error);
         }

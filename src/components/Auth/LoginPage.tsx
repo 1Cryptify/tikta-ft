@@ -72,6 +72,27 @@ const Footer = styled.p`
   color: ${colors.textSecondary};
 `;
 
+const LinkRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.875rem;
+  margin-top: ${spacing.md};
+`;
+
+const TextLink = styled.button`
+  background: none;
+  border: none;
+  color: ${colors.primary};
+  cursor: pointer;
+  padding: 0;
+  font-size: 0.875rem;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 interface LoginPageProps {
     onSuccess?: (email: string) => void;
 }
@@ -128,6 +149,13 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
       console.log('LoginPage login result:', result);
 
       if (result.success) {
+        if (result.mustChangePassword) {
+          setSuccessMessage('Please change your password before continuing.');
+          setTimeout(() => {
+            navigate('/change-password');
+          }, 1500);
+          return;
+        }
         setSuccessMessage('Confirmation code sent to your email. Please check your inbox.');
         setPassword('');
         setTimeout(() => {
@@ -200,6 +228,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
                         Sign In
                     </Button>
                 </Form>
+
+                <LinkRow>
+                    <TextLink onClick={() => navigate('/register')} type="button">
+                        Create Account
+                    </TextLink>
+                    <TextLink onClick={() => navigate('/forgot-password')} type="button">
+                        Forgot Password?
+                    </TextLink>
+                </LinkRow>
 
                 <Footer>
                     © 2024 Tikta. All rights reserved.

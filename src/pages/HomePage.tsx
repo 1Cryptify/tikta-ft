@@ -36,6 +36,12 @@ export const HomePage: React.FC = () => {
                 <div style={styles.headerContent}>
                     <h1 style={styles.logo}>Tikta</h1>
                     <button
+                        onClick={() => navigate('/register')}
+                        style={styles.registerBtn}
+                    >
+                        Create Account
+                    </button>
+                    <button
                         onClick={() => navigate('/login')}
                         style={styles.loginBtn}
                     >
@@ -324,6 +330,25 @@ const styles = {
 
     'loginBtn:hover': {
         backgroundColor: colors.primaryDark,
+        transform: 'translateY(-2px)',
+        boxShadow: shadows.lg,
+    } as React.CSSProperties,
+
+    registerBtn: {
+        padding: `${spacing.md} ${spacing.lg}`,
+        backgroundColor: 'transparent',
+        color: colors.primary,
+        border: `1px solid ${colors.primary}`,
+        borderRadius: borderRadius.md,
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: 600,
+        transition: transitions.fast,
+    } as React.CSSProperties,
+
+    'registerBtn:hover': {
+        backgroundColor: colors.primary,
+        color: colors.surface,
         transform: 'translateY(-2px)',
         boxShadow: shadows.lg,
     } as React.CSSProperties,

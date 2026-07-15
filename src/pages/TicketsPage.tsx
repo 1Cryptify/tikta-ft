@@ -2,12 +2,16 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import styled from 'styled-components';
 // @ts-ignore
 import QRCode from 'qrcode.react';
-import { FiPrinter, FiEye, FiEyeOff, FiX, FiCopy, FiPlus, FiTrash2, FiXCircle } from 'react-icons/fi';
+import { FiPrinter, FiEye, FiEyeOff, FiX, FiCopy, FiPlus, FiTrash2, FiXCircle, FiDownload, FiFileText } from 'react-icons/fi';
 import { colors, spacing } from '../config/theme';
 import { useTicket, Ticket } from '../hooks/useTicket';
 import { useOffer } from '../hooks/useOffer';
+import { useAuth } from '../hooks/useAuth';
+import { useBusiness } from '../hooks/useBusiness';
 import LoadingSpinner from '../components/LoadingSpinner';
 import CreateTicketModal from '../components/CreateTicketModal';
+import A4CouponsPdf from '../components/A4CouponsPdf';
+import { pdf } from '@react-pdf/renderer';
 
 // ========== STYLED COMPONENTS ==========
 
@@ -426,6 +430,16 @@ const ErrorMessage = styled.div`
   font-size: 0.875rem;
 `;
 
+const InfoMessage = styled.div<{ variant?: 'success' | 'info' }>`
+  padding: ${spacing.md};
+  background: ${props => props.variant === 'success' ? '#d4edda' : '#e7f3ff'};
+  color: ${props => props.variant === 'success' ? '#155724' : '#084298'};
+  border: 1px solid ${props => props.variant === 'success' ? '#c3e6cb' : '#b6d4fe'};
+  border-radius: 4px;
+  margin-bottom: ${spacing.md};
+  font-size: 0.875rem;
+`;
+
 const JsonExample = styled.div`
   background: #f5f5f5;
   border: 1px solid #ddd;
@@ -454,6 +468,149 @@ const PrintContainer = styled.div`
 
   @media print {
     display: block;
+  }
+`;
+
+const TabContainer = styled.div`
+  display: flex;
+  gap: ${spacing.sm};
+  margin-bottom: ${spacing.md};
+  border-bottom: 1px solid #e0e0e0;
+`;
+
+const TabButton = styled.button<{ isActive: boolean }>`
+  padding: 8px 16px;
+  border: none;
+  background: ${props => props.isActive ? '#007bff' : 'transparent'};
+  color: ${props => props.isActive ? 'white' : colors.textPrimary};
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => props.isActive ? '#0056b3' : '#f0f0f0'};
+  }
+`;
+
+const SelectGroup = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: ${spacing.md};
+`;
+
+const SelectLabel = styled.label`
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: ${colors.textPrimary};
+`;
+
+const SelectInput = styled.select`
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  background: white;
+  color: ${colors.textPrimary};
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+`;
+
+const CsvTextarea = styled.textarea`
+  width: 100%;
+  min-height: 200px;
+  padding: ${spacing.md};
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.8rem;
+  resize: vertical;
+  margin-bottom: ${spacing.md};
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+`;
+
+const FileInput = styled.input`
+  margin-bottom: ${spacing.md};
+`;
+
+const PreviewTable = styled.table`
+  width: 100%;
+  border-collapse: collapse;
+  margin-bottom: ${spacing.md};
+  font-size: 0.8rem;
+
+  th, td {
+    border: 1px solid #ddd;
+    padding: 6px 8px;
+    text-align: left;
+  }
+
+  th {
+    background: #f5f5f5;
+    font-weight: 600;
+  }
+
+  tbody tr:nth-child(even) {
+    background: #fafafa;
+  }
+`;
+
+const CounterGroup = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${spacing.md};
+  margin-bottom: ${spacing.md};
+`;
+
+const CounterButton = styled.button`
+  width: 32px;
+  height: 32px;
+  border: 1px solid #ddd;
+  background: white;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 1rem;
+
+  &:hover {
+    background: #f0f0f0;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const CounterValue = styled.span`
+  font-weight: 600;
+  font-size: 1rem;
+  min-width: 40px;
+  text-align: center;
+`;
+
+const InfoText = styled.p`
+  font-size: 0.8rem;
+  color: ${colors.textSecondary};
+  margin-bottom: ${spacing.md};
+`;
+
+const PrintA4Button = styled(CreateButton)`
+  background: #6f42c1;
+
+  &:hover {
+    background: #5a32a3;
   }
 `;
 
@@ -571,6 +728,77 @@ const ResultsInfo = styled.div`
   font-size: 0.875rem;
   color: ${colors.textSecondary};
   margin-bottom: ${spacing.md};
+`;
+
+const PaginationContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${spacing.md};
+  margin-bottom: ${spacing.xl};
+  padding: ${spacing.md};
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+`;
+
+const PaginationControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${spacing.sm};
+`;
+
+const PaginationButton = styled.button`
+  padding: 6px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background: white;
+  color: ${colors.textPrimary};
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #f0f0f0;
+    border-color: #999;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const PaginationInfo = styled.span`
+  font-size: 0.875rem;
+  color: ${colors.textSecondary};
+  min-width: 120px;
+  text-align: center;
+`;
+
+const PageSizeSelector = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${spacing.sm};
+  font-size: 0.875rem;
+  color: ${colors.textSecondary};
+
+  select {
+    padding: 6px 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background: white;
+    color: ${colors.textPrimary};
+    font-size: 0.875rem;
+    cursor: pointer;
+
+    &:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+  }
 `;
 
 const ThermalTicketTemplate = styled.div`
@@ -691,14 +919,29 @@ const ThermalTicket: React.FC<ThermalTicketProps> = ({ ticket }: ThermalTicketPr
 export const TicketsPage: React.FC = () => {
     const ticketData = useTicket();
     const offerData = useOffer();
+    const authData = useAuth();
+    const businessData = useBusiness();
     const tickets = ticketData?.tickets || [];
     const isLoading = ticketData?.isLoading || false;
+    const isSuperuser = authData?.user?.is_superuser || false;
+
+    // Load businesses for superuser company selector
+    useEffect(() => {
+        if (isSuperuser) {
+            businessData.getBusinesses();
+        }
+    }, [isSuperuser]);
     const error = ticketData?.error || null;
     const [revealedSecrets, setRevealedSecrets] = useState<Set<string>>(new Set());
 
     // Filter states
     const [usedFilter, setUsedFilter] = useState<'all' | 'used' | 'unused'>('all');
     const [selectedOfferId, setSelectedOfferId] = useState<string>('all');
+
+    // Pagination states
+    const [currentPage, setCurrentPage] = useState<number>(1);
+    const [pageSize, setPageSize] = useState<number>(20);
+    const PAGE_SIZE_OPTIONS = [20, 100, 200, 500, 1000, 5000];
 
     // Load offers on mount
     useEffect(() => {
@@ -736,9 +979,23 @@ export const TicketsPage: React.FC = () => {
         });
     }, [tickets, usedFilter, selectedOfferId]);
 
+    // Paginate filtered tickets
+    const paginatedTickets = useMemo(() => {
+        const startIndex = (currentPage - 1) * pageSize;
+        return filteredTickets.slice(startIndex, startIndex + pageSize);
+    }, [filteredTickets, currentPage, pageSize]);
+
+    const totalPages = Math.ceil(filteredTickets.length / pageSize) || 1;
+
+    const handlePageSizeChange = (newSize: number) => {
+        setPageSize(newSize);
+        setCurrentPage(1);
+    };
+
     const clearFilters = () => {
         setUsedFilter('all');
         setSelectedOfferId('all');
+        setCurrentPage(1);
     };
 
     const hasActiveFilters = usedFilter !== 'all' || selectedOfferId !== 'all';
@@ -749,13 +1006,50 @@ export const TicketsPage: React.FC = () => {
     const [bulkLoading, setBulkLoading] = useState(false);
     const printRef = useRef<HTMLDivElement>(null);
 
-    const handleCreateTicket = async (data: Partial<Ticket> & { valid_until: string; offer_id?: string; payment_id?: string; company_id?: string }) => {
+    // CSV Mikrotik import states
+    const [bulkTab, setBulkTab] = useState<'json' | 'csv'>('csv');
+    const [csvOfferId, setCsvOfferId] = useState<string>('');
+    const [csvInput, setCsvInput] = useState<string>('');
+    const [csvFileName, setCsvFileName] = useState<string>('');
+    const [bulkCompanyId, setBulkCompanyId] = useState<string>('');
+
+    // A4 print states
+    const [isA4ModalOpen, setIsA4ModalOpen] = useState(false);
+    const [a4OfferId, setA4OfferId] = useState<string>('');
+    const [a4TicketCount, setA4TicketCount] = useState<number>(48);
+    const [a4InfoMessage, setA4InfoMessage] = useState<string | null>(null);
+    const [bulkInfoMessage, setBulkInfoMessage] = useState<string | null>(null);
+    const MAX_TICKETS_PER_A4 = 48;
+
+    // Auto-adjust A4 ticket count when offer or available tickets change
+    useEffect(() => {
+        if (!a4OfferId) {
+            setA4InfoMessage(null);
+            return;
+        }
+        const available = getAvailableTicketsForOffer(a4OfferId).length;
+        if (available === 0) {
+            setA4InfoMessage('No available tickets for this offer');
+            setA4TicketCount(0);
+        } else {
+            setA4InfoMessage(null);
+            setA4TicketCount(prev => Math.min(prev || 1, available, MAX_TICKETS_PER_A4));
+        }
+    }, [a4OfferId, tickets]);
+
+    const handleCreateTicket = async (data: Partial<Ticket> & { valid_until?: string; offer_id?: string; payment_id?: string; company_id?: string }) => {
         await ticketData.createTicket(data);
     };
 
     const handleBulkCreateTickets = async () => {
         setBulkError(null);
         setBulkLoading(true);
+
+        if (isSuperuser && !bulkCompanyId) {
+            setBulkError('Superusers must select a company');
+            setBulkLoading(false);
+            return;
+        }
 
         try {
             const data = JSON.parse(bulkJsonInput);
@@ -775,18 +1069,19 @@ export const TicketsPage: React.FC = () => {
                     valid_until: ticket.valid_until || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
                     offer_id: ticket.offer_id
                 })),
-                selectedOfferId !== 'all' ? selectedOfferId : undefined
+                selectedOfferId !== 'all' ? selectedOfferId : undefined,
+                isSuperuser ? bulkCompanyId : undefined
             );
 
             if (result) {
                 if (result.imported_count > 0) {
                     setBulkJsonInput('');
                     setIsBulkModalOpen(false);
-                    alert(`✓ Successfully created ${result.imported_count}/${result.total_items} tickets!`);
+                    setBulkInfoMessage(`✓ Successfully created ${result.imported_count}/${result.total_items} tickets!`);
                     // Refresh tickets
                     await ticketData.getTickets();
                 }
-                
+
                 if (result.failed_count > 0) {
                     // Show sample errors for debugging
                     const failedItems = result.failed_items?.slice(0, 5) || [];
@@ -806,6 +1101,160 @@ export const TicketsPage: React.FC = () => {
             setBulkError(err instanceof Error ? err.message : 'Error processing JSON');
         } finally {
             setBulkLoading(false);
+        }
+    };
+
+    // Parse Mikrotik CSV/HTML format: Login,Password,Uptime Limit,...
+    const parseMikrotikCsv = (csvText: string): Array<{ ticket_code: string; ticket_secret: string }> => {
+        const lines = csvText.trim().split(/\r?\n/);
+        const parsed: Array<{ ticket_code: string; ticket_secret: string }> = [];
+
+        lines.forEach((line, index) => {
+            if (index === 0 && line.toLowerCase().includes('login')) {
+                // Skip header line
+                return;
+            }
+            if (!line.trim()) return;
+
+            // Remove surrounding quotes and split by comma
+            const columns = line.split(',').map(col => col.trim().replace(/^"|"$/g, ''));
+            const login = columns[0];
+            const password = columns[1];
+
+            if (login && password) {
+                parsed.push({
+                    ticket_code: login,
+                    ticket_secret: password
+                });
+            }
+        });
+
+        return parsed;
+    };
+
+    const handleCsvFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setCsvFileName(file.name);
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const text = event.target?.result as string || '';
+            setCsvInput(text);
+        };
+        reader.readAsText(file);
+    };
+
+    const handleCsvImport = async () => {
+        setBulkError(null);
+
+        if (!csvOfferId) {
+            setBulkError('Please select an offer for the imported tickets');
+            return;
+        }
+
+        if (isSuperuser && !bulkCompanyId) {
+            setBulkError('Superusers must select a company');
+            return;
+        }
+
+        const parsedTickets = parseMikrotikCsv(csvInput);
+        if (parsedTickets.length === 0) {
+            setBulkError('No valid tickets found in the CSV. Expected format: Login,Password,...');
+            return;
+        }
+
+        setBulkLoading(true);
+        try {
+            const result = await ticketData.bulkImportTickets(
+                parsedTickets.map(ticket => ({
+                    ticket_code: ticket.ticket_code,
+                    ticket_secret: ticket.ticket_secret
+                })),
+                csvOfferId,
+                isSuperuser ? bulkCompanyId : undefined
+            );
+
+            if (result) {
+                if (result.imported_count > 0) {
+                    setCsvInput('');
+                    setCsvFileName('');
+                    setCsvOfferId('');
+                    setIsBulkModalOpen(false);
+                    setBulkInfoMessage(`✓ Successfully imported ${result.imported_count}/${result.total_items} tickets!`);
+                    await ticketData.getTickets();
+                }
+
+                if (result.failed_count > 0) {
+                    const failedItems = result.failed_items?.slice(0, 5) || [];
+                    const errorMessages = new Set<string>();
+                    failedItems.forEach((item: any) => {
+                        errorMessages.add(`[Row ${item.index + 1}] ${item.error}`);
+                    });
+                    const errorSummary = Array.from(errorMessages).join('\n');
+                    setBulkError(`${result.failed_count} ticket(s) failed:\n${errorSummary}`);
+                } else if (result.imported_count === 0) {
+                    setBulkError('No tickets were imported. Please check the CSV format and try again.');
+                } else {
+                    setBulkError(null);
+                }
+            }
+        } catch (err) {
+            setBulkError(err instanceof Error ? err.message : 'Error processing CSV');
+        } finally {
+            setBulkLoading(false);
+        }
+    };
+
+    const getAvailableTicketsForOffer = (offerId: string) => {
+        return tickets.filter(ticket =>
+            ticket.offer === offerId &&
+            !ticket.is_used &&
+            ticket.is_valid &&
+            (!ticket.valid_until || new Date(ticket.valid_until) > new Date())
+        );
+    };
+
+    const handlePrintA4 = async () => {
+        if (!a4OfferId) {
+            setA4InfoMessage('Please select an offer');
+            return;
+        }
+
+        const availableTickets = getAvailableTicketsForOffer(a4OfferId);
+        const count = Math.min(a4TicketCount, availableTickets.length, MAX_TICKETS_PER_A4);
+
+        if (count === 0) {
+            setA4InfoMessage('No available tickets for this offer');
+            return;
+        }
+
+        const selectedTickets = availableTickets.slice(0, count);
+        const offerName = offerData.offers.find(o => o.id === a4OfferId)?.name || 'Ticket';
+        const ticketIds = selectedTickets.map(t => t.id);
+
+        try {
+            const blob = await pdf(
+                <A4CouponsPdf offerName={offerName} tickets={selectedTickets} />
+            ).toBlob();
+
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `coupons-${offerName.replace(/\s+/g, '_').toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            // Mark tickets as used after download
+            await ticketData.bulkUseTickets(ticketIds);
+            await ticketData.getTickets();
+            setIsA4ModalOpen(false);
+            setA4InfoMessage(null);
+        } catch (err) {
+            console.error('Error generating A4 PDF:', err);
+            setA4InfoMessage('Failed to generate PDF. Please try again.');
         }
     };
 
@@ -1033,6 +1482,9 @@ export const TicketsPage: React.FC = () => {
                     <BulkCreateButton onClick={() => setIsBulkModalOpen(true)} disabled={isLoading}>
                         <FiPlus /> Bulk Create
                     </BulkCreateButton>
+                    <PrintA4Button onClick={() => setIsA4ModalOpen(true)} disabled={isLoading}>
+                        <FiPrinter /> Print A4
+                    </PrintA4Button>
                 </ButtonGroup>
             </PageHeader>
 
@@ -1043,19 +1495,19 @@ export const TicketsPage: React.FC = () => {
                     <FilterButtonGroup>
                         <FilterButton
                             isActive={usedFilter === 'all'}
-                            onClick={() => setUsedFilter('all')}
+                            onClick={() => { setUsedFilter('all'); setCurrentPage(1); }}
                         >
                             All
                         </FilterButton>
                         <FilterButton
                             isActive={usedFilter === 'unused'}
-                            onClick={() => setUsedFilter('unused')}
+                            onClick={() => { setUsedFilter('unused'); setCurrentPage(1); }}
                         >
                             Available
                         </FilterButton>
                         <FilterButton
                             isActive={usedFilter === 'used'}
-                            onClick={() => setUsedFilter('used')}
+                            onClick={() => { setUsedFilter('used'); setCurrentPage(1); }}
                         >
                             Used
                         </FilterButton>
@@ -1066,7 +1518,7 @@ export const TicketsPage: React.FC = () => {
                     <FilterLabel>Offer</FilterLabel>
                     <FilterSelect
                         value={selectedOfferId}
-                        onChange={(e) => setSelectedOfferId(e.target.value)}
+                        onChange={(e) => { setSelectedOfferId(e.target.value); setCurrentPage(1); }}
                     >
                         <option value="all">All Offers</option>
                         {ticketOffers.map(offer => (
@@ -1084,18 +1536,174 @@ export const TicketsPage: React.FC = () => {
                 )}
             </FilterSection>
 
-            <ResultsInfo>
-                Showing {filteredTickets.length} of {tickets.length} tickets
-            </ResultsInfo>
+            <PaginationContainer>
+                <PaginationControls>
+                    <PaginationButton
+                        onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                        disabled={currentPage <= 1}
+                    >
+                        Previous
+                    </PaginationButton>
+                    <PaginationInfo>
+                        Page {currentPage} of {totalPages}
+                    </PaginationInfo>
+                    <PaginationButton
+                        onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                        disabled={currentPage >= totalPages}
+                    >
+                        Next
+                    </PaginationButton>
+                </PaginationControls>
 
-            <ModalOverlay isOpen={isBulkModalOpen} onClick={() => setIsBulkModalOpen(false)}>
+                <PageSizeSelector>
+                    <span>Items per page:</span>
+                    <select
+                        value={pageSize}
+                        onChange={(e) => handlePageSizeChange(Number(e.target.value))}
+                    >
+                        {PAGE_SIZE_OPTIONS.map(size => (
+                            <option key={size} value={size}>{size}</option>
+                        ))}
+                    </select>
+                </PageSizeSelector>
+
+                <PaginationInfo>
+                    Showing {Math.min(filteredTickets.length, (currentPage - 1) * pageSize + 1)}-{Math.min(filteredTickets.length, currentPage * pageSize)} of {filteredTickets.length} tickets
+                </PaginationInfo>
+            </PaginationContainer>
+
+            <ModalOverlay isOpen={isBulkModalOpen} onClick={() => { setIsBulkModalOpen(false); setBulkError(null); setBulkInfoMessage(null); setBulkCompanyId(''); }}>
                 <ModalContent onClick={(e) => e.stopPropagation()}>
                     <h2>Create Multiple Tickets</h2>
-                    <p>Enter a JSON array with ticket data. Each object should contain the form field names and an optional offer_id.</p>
 
-                    <JsonExample>
-                        <p>Example JSON format:</p>
-                        <pre>{`[
+                    <TabContainer>
+                        <TabButton isActive={bulkTab === 'csv'} onClick={() => { setBulkTab('csv'); setBulkError(null); setBulkInfoMessage(null); }}>
+                            Mikrotik CSV/HTML
+                        </TabButton>
+                        <TabButton isActive={bulkTab === 'json'} onClick={() => { setBulkTab('json'); setBulkError(null); setBulkInfoMessage(null); }}>
+                            JSON
+                        </TabButton>
+                    </TabContainer>
+
+                    {bulkError && (
+                        <ErrorMessage>
+                            {bulkError}
+                        </ErrorMessage>
+                    )}
+
+                    {bulkInfoMessage && (
+                        <InfoMessage variant="success">
+                            {bulkInfoMessage}
+                        </InfoMessage>
+                    )}
+
+                    {bulkTab === 'csv' ? (
+                        <>
+                            <p>Import tickets directly from a Mikrotik CSV/HTML file. Choose one offer and all imported tickets will be linked to it.</p>
+
+                            {isSuperuser && (
+                                <SelectGroup>
+                                    <SelectLabel>Company *</SelectLabel>
+                                    <SelectInput
+                                        value={bulkCompanyId}
+                                        onChange={(e) => setBulkCompanyId(e.target.value)}
+                                        disabled={bulkLoading}
+                                    >
+                                        <option value="">-- Select a company --</option>
+                                        {businessData.businesses.map(company => (
+                                            <option key={company.id} value={company.id}>
+                                                {company.name}
+                                            </option>
+                                        ))}
+                                    </SelectInput>
+                                </SelectGroup>
+                            )}
+
+                            <SelectGroup>
+                                <SelectLabel>Target Offer *</SelectLabel>
+                                <SelectInput
+                                    value={csvOfferId}
+                                    onChange={(e) => setCsvOfferId(e.target.value)}
+                                    disabled={bulkLoading}
+                                >
+                                    <option value="">-- Select an offer --</option>
+                                    {offerData.offers.map(offer => (
+                                        <option key={offer.id} value={offer.id}>
+                                            {offer.name}
+                                        </option>
+                                    ))}
+                                </SelectInput>
+                            </SelectGroup>
+
+                            <FileInput
+                                type="file"
+                                accept=".csv,.html,.htm,text/csv,text/html"
+                                onChange={handleCsvFileUpload}
+                                disabled={bulkLoading}
+                            />
+                            {csvFileName && <InfoText>Selected file: {csvFileName}</InfoText>}
+
+                            <CsvTextarea
+                                placeholder={`Paste Mikrotik CSV content here...\nExample:\nLogin,Password,Uptime Limit,Used Uptime,Used Download,Used Upload\n"F1yz7","dbb6","3h","","",""\n"F1ayy","854d","3h","","",""`}
+                                value={csvInput}
+                                onChange={(e) => setCsvInput(e.target.value)}
+                                disabled={bulkLoading}
+                            />
+
+                            {csvInput && (
+                                <InfoText>
+                                    {parseMikrotikCsv(csvInput).length} valid ticket(s) found
+                                </InfoText>
+                            )}
+
+                            <ModalActions>
+                                <CancelButton
+                                    onClick={() => {
+                                        setIsBulkModalOpen(false);
+                                        setCsvInput('');
+                                        setCsvFileName('');
+                                        setCsvOfferId('');
+                                        setBulkCompanyId('');
+                                        setBulkError(null);
+                                        setBulkInfoMessage(null);
+                                    }}
+                                    disabled={bulkLoading}
+                                >
+                                    Cancel
+                                </CancelButton>
+                                <SubmitBulkButton
+                                    onClick={handleCsvImport}
+                                    disabled={bulkLoading || !csvInput.trim() || !csvOfferId || (isSuperuser && !bulkCompanyId)}
+                                >
+                                    {bulkLoading ? 'Importing...' : 'Import Tickets'}
+                                </SubmitBulkButton>
+                            </ModalActions>
+                        </>
+                    ) : (
+                        <>
+                            <p>Enter a JSON array with ticket data. Each object should contain the form field names and an optional offer_id.</p>
+
+                            {isSuperuser && (
+                                <SelectGroup>
+                                    <SelectLabel>Company *</SelectLabel>
+                                    <SelectInput
+                                        value={bulkCompanyId}
+                                        onChange={(e) => setBulkCompanyId(e.target.value)}
+                                        disabled={bulkLoading}
+                                    >
+                                        <option value="">-- Select a company --</option>
+                                        {businessData.businesses.map(company => (
+                                            <option key={company.id} value={company.id}>
+                                                {company.name}
+                                            </option>
+                                        ))}
+                                    </SelectInput>
+                                </SelectGroup>
+                            )}
+
+                            <JsonExample>
+                                <p>Example JSON format:</p>
+                                <pre>{`[
   {
     "ticket_code": "CODE001",
     "ticket_secret": "secret123",
@@ -1106,41 +1714,105 @@ export const TicketsPage: React.FC = () => {
     "ticket_code": "CODE002",
     "ticket_secret": "secret456",
     "offer_id": "offer-uuid-123",
-      "valid_until": "2025-12-31"
+    "valid_until": "2025-12-31"
   }
 ]`}</pre>
-                    </JsonExample>
+                            </JsonExample>
 
-                    {bulkError && (
-                        <ErrorMessage>
-                            {bulkError}
-                        </ErrorMessage>
+                            <JsonTextarea
+                                placeholder="Paste your JSON array here..."
+                                value={bulkJsonInput}
+                                onChange={(e) => setBulkJsonInput(e.target.value)}
+                                disabled={bulkLoading}
+                            />
+
+                            <ModalActions>
+                                <CancelButton
+                                    onClick={() => {
+                                        setIsBulkModalOpen(false);
+                                        setBulkJsonInput('');
+                                        setBulkCompanyId('');
+                                        setBulkError(null);
+                                        setBulkInfoMessage(null);
+                                    }}
+                                    disabled={bulkLoading}
+                                >
+                                    Cancel
+                                </CancelButton>
+                                <SubmitBulkButton
+                                    onClick={handleBulkCreateTickets}
+                                    disabled={bulkLoading || !bulkJsonInput.trim() || (isSuperuser && !bulkCompanyId)}
+                                >
+                                    {bulkLoading ? 'Creating...' : 'Create Tickets'}
+                                </SubmitBulkButton>
+                            </ModalActions>
+                        </>
+                    )}
+                </ModalContent>
+            </ModalOverlay>
+
+            <ModalOverlay isOpen={isA4ModalOpen} onClick={() => { setIsA4ModalOpen(false); setA4InfoMessage(null); }}>
+                <ModalContent onClick={(e) => e.stopPropagation()}>
+                    <h2>Print A4 Coupons</h2>
+                    <p>Generate an A4 sheet with multiple coupons from one offer. The selected tickets will be marked as used after printing.</p>
+
+                    {a4InfoMessage && (
+                        <InfoMessage variant={a4InfoMessage.includes('Failed') || a4InfoMessage.includes('No available') || a4InfoMessage.includes('Please select') ? 'info' : 'success'}>
+                            {a4InfoMessage}
+                        </InfoMessage>
                     )}
 
-                    <JsonTextarea
-                        placeholder="Paste your JSON array here..."
-                        value={bulkJsonInput}
-                        onChange={(e) => setBulkJsonInput(e.target.value)}
-                        disabled={bulkLoading}
-                    />
+                    <SelectGroup>
+                        <SelectLabel>Offer *</SelectLabel>
+                        <SelectInput
+                            value={a4OfferId}
+                            onChange={(e) => { setA4OfferId(e.target.value); setA4InfoMessage(null); }}
+                        >
+                            <option value="">-- Select an offer --</option>
+                            {offerData.offers.map(offer => (
+                                <option key={offer.id} value={offer.id}>
+                                    {offer.name}
+                                </option>
+                            ))}
+                        </SelectInput>
+                    </SelectGroup>
+
+                    <InfoText>
+                        Available tickets: {a4OfferId ? getAvailableTicketsForOffer(a4OfferId).length : 0} | Maximum per A4: {MAX_TICKETS_PER_A4}
+                    </InfoText>
+
+                    <SelectGroup>
+                        <SelectLabel>Number of Coupons</SelectLabel>
+                        <CounterGroup>
+                            <CounterButton
+                                onClick={() => {
+                                    const available = a4OfferId ? getAvailableTicketsForOffer(a4OfferId).length : 0;
+                                    setA4TicketCount(Math.max(1, Math.min(a4TicketCount - 1, available, MAX_TICKETS_PER_A4)));
+                                }}
+                                disabled={a4TicketCount <= 1}
+                            >
+                                -
+                            </CounterButton>
+                            <CounterValue>{a4TicketCount}</CounterValue>
+                            <CounterButton
+                                onClick={() => {
+                                    const available = a4OfferId ? getAvailableTicketsForOffer(a4OfferId).length : 0;
+                                    setA4TicketCount(Math.min(a4TicketCount + 1, available, MAX_TICKETS_PER_A4));
+                                }}
+                                disabled={a4TicketCount >= MAX_TICKETS_PER_A4 || a4TicketCount >= (a4OfferId ? getAvailableTicketsForOffer(a4OfferId).length : 0)}
+                            >
+                                +
+                            </CounterButton>
+                        </CounterGroup>
+                    </SelectGroup>
 
                     <ModalActions>
-                        <CancelButton
-                            onClick={() => {
-                                setIsBulkModalOpen(false);
-                                setBulkJsonInput('');
-                                setBulkError(null);
-                            }}
-                            disabled={bulkLoading}
-                        >
+                        <CancelButton onClick={() => { setIsA4ModalOpen(false); setA4InfoMessage(null); }}>
                             Cancel
                         </CancelButton>
-                        <SubmitBulkButton
-                            onClick={handleBulkCreateTickets}
-                            disabled={bulkLoading || !bulkJsonInput.trim()}
-                        >
-                            {bulkLoading ? 'Creating...' : 'Create Tickets'}
-                        </SubmitBulkButton>
+                        <PrintA4Button onClick={handlePrintA4}>
+                            <FiPrinter /> Generate & Print
+                        </PrintA4Button>
                     </ModalActions>
                 </ModalContent>
             </ModalOverlay>
@@ -1164,9 +1836,9 @@ export const TicketsPage: React.FC = () => {
                 </EmptyState>
             )}
 
-            {filteredTickets.length > 0 && (
+            {paginatedTickets.length > 0 && (
                 <TicketsContainer>
-                    {filteredTickets.map(ticket => (
+                    {paginatedTickets.map(ticket => (
                         <TicketCard key={ticket.id}>
                             <TicketHeader>
                                 <TicketTitle>{ticket.ticket_code}</TicketTitle>

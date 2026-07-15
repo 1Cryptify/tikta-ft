@@ -49,6 +49,7 @@ export const menuPermissions: Record<UserRole, Record<MenuName, ActionType[]>> =
   [UserRole.CLIENT]: {
     [MenuName.BUSINESS]: [
       ActionType.BUSINESS_VIEW,
+      ActionType.BUSINESS_CREATE,
       ActionType.BUSINESS_UPLOADER_DOCUMENTS,
       ActionType.BUSINESS_MARQUER_ACTIVE,
     ],

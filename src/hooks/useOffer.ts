@@ -106,6 +106,7 @@ interface UseOfferReturn extends OfferState {
     uploadOfferImage: (id: string, file: File) => Promise<string | null>;
     getCompanyOffers: (companyId: string) => Promise<Offer[]>;
     getOfferGroups: () => Promise<void>;
+    getMyOfferGroups: () => Promise<void>;
     getOfferGroupById: (id: string) => Promise<OfferGroup | null>;
     createOfferGroup: (data: Partial<OfferGroup>) => Promise<OfferGroup | null>;
     updateOfferGroup: (id: string, data: Partial<OfferGroup>) => Promise<OfferGroup | null>;
@@ -167,7 +168,7 @@ export const useOffer = (): UseOfferReturn => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
-        const response = await axiosInstance.get('/offers/');
+        const response = await axiosInstance.get('/my-offers/');
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
 
@@ -453,12 +454,42 @@ export const useOffer = (): UseOfferReturn => {
         return [];
     }, []);
 
-    // Get all offer groups
+    // Get all offer groups (public endpoint)
     const getOfferGroups = useCallback(async () => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
 
         const response = await axiosInstance.get('/offer-groups/');
+        const elapsed = Date.now() - startTime;
+        const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+        if (delayNeeded > 0) {
+            await new Promise(resolve => setTimeout(resolve, delayNeeded));
+        }
+
+        if (response.data.status === 'success') {
+            setState(prev => ({
+                ...prev,
+                offerGroups: response.data.offer_groups || [],
+                isLoading: false,
+                successMessage: response.data.message || null,
+                successStatus: response.data.status || null,
+            }));
+        } else if (response.data.status === 'error') {
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: response.data.message || 'Failed to fetch offer groups',
+            }));
+        }
+    }, []);
+
+    // Get offer groups for the current user's companies (dashboard endpoint)
+    const getMyOfferGroups = useCallback(async () => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        const response = await axiosInstance.get('/my-offer-groups/');
         const elapsed = Date.now() - startTime;
         const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
 
@@ -686,8 +717,8 @@ export const useOffer = (): UseOfferReturn => {
     useEffect(() => {
         getCurrencies();
         getOffers();
-        getOfferGroups();
-    }, [getCurrencies, getOffers, getOfferGroups]);
+        getMyOfferGroups();
+    }, [getCurrencies, getOffers, getMyOfferGroups]);
 
     return {
         ...state,
@@ -702,6 +733,7 @@ export const useOffer = (): UseOfferReturn => {
         uploadOfferImage,
         getCompanyOffers,
         getOfferGroups,
+        getMyOfferGroups,
         getOfferGroupById,
         createOfferGroup,
         updateOfferGroup,
