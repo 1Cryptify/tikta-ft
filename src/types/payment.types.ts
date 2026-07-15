@@ -20,6 +20,7 @@ export interface Offer {
   discount?: number;
   validUntil?: Date;
   image?: string;
+  callback_url?: string;
 }
 
 export interface OfferGroup {

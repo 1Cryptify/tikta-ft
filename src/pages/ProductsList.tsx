@@ -12,6 +12,7 @@ import {
     FiImage,
 } from 'react-icons/fi';
 import { useProduct, Product } from '../hooks/useProduct';
+import { useAuth } from '../hooks/useAuth';
 import { ProductModal } from '../components/ProductModal';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 import { getMediaUrl } from '../services/api';
@@ -113,6 +114,23 @@ const ErrorBanner = styled.div`
   align-items: center;
   gap: ${spacing.md};
   color: ${colors.error};
+`;
+
+const WarningBanner = styled.div`
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: ${borderRadius.md};
+  padding: ${spacing.lg};
+  margin-bottom: ${spacing.lg};
+  display: flex;
+  align-items: center;
+  gap: ${spacing.md};
+  color: #856404;
+  font-size: 0.875rem;
+
+  svg {
+    flex-shrink: 0;
+  }
 `;
 
 const LoadingSpinner = styled.div`
@@ -429,6 +447,7 @@ const DetailsCloseButton = styled.button`
 `;
 
 export const ProductsList: React.FC = () => {
+    const { user } = useAuth();
     const {
         products,
         currencies,
@@ -441,6 +460,11 @@ export const ProductsList: React.FC = () => {
         deactivateProduct,
         uploadProductImage,
     } = useProduct();
+
+    const activeCompanyVerified = useMemo(() => {
+        if (user?.is_superuser) return true;
+        return user?.active_company?.is_verified ?? false;
+    }, [user]);
 
     const [searchTerm, setSearchTerm] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -565,6 +589,12 @@ export const ProductsList: React.FC = () => {
                 </ErrorBanner>
             )}
 
+            {!activeCompanyVerified && (
+                <WarningBanner>
+                    <FiAlertCircle /> Your company is not verified. You cannot create products until your company is verified.
+                </WarningBanner>
+            )}
+
             <HeaderActions>
                 <SearchBox>
                     <FiSearch />
@@ -577,7 +607,8 @@ export const ProductsList: React.FC = () => {
                 </SearchBox>
                 <AddButton
                     onClick={() => handleOpenModal()}
-                    disabled={isSaving}
+                    disabled={isSaving || !activeCompanyVerified}
+                    title={!activeCompanyVerified ? 'Company not verified' : ''}
                 >
                     <FiPlus /> Add Product
                 </AddButton>
@@ -592,7 +623,11 @@ export const ProductsList: React.FC = () => {
                     <FiAlertCircle />
                     <p>{searchTerm ? 'No products found' : 'No products yet'}</p>
                     {!searchTerm && (
-                        <AddButton onClick={() => handleOpenModal()}>
+                        <AddButton
+                            onClick={() => handleOpenModal()}
+                            disabled={!activeCompanyVerified}
+                            title={!activeCompanyVerified ? 'Company not verified' : ''}
+                        >
                             <FiPlus /> Create Your First Product
                         </AddButton>
                     )}

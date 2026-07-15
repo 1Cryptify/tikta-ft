@@ -62,6 +62,7 @@ export interface Offer {
     category?: string;
     tags?: string[];
     image?: string; // Image URL path
+    callback_url?: string; // URL for auto-login redirect after ticket payment
     created_at?: string;
     updated_at?: string;
 }

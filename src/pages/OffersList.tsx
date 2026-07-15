@@ -112,12 +112,34 @@ const ErrorBanner = styled.div`
   background-color: #fee2e2;
   border: 1px solid #fecaca;
   border-radius: ${borderRadius.md};
-  padding: ${spacing.lg};
+  padding: ${spacing.md};
   margin-bottom: ${spacing.lg};
   display: flex;
   align-items: center;
   gap: ${spacing.md};
-  color: ${colors.error};
+  color: #991b1b;
+  font-size: 0.875rem;
+
+  svg {
+    flex-shrink: 0;
+  }
+`;
+
+const WarningBanner = styled.div`
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: ${borderRadius.md};
+  padding: ${spacing.md};
+  margin-bottom: ${spacing.lg};
+  display: flex;
+  align-items: center;
+  gap: ${spacing.md};
+  color: #856404;
+  font-size: 0.875rem;
+
+  svg {
+    flex-shrink: 0;
+  }
 `;
 
 const LoadingSpinner = styled.div`
@@ -777,6 +799,11 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const { user } = useAuth();
     const { businesses } = useBusiness();
 
+    const activeCompanyVerified = useMemo(() => {
+        if (user?.is_superuser) return true;
+        return user?.active_company?.is_verified ?? false;
+    }, [user]);
+
     const {
         offers,
         offerGroups,
@@ -1120,6 +1147,12 @@ export const OffersList: React.FC<OffersListProps> = () => {
                 </ErrorBanner>
             )}
 
+            {!activeCompanyVerified && (
+                <WarningBanner>
+                    <FiAlertCircle /> Your company is not verified. You cannot create offers or groups until your company is verified.
+                </WarningBanner>
+            )}
+
             <TabContainer>
                 <Tab isActive={activeTab === 'offers'} onClick={() => setActiveTab('offers')}>
                     <FiChevronRight /> Offers
@@ -1144,7 +1177,8 @@ export const OffersList: React.FC<OffersListProps> = () => {
                         </SearchBox>
                         <AddButton
                             onClick={() => handleOpenModal()}
-                            disabled={isLoading}
+                            disabled={isLoading || !activeCompanyVerified}
+                            title={!activeCompanyVerified ? 'Company not verified' : ''}
                         >
                             <FiPlus /> New Offer
                         </AddButton>
@@ -1165,7 +1199,8 @@ export const OffersList: React.FC<OffersListProps> = () => {
                         </SearchBox>
                         <AddButton
                             onClick={() => handleOpenGroupModal()}
-                            disabled={isLoading}
+                            disabled={isLoading || !activeCompanyVerified}
+                            title={!activeCompanyVerified ? 'Company not verified' : ''}
                         >
                             <FiPlus /> New Group
                         </AddButton>
@@ -1184,7 +1219,11 @@ export const OffersList: React.FC<OffersListProps> = () => {
                             <FiX size={48} />
                             <p>{offers.length === 0 ? 'No offers yet' : 'No matching offers'}</p>
                             {offers.length === 0 && (
-                                <AddButton onClick={() => handleOpenModal()}>
+                                <AddButton
+                                    onClick={() => handleOpenModal()}
+                                    disabled={!activeCompanyVerified}
+                                    title={!activeCompanyVerified ? 'Company not verified' : ''}
+                                >
                                     <FiPlus /> Create Your First Offer
                                 </AddButton>
                             )}
@@ -1323,7 +1362,11 @@ export const OffersList: React.FC<OffersListProps> = () => {
                             <FiFolder size={48} />
                             <p>{offerGroups.length === 0 ? 'No groups yet' : 'No matching groups'}</p>
                             {offerGroups.length === 0 && (
-                                <AddButton onClick={() => handleOpenGroupModal()}>
+                                <AddButton
+                                    onClick={() => handleOpenGroupModal()}
+                                    disabled={!activeCompanyVerified}
+                                    title={!activeCompanyVerified ? 'Company not verified' : ''}
+                                >
                                     <FiPlus /> Create Your First Group
                                 </AddButton>
                             )}
@@ -1670,6 +1713,15 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                 <DetailsSection>
                                     <h3>Group ID</h3>
                                     <p style={{ fontSize: '0.85rem', fontFamily: 'monospace' }}>{selectedOffer.group_id}</p>
+                                </DetailsSection>
+                            )}
+
+                            {selectedOffer.callback_url && (
+                                <DetailsSection>
+                                    <h3>Callback URL</h3>
+                                    <p style={{ fontSize: '0.85rem', fontFamily: 'monospace', wordBreak: 'break-all' }}>
+                                        {selectedOffer.callback_url}
+                                    </p>
                                 </DetailsSection>
                             )}
 

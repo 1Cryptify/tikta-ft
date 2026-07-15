@@ -302,6 +302,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
         currency_id: currencies.length > 0 ? currencies[0].id : '',
         discount_type: 'percentage',
         discount_value: 0,
+        callback_url: '',
         is_active: true,
         is_deleted: false,
       });
@@ -551,6 +552,22 @@ export const OfferModal: React.FC<OfferModalProps> = ({
               )}
             </FormGroup>
           </RowGrid>
+
+          {/* Callback URL */}
+          <FormGroup>
+            <Label>Callback URL</Label>
+            <Input
+              type="url"
+              name="callback_url"
+              value={formData.callback_url || ''}
+              onChange={handleChange}
+              placeholder="https://example.com/login"
+              disabled={isLoading}
+            />
+            <p style={{ color: colors.textSecondary, fontSize: '0.75rem', marginTop: spacing.sm }}>
+              URL de redirection pour connexion automatique après le paiement d'un ticket. L'utilisateur sera redirigé vers cette URL avec ses identifiants de connexion.
+            </p>
+          </FormGroup>
 
           {/* Status */}
           <FormGroup>

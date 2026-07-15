@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FiX, FiSave } from 'react-icons/fi';
+import { FiX, FiSave, FiAlertCircle } from 'react-icons/fi';
 import { Product } from '../hooks/useProduct';
 import { useAuth } from '../hooks/useAuth';
 import { useBusiness } from '../hooks/useBusiness';
@@ -108,6 +108,23 @@ const CloseButton = styled.button`
 
 const FormGroup = styled.div`
   margin-bottom: 1.5rem;
+`;
+
+const WarningBanner = styled.div`
+  background-color: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: ${borderRadius.md};
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: ${spacing.md};
+  color: #856404;
+  font-size: 0.875rem;
+
+  svg {
+    flex-shrink: 0;
+  }
 `;
 
 const Label = styled.label`
@@ -281,6 +298,9 @@ export const ProductModal: React.FC<ProductModalProps> = ({
         setErrors({});
     }, [product, isOpen, user]);
 
+    const selectedCompany = businesses.find(b => b.id === formData.company);
+    const isSelectedCompanyVerified = !!selectedCompany?.is_verified;
+
     const validateForm = (): boolean => {
         const newErrors: Record<string, string> = {};
 
@@ -290,6 +310,8 @@ export const ProductModal: React.FC<ProductModalProps> = ({
 
         if (!formData.company) {
             newErrors.company = 'Company is required';
+        } else if (!isSelectedCompanyVerified) {
+            newErrors.company = 'Selected company is not verified. Verification is required to create a product.';
         }
 
         if (formData.price === undefined || formData.price === null || formData.price < 0) {
@@ -364,6 +386,13 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 </ModalHeader>
 
                 <form onSubmit={handleSubmit}>
+                    {formData.company && !isSelectedCompanyVerified && (
+                        <WarningBanner>
+                            <FiAlertCircle size={20} />
+                            <span>The selected company is not verified. You cannot create or edit a product for a non-verified company.</span>
+                        </WarningBanner>
+                    )}
+
                     {/* Basic Information */}
                     <FormGroup>
                         <Label>Product Name *</Label>
