@@ -59,6 +59,8 @@ export const PaymentReturnPage: React.FC = () => {
             if (response.ticket_available !== undefined) successData.ticketAvailable = response.ticket_available;
             if (response.all_tickets_available !== undefined) successData.allTicketsAvailable = response.all_tickets_available;
             if (response.offers_without_tickets) successData.offersWithoutTickets = response.offers_without_tickets;
+            if (response.callback_url) successData.callbackUrl = response.callback_url;
+            if (response.offer_name) successData.offerName = response.offer_name || successData.offerName;
 
             return successData;
         };

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { FiCopy, FiCheck } from 'react-icons/fi';
+import { FiCopy, FiCheck, FiExternalLink } from 'react-icons/fi';
 import {
   PDFDownloadLink,
   Document,
@@ -40,6 +40,7 @@ interface StoredPaymentData {
   ticketAvailable?: boolean;
   allTicketsAvailable?: boolean;
   offersWithoutTickets?: string[];
+  callbackUrl?: string;
 }
 
 // PDF Styles
@@ -483,6 +484,63 @@ export const PaymentSuccessPage: React.FC = () => {
                 <p>Les identifiants de vos tickets ont également été envoyés à votre adresse email pour plus de sécurité.</p>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Auto-Login Button */}
+        {hasTickets && paymentData?.callbackUrl && (
+          <div style={{ margin: '24px 0', textAlign: 'center' }}>
+            {paymentData.tickets?.length === 1 ? (
+              <a
+                href={`${paymentData.callbackUrl}${paymentData.callbackUrl.includes('?') ? '&' : '?'}login=${encodeURIComponent(paymentData.tickets[0].ticket_id)}&password=${encodeURIComponent(paymentData.tickets[0].password)}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '14px 28px',
+                  background: '#28a745',
+                  color: 'white',
+                  borderRadius: '8px',
+                  textDecoration: 'none',
+                  fontWeight: '700',
+                  fontSize: '1rem',
+                  boxShadow: '0 4px 12px rgba(40,167,69,0.3)',
+                  transition: 'all 0.2s ease',
+                }}
+              >
+                <FiExternalLink /> Se connecter automatiquement
+              </a>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: '#666' }}>Connexion rapide :</span>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'center' }}>
+                  {paymentData.tickets?.map((ticket, i) => (
+                    <a
+                      key={ticket.ticket_id}
+                      href={`${paymentData.callbackUrl}${paymentData.callbackUrl.includes('?') ? '&' : '?'}login=${encodeURIComponent(ticket.ticket_id)}&password=${encodeURIComponent(ticket.password)}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        padding: '10px 18px',
+                        background: '#28a745',
+                        color: 'white',
+                        borderRadius: '6px',
+                        textDecoration: 'none',
+                        fontWeight: '600',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      <FiExternalLink /> Ticket {i + 1}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 
