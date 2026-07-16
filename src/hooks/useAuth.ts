@@ -6,7 +6,7 @@ import { API_USERS_BASE_URL } from '../services/api';
 const LOADER_DURATION = 1000;
 
 export const axiosInstance = axios.create({
-    baseURL: 'http://localhost:8000/api/users',
+    baseURL: API_USERS_BASE_URL,
     withCredentials: true,
     headers: {
         'Content-Type': 'application/json',

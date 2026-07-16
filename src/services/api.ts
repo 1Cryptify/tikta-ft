@@ -1,5 +1,4 @@
-// export const API_BASE_URL = "https://tikta-bk.webafri.com";
-export const API_BASE_URL = "http://localhost:8000";
+export const API_BASE_URL = "https://tikta-bk.webafri.com";
 export const API_USERS_BASE_URL = `${API_BASE_URL}/api/users`;
 export const API_PAYMENTS_BASE_URL = `${API_BASE_URL}/api/payments`;
 
