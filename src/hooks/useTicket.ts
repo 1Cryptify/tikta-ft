@@ -510,6 +510,67 @@ export const useTicket = (): UseTicketReturn => {
         }
     }, []);
 
+    // Bulk delete tickets
+    const bulkDeleteTickets = useCallback(async (params: {
+        ticket_ids?: string[];
+        date_from?: string;
+        date_to?: string;
+        offer_id?: string;
+        include_used?: boolean;
+        company_id?: string;
+    }): Promise<{ deleted_count: number } | null> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+
+        try {
+            const payload: any = { ...params };
+            if (user && user.is_superuser) {
+                const cid = params.company_id || (user.active_company ? user.active_company.id : null);
+                if (cid) {
+                    payload.company_id = cid;
+                }
+            } else if (user && !user.is_superuser && user.active_company) {
+                payload.company_id = user.active_company.id;
+            }
+
+            const response = await axiosInstance.post('/tickets/bulk-delete/', payload);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    successMessage: response.data.message || 'Tickets deleted successfully',
+                }));
+                return { deleted_count: response.data.deleted_count };
+            } else {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to delete tickets',
+                }));
+                return null;
+            }
+        } catch (error) {
+            const errorMessage = error instanceof axios.AxiosError
+                ? error.response?.data?.message || error.message
+                : error instanceof Error
+                    ? error.message
+                    : 'Failed to delete tickets';
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return null;
+        }
+    }, [user]);
+
     // Get company tickets
     const getCompanyTickets = useCallback(async (companyId: string, filters?: { status?: string; offer_id?: string }): Promise<Ticket[]> => {
         const startTime = Date.now();
@@ -567,6 +628,7 @@ export const useTicket = (): UseTicketReturn => {
         createTicket,
         bulkImportTickets,
         bulkUseTickets,
+        bulkDeleteTickets,
         updateTicket,
         deleteTicket,
         validateTicket,

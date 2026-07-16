@@ -95,6 +95,14 @@ const BulkCreateButton = styled(CreateButton)`
   }
 `;
 
+const BulkDeleteButton = styled(CreateButton)`
+  background: #dc3545;
+  
+  &:hover {
+    background: #c82333;
+  }
+`;
+
 const TicketsContainer = styled.div`
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -318,6 +326,73 @@ const DeleteButton = styled(ActionButton)`
   }
 `;
 
+const SelectCheckbox = styled.input`
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #dc3545;
+`;
+
+const SelectAllBar = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${spacing.sm};
+  padding: ${spacing.sm} ${spacing.md};
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  border-radius: 6px;
+  margin-bottom: ${spacing.md};
+  font-size: 0.875rem;
+  color: #856404;
+`;
+
+const DeletePeriodInput = styled.input`
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  flex: 1;
+
+  &:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+  }
+`;
+
+const DeleteFilterRow = styled.div`
+  display: flex;
+  gap: ${spacing.sm};
+  align-items: center;
+  margin-bottom: ${spacing.md};
+  flex-wrap: wrap;
+`;
+
+const DeleteTabBar = styled.div`
+  display: flex;
+  gap: 0;
+  margin-bottom: ${spacing.md};
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  overflow: hidden;
+`;
+
+const DeleteTabButton = styled.button<{ isActive: boolean }>`
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: ${props => props.isActive ? '#dc3545' : '#f8f9fa'};
+  color: ${props => props.isActive ? 'white' : colors.textPrimary};
+  font-weight: 600;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: ${props => props.isActive ? '#c82333' : '#e9ecef'};
+  }
+`;
+
 const EmptyState = styled.div`
   text-align: center;
   padding: ${spacing.xxl};
@@ -417,6 +492,14 @@ const SubmitBulkButton = styled.button`
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+  }
+`;
+
+const ConfirmDeleteButton = styled(SubmitBulkButton)`
+  background: #dc3545;
+
+  &:hover {
+    background: #c82333;
   }
 `;
 
@@ -1021,6 +1104,18 @@ export const TicketsPage: React.FC = () => {
     const [bulkInfoMessage, setBulkInfoMessage] = useState<string | null>(null);
     const MAX_TICKETS_PER_A4 = 48;
 
+    // Bulk delete states
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deleteTab, setDeleteTab] = useState<'select' | 'period'>('period');
+    const [deleteOfferId, setDeleteOfferId] = useState<string>('');
+    const [deleteDateFrom, setDeleteDateFrom] = useState<string>('');
+    const [deleteDateTo, setDeleteDateTo] = useState<string>('');
+    const [deleteIncludeUsed, setDeleteIncludeUsed] = useState<boolean>(false);
+    const [selectedTicketIds, setSelectedTicketIds] = useState<Set<string>>(new Set());
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [deleteError, setDeleteError] = useState<string | null>(null);
+    const [deleteInfo, setDeleteInfo] = useState<string | null>(null);
+
     // Auto-adjust A4 ticket count when offer or available tickets change
     useEffect(() => {
         if (!a4OfferId) {
@@ -1264,6 +1359,82 @@ export const TicketsPage: React.FC = () => {
         }
     };
 
+    // Bulk delete handlers
+    const resetDeleteForm = () => {
+        setDeleteTab('period');
+        setDeleteOfferId('');
+        setDeleteDateFrom('');
+        setDeleteDateTo('');
+        setDeleteIncludeUsed(false);
+        setSelectedTicketIds(new Set());
+        setDeleteError(null);
+        setDeleteInfo(null);
+    };
+
+    const openDeleteModal = () => {
+        resetDeleteForm();
+        setIsDeleteModalOpen(true);
+    };
+
+    const toggleTicketSelect = (ticketId: string) => {
+        setSelectedTicketIds(prev => {
+            const next = new Set(prev);
+            if (next.has(ticketId)) {
+                next.delete(ticketId);
+            } else {
+                next.add(ticketId);
+            }
+            return next;
+        });
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedTicketIds.size === filteredTickets.length) {
+            setSelectedTicketIds(new Set());
+        } else {
+            setSelectedTicketIds(new Set(filteredTickets.map(t => t.id)));
+        }
+    };
+
+    const handleBulkDelete = async () => {
+        setDeleteLoading(true);
+        setDeleteError(null);
+        setDeleteInfo(null);
+
+        try {
+            const payload: any = {};
+
+            if (deleteTab === 'select') {
+                if (selectedTicketIds.size === 0) {
+                    setDeleteError('Please select at least one ticket to delete.');
+                    setDeleteLoading(false);
+                    return;
+                }
+                payload.ticket_ids = Array.from(selectedTicketIds);
+            } else {
+                if (deleteDateFrom) payload.date_from = deleteDateFrom;
+                if (deleteDateTo) payload.date_to = deleteDateTo;
+                if (deleteOfferId) payload.offer_id = deleteOfferId;
+            }
+
+            payload.include_used = deleteIncludeUsed;
+
+            const result = await ticketData.bulkDeleteTickets(payload);
+
+            if (result) {
+                setDeleteInfo(`Successfully deleted ${result.deleted_count} ticket(s).`);
+                await ticketData.getTickets();
+                setSelectedTicketIds(new Set());
+            } else {
+                setDeleteError(ticketData.error || 'Delete failed.');
+            }
+        } catch (err: any) {
+            setDeleteError(err?.response?.data?.message || err.message || 'Delete failed.');
+        } finally {
+            setDeleteLoading(false);
+        }
+    };
+
     const handleValidateTicket = async (ticketId: string, ticketCode: string, ticketSecret: string) => {
         await ticketData.validateTicket(ticketId, ticketCode, ticketSecret);
     };
@@ -1482,6 +1653,9 @@ export const TicketsPage: React.FC = () => {
                     <BulkCreateButton onClick={() => setIsBulkModalOpen(true)} disabled={isLoading}>
                         <FiPlus /> Bulk Create
                     </BulkCreateButton>
+                    <BulkDeleteButton onClick={openDeleteModal} disabled={isLoading}>
+                        <FiTrash2 /> Bulk Delete
+                    </BulkDeleteButton>
                     <PrintA4Button onClick={() => setIsA4ModalOpen(true)} disabled={isLoading}>
                         <FiPrinter /> Print A4
                     </PrintA4Button>
@@ -1824,6 +1998,87 @@ export const TicketsPage: React.FC = () => {
                 isLoading={isLoading}
             />
 
+            {/* Bulk Delete Modal */}
+            <ModalOverlay isOpen={isDeleteModalOpen} onClick={() => { if (!deleteLoading) { setIsDeleteModalOpen(false); resetDeleteForm(); } }}>
+                <ModalContent onClick={e => e.stopPropagation()}>
+                    <h2>Bulk Delete Tickets</h2>
+                    <p>Choose tickets to delete. This action cannot be undone.</p>
+
+                    <DeleteTabBar>
+                        <DeleteTabButton isActive={deleteTab === 'period'} onClick={() => setDeleteTab('period')}>
+                            By Date & Offer
+                        </DeleteTabButton>
+                        <DeleteTabButton isActive={deleteTab === 'select'} onClick={() => setDeleteTab('select')}>
+                            Manual Selection
+                        </DeleteTabButton>
+                    </DeleteTabBar>
+
+                    {deleteTab === 'period' ? (
+                        <>
+                            <DeleteFilterRow>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600, minWidth: 60 }}>From</label>
+                                <DeletePeriodInput
+                                    type="date"
+                                    value={deleteDateFrom}
+                                    onChange={e => setDeleteDateFrom(e.target.value)}
+                                />
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600, minWidth: 30 }}>To</label>
+                                <DeletePeriodInput
+                                    type="date"
+                                    value={deleteDateTo}
+                                    onChange={e => setDeleteDateTo(e.target.value)}
+                                />
+                            </DeleteFilterRow>
+                            <DeleteFilterRow>
+                                <label style={{ fontSize: '0.8rem', fontWeight: 600, minWidth: 60 }}>Offer</label>
+                                <FilterSelect
+                                    value={deleteOfferId}
+                                    onChange={e => setDeleteOfferId(e.target.value)}
+                                    style={{ flex: 1 }}
+                                >
+                                    <option value="">All Offers</option>
+                                    {ticketOffers.map(offer => (
+                                        <option key={offer.id} value={offer.id}>{offer.name}</option>
+                                    ))}
+                                </FilterSelect>
+                            </DeleteFilterRow>
+                        </>
+                    ) : (
+                        <div style={{ marginBottom: spacing.md }}>
+                            <p style={{ fontSize: '0.875rem', color: colors.textSecondary }}>
+                                Select tickets from the list using the checkboxes, then click "Delete Selected" or use this button:
+                            </p>
+                            <p style={{ fontSize: '0.875rem', fontWeight: 600 }}>
+                                {selectedTicketIds.size} ticket(s) currently selected
+                            </p>
+                        </div>
+                    )}
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md }}>
+                        <SelectCheckbox
+                            type="checkbox"
+                            checked={deleteIncludeUsed}
+                            onChange={e => setDeleteIncludeUsed(e.target.checked)}
+                        />
+                        <label style={{ fontSize: '0.875rem', cursor: 'pointer' }}>
+                            Also delete used/expired tickets
+                        </label>
+                    </div>
+
+                    {deleteError && <ErrorMessage>{deleteError}</ErrorMessage>}
+                    {deleteInfo && <InfoMessage variant="success">{deleteInfo}</InfoMessage>}
+
+                    <ModalActions>
+                        <CancelButton onClick={() => { setIsDeleteModalOpen(false); resetDeleteForm(); }} disabled={deleteLoading}>
+                            Cancel
+                        </CancelButton>
+                        <ConfirmDeleteButton onClick={handleBulkDelete} disabled={deleteLoading}>
+                            {deleteLoading ? 'Deleting...' : <><FiTrash2 /> Confirm Delete</>}
+                        </ConfirmDeleteButton>
+                    </ModalActions>
+                </ModalContent>
+            </ModalOverlay>
+
             {error && (
                 <EmptyState>
                     <p style={{ color: '#d32f2f' }}>Error: {error}</p>
@@ -1837,10 +2092,29 @@ export const TicketsPage: React.FC = () => {
             )}
 
             {paginatedTickets.length > 0 && (
+                <>
+                    <SelectAllBar>
+                        <SelectCheckbox
+                            type="checkbox"
+                            checked={filteredTickets.length > 0 && selectedTicketIds.size === filteredTickets.length}
+                            onChange={toggleSelectAll}
+                        />
+                        <span>Select all {filteredTickets.length} ticket(s) ({selectedTicketIds.size} selected)</span>
+                        {selectedTicketIds.size > 0 && (
+                            <BulkDeleteButton onClick={openDeleteModal} style={{ marginLeft: 'auto', padding: '6px 12px', fontSize: '0.8rem' }}>
+                                <FiTrash2 /> Delete Selected ({selectedTicketIds.size})
+                            </BulkDeleteButton>
+                        )}
+                    </SelectAllBar>
                 <TicketsContainer>
                     {paginatedTickets.map(ticket => (
                         <TicketCard key={ticket.id}>
                             <TicketHeader>
+                                <SelectCheckbox
+                                    type="checkbox"
+                                    checked={selectedTicketIds.has(ticket.id)}
+                                    onChange={() => toggleTicketSelect(ticket.id)}
+                                />
                                 <TicketTitle>{ticket.ticket_code}</TicketTitle>
                                 <UsedBadge isUsed={ticket.is_used}>
                                     {ticket.is_used ? 'Used' : 'Available'}
@@ -1952,6 +2226,7 @@ export const TicketsPage: React.FC = () => {
                         </TicketCard>
                     ))}
                 </TicketsContainer>
+                </>
             )}
 
             <PrintContainer ref={printRef}>
