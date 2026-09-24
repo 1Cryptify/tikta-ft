@@ -163,6 +163,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
           onSuccess?.(email);
           navigate('/confirm', { state: { email } });
         }, 1500);
+        return;
+      }
+
+      if (result.notVerified) {
+        setSuccessMessage(result.error || 'A verification code was sent to your email.');
+        setPassword('');
+        setTimeout(() => {
+          navigate('/verify-email', { state: { email, fromLogin: true } });
+        }, 1200);
       }
     };
 

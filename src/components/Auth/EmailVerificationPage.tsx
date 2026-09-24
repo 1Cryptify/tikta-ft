@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import { FiMail, FiCheckCircle, FiArrowRight } from 'react-icons/fi';
@@ -144,17 +144,39 @@ const LinkButton = styled.button`
   &:hover {
     text-decoration: underline;
   }
+
+  &:disabled {
+    color: #999;
+    cursor: not-allowed;
+  }
+`;
+
+const ResendContainer = styled.div`
+  margin-top: 1.25rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: #666;
 `;
 
 export const EmailVerificationPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
-    const { verifyEmail } = useAuth();
+    const { verifyEmail, resendCode } = useAuth();
     const [email, setEmail] = useState<string>((location.state as any)?.email || '');
     const [code, setCode] = useState('');
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(false);
+    const [resendTimer, setResendTimer] = useState(0);
+    const [resendLoading, setResendLoading] = useState(false);
+    const [resendMessage, setResendMessage] = useState<string | null>(null);
+
+    useEffect(() => {
+        if (resendTimer > 0) {
+            const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
+            return () => clearTimeout(timer);
+        }
+    }, [resendTimer]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -179,6 +201,29 @@ export const EmailVerificationPage: React.FC = () => {
         }
     };
 
+    const handleResend = async () => {
+        if (!email) {
+            setError('Please enter your email first');
+            return;
+        }
+
+        setResendLoading(true);
+        setError(null);
+        setResendMessage(null);
+
+        const result = await resendCode(email);
+
+        setResendLoading(false);
+
+        if (result.success) {
+            setResendTimer(60);
+            setCode('');
+            setResendMessage('A new code has been sent to your email.');
+        } else {
+            setError(result.error || 'Failed to resend code');
+        }
+    };
+
     return (
         <Container>
             <Card>
@@ -193,6 +238,7 @@ export const EmailVerificationPage: React.FC = () => {
 
                 {error && <ErrorMessage>{error}</ErrorMessage>}
                 {success && <SuccessMessage>{success}</SuccessMessage>}
+                {resendMessage && <SuccessMessage>{resendMessage}</SuccessMessage>}
 
                 <Form onSubmit={handleSubmit}>
                     <InputGroup>
@@ -226,6 +272,19 @@ export const EmailVerificationPage: React.FC = () => {
                         <FiCheckCircle /> {isLoading ? 'Verifying...' : 'Verify Email'}
                     </SubmitButton>
                 </Form>
+
+                <ResendContainer>
+                    {resendTimer > 0 ? (
+                        <span>Resend code in {resendTimer}s</span>
+                    ) : (
+                        <>
+                            <span>Didn't receive the code? </span>
+                            <LinkButton onClick={handleResend} disabled={isLoading || resendLoading}>
+                                {resendLoading ? 'Sending...' : 'Resend code'}
+                            </LinkButton>
+                        </>
+                    )}
+                </ResendContainer>
 
                 <LinkButton onClick={() => navigate('/login')}>
                     Already verified? <FiArrowRight style={{ verticalAlign: 'middle' }} /> Login

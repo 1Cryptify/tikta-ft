@@ -11,7 +11,7 @@ export const axiosInstance = axios.create({
     headers: {
         'Content-Type': 'application/json',
     },
-    timeout: 10000,
+    timeout: 60000,
 });
 
 export interface Company {
@@ -59,13 +59,19 @@ interface LoginCredentials {
     password: string;
 }
 
+interface LoginResult {
+    success: boolean;
+    notVerified?: boolean;
+    error?: string;
+}
+
 interface ConfirmationData {
     email: string;
     code: string;
 }
 
 interface UseAuthReturn extends AuthState {
-    login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+    login: (email: string, password: string) => Promise<LoginResult>;
     confirmLogin: (email: string, code: string) => Promise<{ success: boolean; error?: string; mustChangePassword?: boolean }>;
     resendCode: (email: string) => Promise<{ success: boolean; error?: string }>;
     logout: () => Promise<void>;
@@ -147,6 +153,16 @@ export const useAuth = (): UseAuthReturn => {
                     error: errorMessage,
                 }));
                 return { success: false, error: errorMessage };
+            }
+
+            if (response.data.status === 'not_verified') {
+                const errorMessage = response.data.message || 'Please verify your email to activate your account.';
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: errorMessage,
+                }));
+                return { success: false, notVerified: true, error: errorMessage };
             }
 
             if (response.data.status === 'success') {
