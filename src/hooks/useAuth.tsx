@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import axios from 'axios';
 import { API_USERS_BASE_URL } from '../services/api';
 
@@ -54,20 +54,12 @@ interface AuthState {
     error: string | null;
 }
 
-interface LoginCredentials {
-    email: string;
-    password: string;
-}
-
-interface LoginResult {
+export interface LoginResult {
     success: boolean;
+    requiresVerification?: boolean;
     notVerified?: boolean;
+    mustChangePassword?: boolean;
     error?: string;
-}
-
-interface ConfirmationData {
-    email: string;
-    code: string;
 }
 
 interface UseAuthReturn extends AuthState {
@@ -91,11 +83,33 @@ interface UseAuthReturn extends AuthState {
     updateNotificationPreferences: (preferences: Record<string, boolean>) => Promise<{ success: boolean; error?: string }>;
 }
 
-export const useAuth = (): UseAuthReturn => {
+const AuthContext = createContext<UseAuthReturn | null>(null);
+
+const waitForLoader = async (startTime: number) => {
+    const elapsed = Date.now() - startTime;
+    const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+    if (delayNeeded > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayNeeded));
+    }
+};
+
+const extractErrorMessage = (error: unknown, fallback: string): string => {
+    if (error instanceof axios.AxiosError) {
+        return error.response?.data?.message || error.message;
+    }
+    if (error instanceof Error) {
+        return error.message;
+    }
+    return fallback;
+};
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [state, setState] = useState<AuthState>({
         user: null,
         isAuthenticated: false,
-        isLoading: false,
+        // Start in loading state so a page reload does not briefly render the
+        // disconnected UI (login redirect) before /me/ resolves.
+        isLoading: true,
         error: null,
     });
 
@@ -105,13 +119,8 @@ export const useAuth = (): UseAuthReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.get('/me/');
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
+            await waitForLoader(startTime);
+
             if (response.data.status === 'success') {
                 setState(prev => ({
                     ...prev,
@@ -119,75 +128,70 @@ export const useAuth = (): UseAuthReturn => {
                     isAuthenticated: true,
                     isLoading: false,
                 }));
+            } else {
+                setState(prev => ({
+                    ...prev,
+                    user: null,
+                    isAuthenticated: false,
+                    isLoading: false,
+                }));
             }
         } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
+            await waitForLoader(startTime);
+            // A 401 here simply means "not logged in" — it is not an application
+            // error, so we must not surface a global error message for it.
+            const status = error instanceof axios.AxiosError ? error.response?.status : undefined;
             setState(prev => ({
                 ...prev,
+                user: null,
                 isAuthenticated: false,
                 isLoading: false,
-                error: error instanceof axios.AxiosError
-                    ? error.response?.data?.message || 'Failed to fetch user'
-                    : 'An error occurred',
+                error: status === 401 ? null : extractErrorMessage(error, 'Failed to fetch user'),
             }));
         }
     }, []);
 
     // Login with email and password
-    const login = useCallback(async (email: string, password: string) => {
+    const login = useCallback(async (email: string, password: string): Promise<LoginResult> => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/login/', { email, password });
 
             if (response.data.status === 'error') {
                 const errorMessage = response.data.message || 'Login failed';
-                setState(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    error: errorMessage,
-                }));
+                setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
                 return { success: false, error: errorMessage };
             }
 
             if (response.data.status === 'not_verified') {
                 const errorMessage = response.data.message || 'Please verify your email to activate your account.';
-                setState(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    error: errorMessage,
-                }));
-                return { success: false, notVerified: true, error: errorMessage };
+                setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
+                return { success: false, notVerified: true, requiresVerification: true, error: errorMessage };
+            }
+
+            // Email verified recently: server logged us in, no code required.
+            if (response.data.status === 'success' && response.data.logged_in) {
+                await getCurrentUser();
+                return { success: true, mustChangePassword: response.data.must_change_password === true };
+            }
+
+            // Active account outside the trust window: a single code is required.
+            if (response.data.status === 'verification_required') {
+                setState(prev => ({ ...prev, isLoading: false, error: null }));
+                return { success: false, requiresVerification: true };
             }
 
             if (response.data.status === 'success') {
-                setState(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    error: null,
-                }));
-                return { success: true };
+                setState(prev => ({ ...prev, isLoading: false, error: null }));
+                return { success: false, requiresVerification: true };
             }
             return { success: false, error: 'Unknown response' };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : error instanceof Error
-                    ? error.message
-                    : 'An error occurred during login';
-            setState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: errorMessage,
-            }));
+            const errorMessage = extractErrorMessage(error, 'An error occurred during login');
+            setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
             return { success: false, error: errorMessage };
         }
-    }, []);
+    }, [getCurrentUser]);
 
     // Confirm login with email and confirmation code
     const confirmLogin = useCallback(async (email: string, code: string) => {
@@ -195,49 +199,25 @@ export const useAuth = (): UseAuthReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/confirm/', { email, code });
-            console.log('Confirm login response:', response.data);
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
+            await waitForLoader(startTime);
 
             if (response.data.status === 'error') {
-                const errorMessage = response.data.message ;
-                setState(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    error: errorMessage,
-                }));
+                const errorMessage = response.data.message;
+                setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
                 return { success: false, error: errorMessage };
             }
 
             if (response.data.status === 'success') {
-                // Cookies are automatically stored by axios when withCredentials: true
-                // and server returns Set-Cookie header
+                // The session cookie is set by the server on this response. Refresh
+                // the auth state so the whole app sees the authenticated user.
                 await getCurrentUser();
                 return { success: true, mustChangePassword: response.data.must_change_password === true };
             }
             return { success: false, error: 'Unknown response' };
         } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : error instanceof Error
-                    ? error.message
-                    : 'An error occurred';
-            setState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: errorMessage,
-            }));
+            await waitForLoader(startTime);
+            const errorMessage = extractErrorMessage(error, 'An error occurred');
+            setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
             return { success: false, error: errorMessage };
         }
     }, [getCurrentUser]);
@@ -248,35 +228,12 @@ export const useAuth = (): UseAuthReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             await axiosInstance.post('/logout/');
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            setState({
-                user: null,
-                isAuthenticated: false,
-                isLoading: false,
-                error: null,
-            });
+            await waitForLoader(startTime);
+            setState({ user: null, isAuthenticated: false, isLoading: false, error: null });
         } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || 'Logout failed'
-                : 'An error occurred during logout';
-            setState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: errorMessage,
-            }));
+            await waitForLoader(startTime);
+            const errorMessage = extractErrorMessage(error, 'Logout failed');
+            setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
         }
     }, []);
 
@@ -286,50 +243,23 @@ export const useAuth = (): UseAuthReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/resend-code/', { email });
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
+            await waitForLoader(startTime);
 
             if (response.data.status === 'error') {
                 const errorMessage = response.data.message || 'Failed to resend code';
-                setState(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    error: errorMessage,
-                }));
+                setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
                 return { success: false, error: errorMessage };
             }
 
             if (response.data.status === 'success') {
-                setState(prev => ({
-                    ...prev,
-                    isLoading: false,
-                    error: null,
-                }));
+                setState(prev => ({ ...prev, isLoading: false, error: null }));
                 return { success: true };
             }
             return { success: false, error: 'Unknown response' };
         } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : error instanceof Error
-                    ? error.message
-                    : 'An error occurred';
-            setState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: errorMessage,
-            }));
+            await waitForLoader(startTime);
+            const errorMessage = extractErrorMessage(error, 'An error occurred');
+            setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
             return { success: false, error: errorMessage };
         }
     }, []);
@@ -340,12 +270,7 @@ export const useAuth = (): UseAuthReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/set-active-company/', { company_id: companyId });
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
+            await waitForLoader(startTime);
 
             if (response.data.status === 'error') {
                 throw new Error(response.data.message || 'Failed to set active company');
@@ -364,23 +289,9 @@ export const useAuth = (): UseAuthReturn => {
 
             throw new Error('Unexpected response from server');
         } catch (error) {
-            const elapsed = Date.now() - startTime;
-            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
-            
-            if (delayNeeded > 0) {
-                await new Promise(resolve => setTimeout(resolve, delayNeeded));
-            }
-            
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : error instanceof Error
-                    ? error.message
-                    : 'An error occurred';
-            setState(prev => ({
-                ...prev,
-                isLoading: false,
-                error: errorMessage,
-            }));
+            await waitForLoader(startTime);
+            const errorMessage = extractErrorMessage(error, 'An error occurred');
+            setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
             throw error;
         }
     }, []);
@@ -396,9 +307,7 @@ export const useAuth = (): UseAuthReturn => {
             }
             return { success: true };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
+            const errorMessage = extractErrorMessage(error, 'An error occurred');
             setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
             return { success: false, error: errorMessage };
         }
@@ -409,19 +318,20 @@ export const useAuth = (): UseAuthReturn => {
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
             const response = await axiosInstance.post('/verify-email/', { email, code });
-            setState(prev => ({ ...prev, isLoading: false, error: null }));
             if (response.data.status === 'error') {
-                return { success: false, error: response.data.message || 'Verification failed' };
+                const errorMessage = response.data.message || 'Verification failed';
+                setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
+                return { success: false, error: errorMessage };
             }
-            return { success: true };
+            // The server now logs the user in as part of the verification step.
+            await getCurrentUser();
+            return { success: true, mustChangePassword: response.data.must_change_password === true };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
+            const errorMessage = extractErrorMessage(error, 'An error occurred');
             setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
             return { success: false, error: errorMessage };
         }
-    }, []);
+    }, [getCurrentUser]);
 
     // Forgot password
     const forgotPassword = useCallback(async (email: string) => {
@@ -434,9 +344,7 @@ export const useAuth = (): UseAuthReturn => {
             }
             return { success: true };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
+            const errorMessage = extractErrorMessage(error, 'An error occurred');
             setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
             return { success: false, error: errorMessage };
         }
@@ -460,9 +368,7 @@ export const useAuth = (): UseAuthReturn => {
             }));
             return { success: true };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
+            const errorMessage = extractErrorMessage(error, 'An error occurred');
             setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
             return { success: false, error: errorMessage };
         }
@@ -485,9 +391,7 @@ export const useAuth = (): UseAuthReturn => {
             }));
             return { success: true };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
+            const errorMessage = extractErrorMessage(error, 'An error occurred');
             setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
             return { success: false, error: errorMessage };
         }
@@ -505,9 +409,7 @@ export const useAuth = (): UseAuthReturn => {
             await getCurrentUser();
             return { success: true };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
+            const errorMessage = extractErrorMessage(error, 'An error occurred');
             setState(prev => ({ ...prev, isLoading: false, error: errorMessage }));
             return { success: false, error: errorMessage };
         }
@@ -527,10 +429,7 @@ export const useAuth = (): UseAuthReturn => {
             }
             return { notifications: [], unread_count: 0, error: response.data.message || 'Failed to fetch notifications' };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
-            return { notifications: [], unread_count: 0, error: errorMessage };
+            return { notifications: [], unread_count: 0, error: extractErrorMessage(error, 'An error occurred') };
         }
     }, []);
 
@@ -546,10 +445,7 @@ export const useAuth = (): UseAuthReturn => {
             }
             return { success: false, error: response.data.message || 'Failed to mark notification as read' };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
-            return { success: false, error: errorMessage };
+            return { success: false, error: extractErrorMessage(error, 'An error occurred') };
         }
     }, []);
 
@@ -565,10 +461,7 @@ export const useAuth = (): UseAuthReturn => {
             }
             return { preferences: {}, types: [], error: response.data.message || 'Failed to fetch preferences' };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
-            return { preferences: {}, types: [], error: errorMessage };
+            return { preferences: {}, types: [], error: extractErrorMessage(error, 'An error occurred') };
         }
     }, []);
 
@@ -581,10 +474,7 @@ export const useAuth = (): UseAuthReturn => {
             }
             return { success: false, error: response.data.message || 'Failed to update preferences' };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
-            return { success: false, error: errorMessage };
+            return { success: false, error: extractErrorMessage(error, 'An error occurred') };
         }
     }, []);
 
@@ -597,10 +487,7 @@ export const useAuth = (): UseAuthReturn => {
             }
             return { sessions: [], error: response.data.message || 'Failed to fetch sessions' };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
-            return { sessions: [], error: errorMessage };
+            return { sessions: [], error: extractErrorMessage(error, 'An error occurred') };
         }
     }, []);
 
@@ -613,19 +500,16 @@ export const useAuth = (): UseAuthReturn => {
             }
             return { success: false, error: response.data.message || 'Failed to revoke session' };
         } catch (error) {
-            const errorMessage = error instanceof axios.AxiosError
-                ? error.response?.data?.message || error.message
-                : 'An error occurred';
-            return { success: false, error: errorMessage };
+            return { success: false, error: extractErrorMessage(error, 'An error occurred') };
         }
     }, []);
 
-    // Initialize auth state on mount
+    // Initialize auth state on mount (once, shared across the whole app)
     useEffect(() => {
         getCurrentUser();
     }, [getCurrentUser]);
 
-    return {
+    const value: UseAuthReturn = {
         ...state,
         login,
         confirmLogin,
@@ -646,5 +530,14 @@ export const useAuth = (): UseAuthReturn => {
         getNotificationPreferences,
         updateNotificationPreferences,
     };
+
+    return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
+export const useAuth = (): UseAuthReturn => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};

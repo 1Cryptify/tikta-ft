@@ -1,44 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { Input } from '../Form/Input';
+import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
+import { AuthLayout } from './AuthLayout';
 import { Button } from '../Form/Button';
-import { colors, spacing, borderRadius, shadows } from '../../config/theme';
+import { colors, spacing, borderRadius } from '../../config/theme';
 import { useAuth } from '../../hooks/useAuth';
-
-const Container = styled.div`
-  width: 100%;
-  height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, ${colors.primary} 0%, ${colors.primaryDark} 100%);
-`;
-
-const Card = styled.div`
-  background: ${colors.surface};
-  padding: ${spacing.xxl};
-  border-radius: ${borderRadius.lg};
-  box-shadow: ${shadows.lg};
-  width: 100%;
-  max-width: 400px;
-`;
-
-const Header = styled.div`
-  text-align: center;
-  margin-bottom: ${spacing.xxl};
-
-  h1 {
-    font-size: 1.75rem;
-    color: ${colors.textPrimary};
-    margin-bottom: ${spacing.sm};
-  }
-
-  p {
-    color: ${colors.textSecondary};
-    font-size: 0.875rem;
-  }
-`;
 
 const Form = styled.form`
   display: flex;
@@ -46,38 +13,96 @@ const Form = styled.form`
   gap: ${spacing.lg};
 `;
 
-const ErrorAlert = styled.div`
-  padding: ${spacing.md} ${spacing.lg};
-  background-color: #fee;
-  border: 1px solid ${colors.error};
-  border-radius: ${borderRadius.md};
-  color: ${colors.error};
-  font-size: 0.875rem;
-  font-weight: 500;
+const Field = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
 `;
 
-const SuccessAlert = styled.div`
-  padding: ${spacing.md} ${spacing.lg};
-  background-color: #efe;
-  border: 1px solid ${colors.success};
-  border-radius: ${borderRadius.md};
-  color: ${colors.success};
-  font-size: 0.875rem;
-  font-weight: 500;
+const Label = styled.label`
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: ${colors.textPrimary};
 `;
 
-const Footer = styled.p`
-  text-align: center;
-  font-size: 0.875rem;
+const InputWrap = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const FieldIcon = styled.span`
+  position: absolute;
+  left: 0.9rem;
   color: ${colors.textSecondary};
+  display: flex;
+  pointer-events: none;
+`;
+
+const TextInput = styled.input<{ $hasError?: boolean }>`
+  width: 100%;
+  padding: 0.8rem 1rem 0.8rem 2.6rem;
+  border: 1px solid ${p => (p.$hasError ? colors.error : colors.border)};
+  border-radius: ${borderRadius.md};
+  font-size: 0.95rem;
+  color: ${colors.textPrimary};
+  background: ${colors.surface};
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+
+  &::placeholder {
+    color: ${colors.textSecondary};
+    opacity: 0.7;
+  }
+
+  &:focus {
+    outline: none;
+    border-color: ${colors.primary};
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
+  }
+
+  &:disabled {
+    background: #f5f6f8;
+    cursor: not-allowed;
+  }
+`;
+
+const ToggleBtn = styled.button`
+  position: absolute;
+  right: 0.75rem;
+  background: none;
+  border: none;
+  color: ${colors.textSecondary};
+  cursor: pointer;
+  display: flex;
+  padding: 0.25rem;
+
+  &:hover {
+    color: ${colors.primary};
+  }
+`;
+
+const FieldError = styled.span`
+  font-size: 0.75rem;
+  color: ${colors.error};
+`;
+
+const Alert = styled.div<{ $tone: 'error' | 'success' }>`
+  padding: 0.8rem 1rem;
+  border-radius: ${borderRadius.md};
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.45;
+  background: ${p => (p.$tone === 'error' ? '#fef2f2' : '#ecfdf5')};
+  color: ${p => (p.$tone === 'error' ? colors.error : colors.success)};
+  border: 1px solid ${p => (p.$tone === 'error' ? '#fecaca' : '#a7f3d0')};
 `;
 
 const LinkRow = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.875rem;
-  margin-top: ${spacing.md};
+  font-size: 0.85rem;
+  margin-top: 0.25rem;
 `;
 
 const TextLink = styled.button`
@@ -86,7 +111,8 @@ const TextLink = styled.button`
   color: ${colors.primary};
   cursor: pointer;
   padding: 0;
-  font-size: 0.875rem;
+  font-size: 0.85rem;
+  font-weight: 600;
 
   &:hover {
     text-decoration: underline;
@@ -110,7 +136,6 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
   // Redirect if already authenticated
   useEffect(() => {
     if (isAuthenticated) {
-      console.log('LoginPage: User already authenticated, redirecting to dashboard');
       navigate('/dashboard/overview', { replace: true });
     }
   }, [isAuthenticated, navigate]);
@@ -144,113 +169,97 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
 
       if (!validateForm()) return;
 
-      console.log('LoginPage handleSubmit:', { email, password: '***' });
       const result = await login(email, password);
-      console.log('LoginPage login result:', result);
 
       if (result.success) {
-        if (result.mustChangePassword) {
-          setSuccessMessage('Please change your password before continuing.');
-          setTimeout(() => {
-            navigate('/change-password');
-          }, 1500);
-          return;
-        }
-        setSuccessMessage('Confirmation code sent to your email. Please check your inbox.');
-        setPassword('');
-        setTimeout(() => {
-          console.log('Navigating to /confirm with email:', email);
-          onSuccess?.(email);
-          navigate('/confirm', { state: { email } });
-        }, 1500);
+        // Email verified within the trust window: logged in directly.
+        navigate('/dashboard/overview', { replace: true });
         return;
       }
 
-      if (result.notVerified) {
+      if (result.requiresVerification || result.notVerified) {
         setSuccessMessage(result.error || 'A verification code was sent to your email.');
         setPassword('');
         setTimeout(() => {
-          navigate('/verify-email', { state: { email, fromLogin: true } });
+          onSuccess?.(email);
+          navigate('/verify', { state: { email } });
         }, 1200);
       }
     };
 
     return (
-        <Container>
-            <Card>
-                <Header>
-                    <h1>Tikta</h1>
-                    <p>Payment Management Platform</p>
-                </Header>
+        <AuthLayout
+          title="Bon retour"
+          subtitle="Connectez-vous pour accéder à votre tableau de bord Tikta."
+          footer={
+            <LinkRow>
+              <TextLink onClick={() => navigate('/register')} type="button">
+                Créer un compte
+              </TextLink>
+              <TextLink onClick={() => navigate('/forgot-password')} type="button">
+                Mot de passe oublié ?
+              </TextLink>
+            </LinkRow>
+          }
+        >
+          <Form onSubmit={handleSubmit}>
+            {error && !successMessage && <Alert $tone="error">{error}</Alert>}
+            {successMessage && <Alert $tone="success">{successMessage}</Alert>}
 
-                <Form onSubmit={handleSubmit}>
-                    {error && <ErrorAlert>{error}</ErrorAlert>}
-                    {successMessage && <SuccessAlert>{successMessage}</SuccessAlert>}
+            <Field>
+              <Label htmlFor="email">Adresse email</Label>
+              <InputWrap>
+                <FieldIcon><FiMail size={18} /></FieldIcon>
+                <TextInput
+                  id="email"
+                  type="email"
+                  placeholder="vous@exemple.com"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  disabled={isLoading}
+                  $hasError={!!emailError}
+                  autoComplete="email"
+                />
+              </InputWrap>
+              {emailError && <FieldError>{emailError}</FieldError>}
+            </Field>
 
-                    <Input
-                        id="email"
-                        label="Email Address"
-                        type="email"
-                        placeholder="your@email.com"
-                        value={email}
-                        onChange={e => setEmail(e.target.value)}
-                        error={emailError}
-                        disabled={isLoading}
-                    />
+            <Field>
+              <Label htmlFor="password">Mot de passe</Label>
+              <InputWrap>
+                <FieldIcon><FiLock size={18} /></FieldIcon>
+                <TextInput
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Votre mot de passe"
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  disabled={isLoading}
+                  $hasError={!!passwordError}
+                  autoComplete="current-password"
+                />
+                <ToggleBtn
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  title={showPassword ? 'Masquer' : 'Afficher'}
+                >
+                  {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                </ToggleBtn>
+              </InputWrap>
+              {passwordError && <FieldError>{passwordError}</FieldError>}
+            </Field>
 
-                    <div style={{ position: 'relative' }}>
-                        <Input
-                            id="password"
-                            label="Password"
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder="Enter your password"
-                            value={password}
-                            onChange={e => setPassword(e.target.value)}
-                            error={passwordError}
-                            disabled={isLoading}
-                        />
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            style={{
-                                position: 'absolute',
-                                right: '12px',
-                                top: '33px',
-                                background: 'none',
-                                border: 'none',
-                                color: colors.textSecondary,
-                                cursor: 'pointer',
-                                padding: 0,
-                            }}
-                            title={showPassword ? 'Hide password' : 'Show password'}
-                        >
-                            {showPassword ? '[–]' : '[o]'}
-                        </button>
-                    </div>
-
-                    <Button
-                        type="submit"
-                        fullWidth
-                        loading={isLoading}
-                        size="lg"
-                    >
-                        Sign In
-                    </Button>
-                </Form>
-
-                <LinkRow>
-                    <TextLink onClick={() => navigate('/register')} type="button">
-                        Create Account
-                    </TextLink>
-                    <TextLink onClick={() => navigate('/forgot-password')} type="button">
-                        Forgot Password?
-                    </TextLink>
-                </LinkRow>
-
-                <Footer>
-                    © 2024 Tikta. All rights reserved.
-                </Footer>
-            </Card>
-        </Container>
+            <Button
+              type="submit"
+              fullWidth
+              loading={isLoading}
+              size="lg"
+            >
+              Se connecter
+            </Button>
+          </Form>
+        </AuthLayout>
     );
 };
+
+export default LoginPage;

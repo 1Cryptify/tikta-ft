@@ -80,16 +80,16 @@ const NavList = styled.nav`
   }
 `;
 
-const NavItemButton = styled.button<{ active?: boolean; disabled?: boolean }>`
+const NavItemButton = styled.button<{ $active?: boolean; disabled?: boolean }>`
   width: 100%;
   padding: ${spacing.md} ${spacing.lg};
   background: ${props => 
     props.disabled ? colors.neutral : 
-    props.active ? colors.primary : 'transparent'
+    props.$active ? colors.primary : 'transparent'
   };
   color: ${props => 
     props.disabled ? colors.textSecondary :
-    props.active ? colors.surface : colors.textPrimary
+    props.$active ? colors.surface : colors.textPrimary
   };
   border: none;
   border-radius: ${borderRadius.md};
@@ -107,7 +107,7 @@ const NavItemButton = styled.button<{ active?: boolean; disabled?: boolean }>`
   &:hover {
     background: ${props => 
       props.disabled ? colors.neutral :
-      props.active ? colors.primaryDark : colors.neutral
+      props.$active ? colors.primaryDark : colors.neutral
     };
   }
 
@@ -168,7 +168,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ items, title = 'Menu', onItemC
                 {items.map(item => (
                     <NavItemButton
                         key={item.id}
-                        active={item.active}
+                        $active={item.active}
                         disabled={item.disabled}
                         onClick={() => {
                             if (!item.disabled) {

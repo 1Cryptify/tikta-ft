@@ -171,7 +171,7 @@ export const FirstLoginChangePage: React.FC = () => {
 
         if (result.success) {
             setSuccess('Password updated successfully. Redirecting to dashboard...');
-            setTimeout(() => navigate('/dashboard'), 2000);
+            setTimeout(() => navigate('/dashboard/overview', { replace: true }), 1200);
         } else {
             setError(result.error || 'Failed to change password');
         }

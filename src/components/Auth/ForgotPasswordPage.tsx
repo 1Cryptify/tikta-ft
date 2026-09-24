@@ -1,104 +1,114 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { FiMail, FiArrowLeft, FiSend } from 'react-icons/fi';
+import { FiMail, FiArrowLeft, FiSend, FiCheckCircle } from 'react-icons/fi';
+import { AuthLayout } from './AuthLayout';
+import { colors, borderRadius } from '../../config/theme';
 import { useAuth } from '../../hooks/useAuth';
-
-const Container = styled.div`
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d4a6f 100%);
-  padding: 2rem;
-`;
-
-const Card = styled.div`
-  background: white;
-  border-radius: 16px;
-  padding: 2.5rem;
-  width: 100%;
-  max-width: 450px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-`;
-
-const Header = styled.div`
-  text-align: center;
-  margin-bottom: 2rem;
-`;
-
-const Title = styled.h1`
-  font-size: 1.75rem;
-  color: #1a1a1a;
-  margin: 0 0 0.5rem 0;
-`;
-
-const Subtitle = styled.p`
-  color: #666;
-  margin: 0;
-`;
 
 const Form = styled.form`
   display: flex;
   flex-direction: column;
-  gap: 1.25rem;
+  gap: 1rem;
 `;
 
-const InputGroup = styled.div`
+const Field = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+`;
+
+const Label = styled.label`
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: ${colors.textPrimary};
+`;
+
+const InputWrap = styled.div`
   position: relative;
+  display: flex;
+  align-items: center;
 `;
 
-const Input = styled.input`
+const FieldIcon = styled.span`
+  position: absolute;
+  left: 0.9rem;
+  color: ${colors.textSecondary};
+  display: flex;
+  pointer-events: none;
+`;
+
+const TextInput = styled.input`
   width: 100%;
-  padding: 0.75rem 1rem 0.75rem 2.5rem;
-  border: 1px solid #ddd;
-  border-radius: 8px;
+  padding: 0.8rem 1rem 0.8rem 2.6rem;
+  border: 1px solid ${colors.border};
+  border-radius: ${borderRadius.md};
   font-size: 0.95rem;
-  transition: border-color 0.3s ease;
+  color: ${colors.textPrimary};
+  background: ${colors.surface};
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+
+  &::placeholder {
+    color: ${colors.textSecondary};
+    opacity: 0.7;
+  }
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: ${colors.primary};
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 
   &:disabled {
-    background-color: #f5f5f5;
+    background: #f5f6f8;
     cursor: not-allowed;
   }
 `;
 
-const InputIcon = styled.div`
-  position: absolute;
-  left: 0.75rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: #999;
-  pointer-events: none;
+const Alert = styled.div<{ $tone: 'error' | 'success' }>`
+  padding: 0.85rem 1rem;
+  border-radius: ${borderRadius.md};
+  font-size: 0.85rem;
+  font-weight: 500;
+  line-height: 1.5;
+  background: ${p => (p.$tone === 'error' ? '#fef2f2' : '#ecfdf5')};
+  color: ${p => (p.$tone === 'error' ? colors.error : colors.success)};
+  border: 1px solid ${p => (p.$tone === 'error' ? '#fecaca' : '#a7f3d0')};
+`;
+
+const SuccessPanel = styled.div`
+  text-align: center;
+  padding: 0.5rem 0;
+
+  svg {
+    color: ${colors.success};
+  }
 `;
 
 const SubmitButton = styled.button`
   width: 100%;
+  margin-top: 0.25rem;
   padding: 0.9rem;
-  background-color: #007bff;
-  color: white;
+  background: linear-gradient(135deg, ${colors.primaryLight}, ${colors.primary});
+  color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: ${borderRadius.md};
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.3s ease;
+  transition: transform 150ms ease, box-shadow 150ms ease, opacity 150ms ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
 
   &:hover:not(:disabled) {
-    background-color: #0056b3;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(30, 58, 95, 0.25);
   }
 
   &:disabled {
-    background-color: #ccc;
+    opacity: 0.6;
     cursor: not-allowed;
   }
 `;
@@ -106,35 +116,18 @@ const SubmitButton = styled.button`
 const BackLink = styled.button`
   background: none;
   border: none;
-  color: #007bff;
+  color: ${colors.primary};
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin: 1.5rem auto 0;
-  font-size: 0.9rem;
+  margin: 0 auto;
+  font-size: 0.85rem;
+  font-weight: 600;
 
   &:hover {
     text-decoration: underline;
   }
-`;
-
-const ErrorMessage = styled.div`
-  padding: 0.9rem;
-  background: #f8d7da;
-  color: #721c24;
-  border-left: 4px solid #dc3545;
-  border-radius: 4px;
-  font-size: 0.9rem;
-`;
-
-const SuccessMessage = styled.div`
-  padding: 0.9rem;
-  background: #d4edda;
-  color: #155724;
-  border-left: 4px solid #28a745;
-  border-radius: 4px;
-  font-size: 0.9rem;
 `;
 
 export const ForgotPasswordPage: React.FC = () => {
@@ -149,7 +142,7 @@ export const ForgotPasswordPage: React.FC = () => {
         e.preventDefault();
 
         if (!email || !/\S+@\S+\.\S+/.test(email)) {
-            setError('Please enter a valid email address');
+            setError('Veuillez saisir une adresse email valide');
             return;
         }
 
@@ -161,47 +154,54 @@ export const ForgotPasswordPage: React.FC = () => {
         setIsLoading(false);
 
         if (result.success) {
-            setSuccess('If an account exists with this email, you will receive password reset instructions.');
-            setEmail('');
+            setSuccess('Un mot de passe temporaire vous a été envoyé par email. Connectez-vous avec celui-ci, vous serez invité à le changer.');
         } else {
-            setError(result.error || 'Failed to send reset email');
+            setError(result.error || "Échec de l'envoi de l'email");
         }
     };
 
     return (
-        <Container>
-            <Card>
-                <Header>
-                    <Title>Reset Password</Title>
-                    <Subtitle>Enter your email and we'll send you instructions</Subtitle>
-                </Header>
-
-                {error && <ErrorMessage>{error}</ErrorMessage>}
-                {success && <SuccessMessage>{success}</SuccessMessage>}
-
+        <AuthLayout
+            title="Mot de passe oublié"
+            subtitle="Saisissez votre email et nous vous enverrons un mot de passe temporaire."
+            footer={
+                <BackLink onClick={() => navigate('/login')}>
+                    <FiArrowLeft /> Retour à la connexion
+                </BackLink>
+            }
+        >
+            {success ? (
+                <SuccessPanel>
+                    <FiCheckCircle size={40} />
+                    <Alert $tone="success" style={{ marginTop: '1rem', textAlign: 'left' }}>{success}</Alert>
+                </SuccessPanel>
+            ) : (
                 <Form onSubmit={handleSubmit}>
-                    <InputGroup>
-                        <InputIcon><FiMail /></InputIcon>
-                        <Input
-                            type="email"
-                            placeholder="Email address"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            disabled={isLoading}
-                            required
-                        />
-                    </InputGroup>
+                    {error && <Alert $tone="error">{error}</Alert>}
+
+                    <Field>
+                        <Label htmlFor="reset-email">Adresse email</Label>
+                        <InputWrap>
+                            <FieldIcon><FiMail size={18} /></FieldIcon>
+                            <TextInput
+                                id="reset-email"
+                                type="email"
+                                placeholder="vous@exemple.com"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                disabled={isLoading}
+                                required
+                                autoComplete="email"
+                            />
+                        </InputWrap>
+                    </Field>
 
                     <SubmitButton type="submit" disabled={isLoading}>
-                        <FiSend /> {isLoading ? 'Sending...' : 'Send Reset Link'}
+                        <FiSend /> {isLoading ? 'Envoi...' : 'Envoyer'}
                     </SubmitButton>
                 </Form>
-
-                <BackLink onClick={() => navigate('/login')}>
-                    <FiArrowLeft /> Back to login
-                </BackLink>
-            </Card>
-        </Container>
+            )}
+        </AuthLayout>
     );
 };
 

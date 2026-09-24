@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { LoginPage } from '../components/Auth/LoginPage';
-import { ConfirmationPage } from '../components/Auth/ConfirmationPage';
+import { VerificationPage } from '../components/Auth/VerificationPage';
 import { Dashboard } from '../pages/Dashboard';
 import { PaymentCheckoutPage } from '../pages/PaymentCheckoutPage';
 import { PaymentSuccessPage } from '../pages/PaymentSuccessPage';
@@ -22,7 +22,7 @@ export const routes: RouteConfig[] = [
     },
     {
         path: '/confirm',
-        element: <ConfirmationPage email="" onSuccess={() => {}} onBack={() => {}} />,
+        element: <VerificationPage />,
         protected: false,
     },
     // Payment Routes

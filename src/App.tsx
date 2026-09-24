@@ -3,9 +3,8 @@ import { Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { useAuth, User } from './hooks/useAuth';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './components/Auth/LoginPage';
-import { ConfirmationPage } from './components/Auth/ConfirmationPage';
+import { VerificationPage } from './components/Auth/VerificationPage';
 import { RegisterPage } from './components/Auth/RegisterPage';
-import { EmailVerificationPage } from './components/Auth/EmailVerificationPage';
 import { ForgotPasswordPage } from './components/Auth/ForgotPasswordPage';
 import { FirstLoginChangePage } from './components/Auth/FirstLoginChangePage';
 import { HomePage } from './pages/HomePage';
@@ -33,15 +32,8 @@ const getUserRole = (user: User): UserRole => {
 };
 
 function App() {
-    const { user, isAuthenticated, logout, getCurrentUser, isLoading } = useAuth();
+    const { user, isAuthenticated, logout, isLoading } = useAuth();
     const location = useLocation();
-
-    // Check if user is already authenticated on mount
-    useEffect(() => {
-        getCurrentUser().catch(() => {
-            // User is not authenticated
-        });
-    }, [getCurrentUser]);
 
     useEffect(() => {
         console.log('Route changed:', {
@@ -72,10 +64,19 @@ function App() {
                 {/* Auth Routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/verify-email" element={<EmailVerificationPage />} />
+                {/* Single code entry point for both account creation and login */}
+                <Route path="/verify" element={<VerificationPage />} />
+                <Route path="/verify-email" element={<VerificationPage />} />
+                <Route path="/confirm" element={<VerificationPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-                <Route path="/change-password" element={<FirstLoginChangePage />} />
-                <Route path="/confirm" element={<ConfirmationPage email="" onSuccess={() => { }} onBack={() => { }} />} />
+                <Route
+                    path="/change-password"
+                    element={
+                        <ProtectedRoute isAuthenticated={isAuthenticated} isLoading={isLoading}>
+                            <FirstLoginChangePage />
+                        </ProtectedRoute>
+                    }
+                />
 
                 {/* Payment Routes - Public */}
                 <Route path="/pay/*" element={<PaymentRoutes />} />

@@ -29,7 +29,7 @@ const LayoutWrapper = styled.div`
   flex-direction: column;
 `;
 
-const ContentWrapper = styled.div<{ sidebarOpen?: boolean }>`
+const ContentWrapper = styled.div`
   display: flex;
   flex: 1;
   overflow: hidden;
@@ -125,7 +125,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({
                 onMenuToggle={() => setSidebarOpen(!sidebarOpen)}
                 activeCompany={activeCompany}
             />
-            <ContentWrapper sidebarOpen={sidebarOpen}>
+            <ContentWrapper>
                 <SidebarContainer isOpen={sidebarOpen}>
                     <Sidebar
                         items={navItems}
