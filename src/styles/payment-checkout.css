@@ -537,3 +537,107 @@
   .bottom-bar-price { font-size: 14px; }
   .checkout-bottom-bar .checkout-submit { font-size: 13px; padding: var(--space-sm) var(--space-lg); }
 }
+
+/* ========= Localisation & CGU (Step 0 - obligatoire) ========= */
+.geo-box {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-md);
+  background: var(--color-surface);
+  transition: border-color 0.2s ease;
+}
+
+.geo-box-active {
+  border-color: var(--color-success);
+  background: rgba(5, 150, 105, 0.04);
+}
+
+.geo-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.geo-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.geo-text {
+  flex: 1;
+  min-width: 160px;
+  font-size: 13px;
+  color: var(--color-text-primary);
+  font-weight: 500;
+}
+
+.geo-btn {
+  background: white;
+  border: 2px solid var(--color-primary);
+  color: var(--color-primary);
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.geo-btn:hover:not(:disabled) {
+  background: var(--color-primary);
+  color: white;
+}
+
+.geo-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Bandeau de la zone détectée */
+.zone-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-top: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--color-primary);
+  border-left-width: 4px;
+  border-radius: var(--radius-sm);
+  background: white;
+}
+
+.zone-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.zone-banner-text {
+  font-size: 13px;
+  color: var(--color-text-primary);
+}
+
+.zone-banner-text strong {
+  color: var(--color-primary);
+}
+
+/* Ligne des conditions d'utilisation */
+.terms-row {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin-top: var(--space-md);
+  cursor: pointer;
+}
+
+.terms-label {
+  font-size: 12px;
+  color: var(--color-text-secondary);
+  line-height: 1.5;
+}
+
+.terms-label strong {
+  color: var(--color-text-primary);
+}

@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PaymentMethodFields from '../components/Payment/PaymentMethodFields';
 import { ToastContainer, ToastMessage } from '../components/Toast';
-import { paymentService } from '../services/paymentService';
+import { paymentService, zoneService } from '../services/paymentService';
 import { PaymentMethod, PaymentFormData } from '../types/payment.types';
 import { usePaymentVerification } from '../hooks/usePaymentVerification';
 import '../styles/payment.css';
@@ -26,7 +26,6 @@ const formatChannel = (channel?: string): string => {
   const labels: Record<string, string> = {
     'mtn_momo': 'MTN MoMo',
     'orange_money': 'Orange Money',
-    'stripe': 'Carte Bancaire',
   };
   return labels[c] || channel;
 };
@@ -57,7 +56,12 @@ export const PaymentCheckoutPage: React.FC = () => {
   const [sendEmail, setSendEmail] = useState(false);
   const [sendSms, setSendSms] = useState(true);
   const [smsPhoneNumber, setSmsPhoneNumber] = useState('');
-  const [payUrl, setPayUrl] = useState<string | null>(null);
+
+  // Localisation + consentement (obligatoire dans l'app Tikta)
+  const [geoPos, setGeoPos] = useState<{ lat: number; lng: number } | null>(null);
+  const [locationStatus, setLocationStatus] = useState<'idle' | 'locating' | 'granted' | 'denied' | 'error'>('idle');
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [detectedZone, setDetectedZone] = useState<{ id: string; name: string; color: string; company_name?: string; mode?: string; distance_m?: number | null } | null>(null);
 
   const [formData, setFormData] = useState<PaymentFormData>({
     email: '', firstName: '', lastName: '', address: '', city: '',
@@ -94,6 +98,42 @@ export const PaymentCheckoutPage: React.FC = () => {
   };
 
   const removeToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
+
+  const activateLocation = () => {
+    if (!('geolocation' in navigator)) {
+      setLocationStatus('error');
+      addToast('Votre navigateur ne supporte pas la géolocalisation', 'error');
+      return;
+    }
+    setLocationStatus('locating');
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        setGeoPos({ lat: latitude, lng: longitude });
+        setLocationStatus('granted');
+        try {
+          const res = await zoneService.nearestZone(latitude, longitude);
+          if (res.mode !== 'none' && res.zone) {
+            setDetectedZone({ ...res.zone, mode: res.mode, distance_m: res.distance_m });
+          } else {
+            setDetectedZone(null);
+          }
+        } catch {
+          setDetectedZone(null);
+        }
+      },
+      (err) => {
+        setLocationStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'error');
+        addToast(
+          err.code === err.PERMISSION_DENIED
+            ? 'Vous devez accepter le partage de votre localisation pour payer avec Tikta'
+            : 'Impossible de récupérer votre position',
+          'error'
+        );
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 30000 }
+    );
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -169,6 +209,7 @@ export const PaymentCheckoutPage: React.FC = () => {
       if (verificationResult.ticketAvailable !== undefined) successData.ticketAvailable = verificationResult.ticketAvailable;
       if (verificationResult.allTicketsAvailable !== undefined) successData.allTicketsAvailable = verificationResult.allTicketsAvailable;
       if (verificationResult.offersWithoutTickets) successData.offersWithoutTickets = verificationResult.offersWithoutTickets;
+      if (verificationResult.callbackUrl) successData.callbackUrl = verificationResult.callbackUrl;
       localStorage.setItem('pendingPayment', JSON.stringify(successData));
       navigate('/pay/success', { state: { paymentData: successData } });
     } else if (verificationStatus === 'failed') {
@@ -216,6 +257,14 @@ export const PaymentCheckoutPage: React.FC = () => {
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    if (locationStatus !== 'granted' || !geoPos) {
+      newErrors.location = 'Activez votre localisation pour payer (obligatoire)';
+    }
+
+    if (!acceptTerms) {
+      newErrors.terms = 'Veuillez accepter les conditions d utilisation et le partage de votre localisation';
+    }
+
     if (sendEmail && (!contactEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail))) {
       newErrors.email = 'Veuillez entrer une adresse email valide';
     }
@@ -227,11 +276,6 @@ export const PaymentCheckoutPage: React.FC = () => {
     if (selectedPaymentMethod?.type === 'mobile_money') {
       if (!formData.mobileMoneyNumber || formData.mobileMoneyNumber.replace(/\D/g, '').length < 9) {
         newErrors.mobileMoneyNumber = 'Veuillez entrer un numero valide (9 chiffres)';
-      }
-    }
-    if (selectedPaymentMethod?.type === 'card') {
-      if (!contactEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmail)) {
-        newErrors.email = 'Veuillez entrer une adresse email valide';
       }
     }
 
@@ -276,6 +320,12 @@ export const PaymentCheckoutPage: React.FC = () => {
         payment_method_id: formData.paymentMethod,
         channel: channel, client_ip: '',
         send_sms: sendSms, send_email: sendEmail, sms_phone: smsPhone,
+        // Géolocalisation + consentement : chaque paiement est attribué à une zone
+        latitude: geoPos?.lat,
+        longitude: geoPos?.lng,
+        location_shared: true,
+        terms_accepted: true,
+        zone_id: detectedZone?.id,
       };
 
       let response; let paymentType: 'offer' | 'product' | 'group';
@@ -300,14 +350,6 @@ export const PaymentCheckoutPage: React.FC = () => {
           paymentType, offerId, productId, groupId,
         };
         localStorage.setItem('pendingPayment', JSON.stringify(successData));
-
-        if (response.pay_url) {
-          setPayUrl(response.pay_url);
-          // For card/Stripe: open payment page in new tab, keep polling here
-          if (channel === 'stripe') {
-            window.open(response.pay_url, '_blank');
-          }
-        }
 
         startVerification({ reference: response.reference, gatewayReference: response.gateway_reference, paymentType, offerId, productId, groupId });
       } else {
@@ -344,16 +386,87 @@ export const PaymentCheckoutPage: React.FC = () => {
             {isVerifying && (
               <div className="verification-status verification-status-top">
                 <LoadingSpinner />
-                <p className="verify-title">Veuillez confirmer le paiement pour finaliser la transaction</p>
-                <p className="verify-sub">Ne fermez pas cette page pendant l'operation.</p>
-                {payUrl && selectedPaymentMethod?.type === 'card' && (
-                  <a href={payUrl} target="_blank" rel="noopener noreferrer" className="checkout-submit pay-link-btn">
-                    Acceder a la page de paiement
-                  </a>
-                )}
+                <p className="verify-title">Confirmez le paiement sur votre telephone</p>
+                <p className="verify-sub">
+                  Une demande de paiement {selectedPaymentMethod?.type === 'mobile_money' ? `(MTN MoMo / Orange Money)` : ''} a ete envoyee sur votre numero.
+                  Saisissez votre code PIN pour valider. Vous pouvez fermer cette page : le paiement sera confirme automatiquement.
+                </p>
                 <button type="button" className="btn-secondary" onClick={stopVerification}>Annuler</button>
               </div>
             )}
+
+            {/* Step 0: Localisation + CGU (obligatoire) */}
+            <div className="form-section">
+              <h3 className="form-section-title">
+                <span className="step-badge">0</span>
+                Localisation &amp; conditions
+              </h3>
+              <p className="field-hint" style={{ marginBottom: 'var(--space-md)' }}>
+                Tikta attribue votre paiement à la zone la plus proche de vous (carte, réseau).
+                Vous devez activer votre localisation et accepter de la partager.
+              </p>
+
+              <div className={`geo-box ${locationStatus === 'granted' && geoPos ? 'geo-box-active' : ''}`}>
+                <div className="geo-row">
+                  <span className="geo-icon">📍</span>
+                  {locationStatus === 'granted' && geoPos ? (
+                    <span className="geo-text">Localisation activée (précision ~5m)</span>
+                  ) : (
+                    <span className="geo-text">
+                      {locationStatus === 'locating' ? 'Recherche de votre position…' : 'Votre localisation est requise pour payer'}
+                    </span>
+                  )}
+                  <button type="button" className="btn-secondary geo-btn" onClick={activateLocation} disabled={isFormDisabled || locationStatus === 'locating'}>
+                    {locationStatus === 'granted' && geoPos ? 'Rafraîchir' : 'Activer ma localisation'}
+                  </button>
+                </div>
+
+                {locationStatus === 'denied' && (
+                  <div className="form-error" style={{ marginTop: 'var(--space-sm)' }}>
+                    Accès refusé. Autorisez la géolocalisation dans votre navigateur puis réessayez.
+                  </div>
+                )}
+
+                {detectedZone && (
+                  <div className="zone-banner" style={{ borderColor: detectedZone.color || 'var(--color-primary)' }}>
+                    <span className="zone-dot" style={{ background: detectedZone.color || 'var(--color-primary)' }} />
+                    <span className="zone-banner-text">
+                      Paiement attribué à la zone : <strong>{detectedZone.name}</strong>
+                      {detectedZone.company_name ? ` — ${detectedZone.company_name}` : ''}
+                    </span>
+                  </div>
+                )}
+                {locationStatus === 'granted' && geoPos && !detectedZone && (
+                  <div className="form-error" style={{ marginTop: 'var(--space-sm)' }}>
+                    Aucune zone ne couvre encore votre position ; le paiement reste possible.
+                  </div>
+                )}
+              </div>
+
+              <label className="terms-row">
+                <input
+                  type="checkbox"
+                  checked={acceptTerms}
+                  onChange={(e) => {
+                    setAcceptTerms(e.target.checked);
+                    if (errors.terms) { const n = { ...errors }; delete n.terms; setErrors(n); }
+                  }}
+                  className="checkbox-input"
+                  disabled={isFormDisabled}
+                />
+                <span className="terms-label">
+                  J'active ma localisation et j'accepte son partage, ainsi que les{' '}
+                  <span style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>conditions d'utilisation</span>{' '}
+                  (mon paiement sera attribué à la zone la plus proche de moi).
+                </span>
+              </label>
+
+              {(errors.location || errors.terms) && (
+                <div className="form-error" style={{ marginTop: 'var(--space-sm)' }}>
+                  {errors.location || errors.terms}
+                </div>
+              )}
+            </div>
 
             {/* Step 1: ALL payment methods visible as cards */}
             <div className="form-section">
@@ -371,10 +484,7 @@ export const PaymentCheckoutPage: React.FC = () => {
                     onClick={() => {
                       setFormData((prev) => ({ ...prev, paymentMethod: pm.id }));
                       if (errors.paymentMethod) { const n = { ...errors }; delete n.paymentMethod; setErrors(n); }
-                      if (pm.type === 'card') {
-                        setSendEmail(true);
-                        setSendSms(false);
-                      } else if (pm.type === 'mobile_money') {
+                      if (pm.type === 'mobile_money') {
                         setSendSms(true);
                         setSendEmail(false);
                       }
@@ -398,7 +508,7 @@ export const PaymentCheckoutPage: React.FC = () => {
 
               {errors.paymentMethod && <span className="form-error">{errors.paymentMethod}</span>}
 
-              {/* Phone field for mobile money, Email field for card */}
+              {/* Phone field for mobile money (CamPay: MTN MoMo / Orange Money) */}
               {formData.paymentMethod && selectedPaymentMethod?.type === 'mobile_money' && (
                 <div style={{ marginTop: 'var(--space-lg)' }}>
                   <PaymentMethodFields
@@ -408,22 +518,6 @@ export const PaymentCheckoutPage: React.FC = () => {
                     errors={errors}
                     disabled={isFormDisabled}
                   />
-                </div>
-              )}
-              {formData.paymentMethod && selectedPaymentMethod?.type === 'card' && (
-                <div style={{ marginTop: 'var(--space-lg)' }}>
-                  <div className={`form-group ${errors.email ? 'error' : ''}`}>
-                    <label>Adresse email pour le paiement</label>
-                    <input
-                      type="email" name="email"
-                      value={contactEmail}
-                      onChange={handleChange}
-                      placeholder="exemple@email.com"
-                      disabled={isFormDisabled}
-                      className="big-input"
-                    />
-                    {errors.email && <span className="form-error">{errors.email}</span>}
-                  </div>
                 </div>
               )}
             </div>
@@ -479,7 +573,7 @@ export const PaymentCheckoutPage: React.FC = () => {
             {dataLoading && <LoadingSpinner />}
 
             <div className="security-info">
-              <strong>Paiement securise</strong> — Aucune donnee bancaire n'est stockee.
+              <strong>Paiement securise via Mobile Money</strong> — MTN MoMo et Orange Money (CamPay).
             </div>
           </form>
         </div>

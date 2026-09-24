@@ -23,7 +23,7 @@ export const HomePage: React.FC = () => {
             const reasonLabel = contactReasons.find(r => r.id === selectedReason)?.label || 'Contact';
             const subject = encodeURIComponent(`Demande: ${reasonLabel}`);
             const body = encodeURIComponent(`Bonjour,\n\nJe souhaiterais: ${reasonLabel}\n\nMerci de me contacter.`);
-            window.location.href = `mailto:contact@webafri.com?subject=${subject}&body=${body}`;
+            window.location.href = `mailto:contact@tikta.xyz?subject=${subject}&body=${body}`;
             setIsContactModalOpen(false);
             setSelectedReason('');
         }
@@ -216,7 +216,7 @@ export const HomePage: React.FC = () => {
 
                     <div style={styles.contactInfo}>
                         <p style={styles.contactInfoText}>
-                            <strong>Email:</strong> contact@webafri.com
+                            <strong>Email:</strong> contact@tikta.xyz
                         </p>
                         <p style={styles.contactInfoText}>
                             <strong>Téléphone:</strong> +237698692938

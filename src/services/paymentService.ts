@@ -1,4 +1,4 @@
-import { API_PAYMENTS_BASE_URL } from "./api";
+import { API_PAYMENTS_BASE_URL, API_ZONES_BASE_URL } from "./api";
 import { getUserFriendlyErrorMessage } from "../utils/errorMessages";
 
 const API_BASE = API_PAYMENTS_BASE_URL;
@@ -7,6 +7,31 @@ const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
+
+// ============ Zones (géolocalisation du paiement) ============
+
+/** Position du client partagée (consentement + CGU) pour l'attribution d'une zone. */
+export interface PaymentLocation {
+  latitude?: number;
+  longitude?: number;
+  location_shared: boolean;
+  terms_accepted: boolean;
+  zone_id?: string;
+}
+
+export const zoneService = {
+  /** Trouve la zone qui contient / est la plus proche d'une position GPS (public). */
+  async nearestZone(latitude: number, longitude: number) {
+    const response = await fetch(`${API_ZONES_BASE_URL}/zones/nearest/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ latitude, longitude }),
+    });
+    const data = await response.json().catch(() => ({}));
+    if (data.status === 'success') return data;
+    return { status: 'success', mode: 'none', zone: null, distance_m: null };
+  },
+};
 
 const throwPaymentError = (data: any, fallback: string) => {
   const rawMessage = data?.message || fallback;
@@ -91,6 +116,11 @@ export const paymentService = {
     send_sms?: boolean;
     send_email?: boolean;
     sms_phone?: string;
+    latitude?: number;
+    longitude?: number;
+    location_shared?: boolean;
+    terms_accepted?: boolean;
+    zone_id?: string;
   }) {
     const response = await fetch(
       `${API_BASE}/offers-payment/initiate/`,
@@ -122,6 +152,11 @@ export const paymentService = {
     send_sms?: boolean;
     send_email?: boolean;
     sms_phone?: string;
+    latitude?: number;
+    longitude?: number;
+    location_shared?: boolean;
+    terms_accepted?: boolean;
+    zone_id?: string;
   }) {
     const response = await fetch(
       `${API_BASE}/product-payment/initiate/`,
@@ -198,6 +233,11 @@ export const paymentService = {
     send_sms?: boolean;
     send_email?: boolean;
     sms_phone?: string;
+    latitude?: number;
+    longitude?: number;
+    location_shared?: boolean;
+    terms_accepted?: boolean;
+    zone_id?: string;
   }) {
     console.log('initiateGroupPayment called with payload:', payload);
     const response = await fetch(

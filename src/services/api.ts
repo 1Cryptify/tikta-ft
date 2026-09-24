@@ -1,6 +1,7 @@
-export const API_BASE_URL = "https://tikta-bk.webafri.com";
+export const API_BASE_URL = "https://bk.tikta.xyz";
 export const API_USERS_BASE_URL = `${API_BASE_URL}/api/users`;
 export const API_PAYMENTS_BASE_URL = `${API_BASE_URL}/api/payments`;
+export const API_ZONES_BASE_URL = `${API_BASE_URL}/api/zones`;
 
 /**
  * Build absolute URL for media files (logos, documents, etc.)

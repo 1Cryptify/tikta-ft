@@ -15,6 +15,7 @@ export interface VerificationResult {
   ticketAvailable?: boolean;
   allTicketsAvailable?: boolean;
   offersWithoutTickets?: string[];
+  callbackUrl?: string;
 }
 
 interface UsePaymentVerificationParams {
@@ -94,6 +95,8 @@ export const usePaymentVerification = (params?: UsePaymentVerificationParams) =>
         if (response.all_tickets_available !== undefined) result.allTicketsAvailable = response.all_tickets_available;
         if (response.admin_contact_message) result.adminContactMessage = response.admin_contact_message;
         if (response.offers_without_tickets) result.offersWithoutTickets = response.offers_without_tickets;
+        if (response.callback_url) result.callbackUrl = response.callback_url;
+        if (response.offer_name) result.offerName = response.offer_name || result.offerName;
 
         return result;
       } else if (response?.status === 'pending') {

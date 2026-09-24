@@ -71,7 +71,6 @@ const PaymentMethodSelector: React.FC<PaymentMethodSelectorProps> = ({
     const labels: Record<string, string> = {
       'mtn_momo': 'MTN Mobile Money',
       'orange_money': 'Orange Money',
-      'stripe': 'Bank Card',
     };
     if (labels[c]) return labels[c];
     const parts = channel.split('.');
