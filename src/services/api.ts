@@ -1,4 +1,4 @@
-export const API_BASE_URL = "https://bk.tikta.xyz";
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/+$/, '');
 export const API_USERS_BASE_URL = `${API_BASE_URL}/api/users`;
 export const API_PAYMENTS_BASE_URL = `${API_BASE_URL}/api/payments`;
 export const API_ZONES_BASE_URL = `${API_BASE_URL}/api/zones`;
@@ -15,8 +15,8 @@ export const getMediaUrl = (relativePath: string): string => {
         return relativePath;
     }
     // Remove leading /media/ if it already exists
-    const cleanPath = relativePath.startsWith('/media/') 
-        ? relativePath.substring(7) 
+    const cleanPath = relativePath.startsWith('/media/')
+        ? relativePath.substring(7)
         : relativePath;
     // Build the full media URL
     return `${API_BASE_URL}/media/${cleanPath}`;

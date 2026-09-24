@@ -13,6 +13,10 @@ export default defineConfig({
   server: {
     port: 5173,
     strictPort: false,
+    proxy: {
+      '/api': 'http://localhost:8000',
+      '/media': 'http://localhost:8000',
+    },
   },
   build: {
     outDir: 'dist',
