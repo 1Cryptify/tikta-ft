@@ -467,6 +467,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
     if (offer) {
       setFormData({
         ...offer,
+        company_id: offer.company_id || offer.company || user?.active_company?.id || '',
         icon_background: offer.icon_background || DEFAULT_OFFER_BACKGROUND_ID,
       });
       setVisualMode(offer.image ? 'image' : 'illustration');

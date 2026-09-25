@@ -161,20 +161,28 @@
   margin: 16px;
 }
 
+/* La couverture est une image de header "faite sur mesure" : on la laisse
+   s'afficher entièrement, à sa hauteur naturelle, sur toute la largeur. */
 .of-cover {
   position: relative;
   width: 100%;
-  aspect-ratio: 16 / 9;
-  max-height: 420px;
   background: #eef2f7;
   overflow: hidden;
 }
 
 .of-cover img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  height: auto;
   display: block;
+}
+
+/* Header HTML personnalisé (uniquement des <div> avec style inline) */
+.of-cover-html {
+  width: 100%;
+}
+
+.of-cover-html > div {
+  width: 100%;
 }
 
 .of-cover__overlay {
@@ -654,10 +662,6 @@
   }
 
   .of-title { font-size: 22px; }
-
-  .of-cover {
-    aspect-ratio: 21 / 8;
-  }
 
   .of-cover__content {
     left: 28px;

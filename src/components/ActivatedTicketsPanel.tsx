@@ -77,6 +77,8 @@ const formatDateTime = (iso?: string | null): string => {
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
+    // Heure camerounaise (WAT / GMT+1) quel que soit le fuseau de l'appareil.
+    timeZone: 'Africa/Douala',
   });
 };
 

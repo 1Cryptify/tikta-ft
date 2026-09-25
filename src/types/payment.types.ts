@@ -40,6 +40,8 @@ export interface OfferGroup {
   discount?: number;
   image?: string;
   coverImage?: string;
+  /** Optional HTML header (only <div> with inline style) shown on the sales page. */
+  header_html?: string;
   items: (Product | Offer)[];
   offers?: (Product | Offer)[];
   is_package: boolean; // true = buy directly as package, false = just a collection of offers

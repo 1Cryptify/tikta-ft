@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { FiChevronRight, FiClock, FiPackage, FiTag } from 'react-icons/fi';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { FiChevronRight, FiClock, FiPackage, FiTag, FiX } from 'react-icons/fi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { OfferVisual } from '../components/OfferVisual';
 import { paymentService } from '../services/paymentService';
 import { getMediaUrl } from '../services/api';
+import { sanitizeHeaderHtml } from '../utils/sanitizeHtml';
+import { closePaymentTab } from '../utils/closeTab';
 import { OfferGroup, Product, Offer } from '../types/payment.types';
 import '../styles/payment.css';
 import '../styles/order-flow.css';
@@ -16,6 +18,7 @@ interface PayPageProps {
 export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
   const { groupId } = useParams<{ groupId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [group, setGroup] = useState<OfferGroup | null>(groupData || null);
   const [loading, setLoading] = useState(!groupData);
@@ -45,6 +48,7 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
             discount: response.discount,
             image: response.image,
             coverImage: response.coverImage || response.image,
+            header_html: response.header_html || '',
             items: (response.offers || []).map((offer: any) => {
               const basePrice = parseFloat(offer.price) || 0;
               const finalPrice = offer.final_price != null ? parseFloat(offer.final_price) : basePrice;
@@ -83,8 +87,10 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
     fetchGroup();
   }, [groupId, groupData]);
 
-  const handleProductClick = (productId: string) => navigate(`/checkout/product/${productId}`);
-  const handleOfferClick = (offerId: string) => navigate(`/pay/offer/${offerId}`);
+  const handleProductClick = (productId: string) =>
+    navigate(`/checkout/product/${productId}`, { state: { from: location.pathname } });
+  const handleOfferClick = (offerId: string) =>
+    navigate(`/pay/offer/${offerId}`, { state: { from: location.pathname } });
   const handleBuyGroup = () => {
     if (group?.is_package && groupId) navigate(`/checkout/group/${groupId}/buy`);
   };
@@ -110,8 +116,8 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
           <h1 className="of-title">Indisponible</h1>
           <p className="of-subtitle">{error || 'Pack introuvable.'}</p>
           <div className="of-actions">
-            <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={() => navigate('/')}>
-              Retour à l'accueil
+            <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={closePaymentTab}>
+              <FiX aria-hidden="true" /> Sortir
             </button>
           </div>
         </div>
@@ -120,14 +126,18 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
   }
 
   const cover = getMediaUrl(group.coverImage || group.image);
+  const headerHtml = sanitizeHeaderHtml(group.header_html);
+  const hasHeader = Boolean(headerHtml);
   const items = group.items || [];
 
   return (
     <div className="of-page">
       <div className="of-container">
-        {/* Group header */}
-        <div className={`of-card ${cover ? 'of-card--flush' : ''}`}>
-          {cover ? (
+        {/* Group header — HTML custom (prioritaire) ou image de couverture */}
+        <div className={`of-card ${(hasHeader || cover) ? 'of-card--flush' : ''}`}>
+          {hasHeader ? (
+            <div className="of-cover-html" dangerouslySetInnerHTML={{ __html: headerHtml }} />
+          ) : cover ? (
             <div className="of-cover">
               <img src={cover} alt={group.name} />
               <div className="of-cover__overlay" />

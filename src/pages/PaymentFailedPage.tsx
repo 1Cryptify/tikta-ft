@@ -1,26 +1,45 @@
-import React from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { FiArrowLeft, FiMail, FiRefreshCw, FiX } from 'react-icons/fi';
+import React, { useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { FiArrowLeft, FiLogOut, FiMail, FiRefreshCw, FiX } from 'react-icons/fi';
+import { closePaymentTab } from '../utils/closeTab';
 import '../styles/payment.css';
 import '../styles/order-flow.css';
 
+const offersPathFromStorage = (): string | null => {
+  try {
+    const raw = localStorage.getItem('pendingPayment');
+    if (!raw) return null;
+    const stored = JSON.parse(raw);
+    return stored?.groupId ? `/pay/g/${stored.groupId}` : null;
+  } catch {
+    return null;
+  }
+};
+
 export const PaymentFailedPage: React.FC = () => {
-  const { groupId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
 
   const errorMessage: string | undefined = location.state?.errorMessage;
   const returnTo: string | undefined = location.state?.returnTo;
+  const offersPath: string | undefined = location.state?.offersPath;
+
+  // Page des offres d'origine : état de navigation, sinon déduite du stockage.
+  const resolvedOffersPath = useMemo(
+    () => offersPath || offersPathFromStorage(),
+    [offersPath]
+  );
 
   const handleTryAgain = () => {
     if (returnTo) navigate(returnTo);
-    else if (groupId) navigate(`/pay/g/${groupId}`);
-    else navigate('/');
+    else if (resolvedOffersPath) navigate(resolvedOffersPath);
+    else closePaymentTab();
   };
 
-  const handleBackToPayment = () => {
-    if (groupId) navigate(`/pay/g/${groupId}`);
-    else navigate('/');
+  const handleBackToOffers = () => {
+    if (resolvedOffersPath) navigate(resolvedOffersPath);
+    else if (returnTo) navigate(returnTo);
+    else closePaymentTab();
   };
 
   return (
@@ -50,9 +69,12 @@ export const PaymentFailedPage: React.FC = () => {
             <FiRefreshCw aria-hidden="true" />
             Réessayer le paiement
           </button>
-          <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={handleBackToPayment}>
+          <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={handleBackToOffers}>
             <FiArrowLeft aria-hidden="true" />
             Retour aux offres
+          </button>
+          <button type="button" className="of-link" style={{ alignSelf: 'center' }} onClick={closePaymentTab}>
+            <FiLogOut aria-hidden="true" /> Sortir
           </button>
         </div>
 

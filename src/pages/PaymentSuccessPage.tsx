@@ -1,8 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import {
   FiAlertTriangle,
-  FiArrowLeft,
   FiCheck,
   FiCopy,
   FiDownload,
@@ -195,8 +194,6 @@ const buildConnectUrl = (base: string, ticket: TicketInfo): string => {
 };
 
 export const PaymentSuccessPage: React.FC = () => {
-  const { groupId } = useParams();
-  const navigate = useNavigate();
   const location = useLocation();
   const [paymentData, setPaymentData] = useState<StoredPaymentData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -224,11 +221,6 @@ export const PaymentSuccessPage: React.FC = () => {
 
   const formatPrice = (amount: string, currency: string): string =>
     new Intl.NumberFormat('fr-FR', { style: 'currency', currency: currency || 'XAF' }).format(parseFloat(amount) || 0);
-
-  const handleContinue = () => {
-    if (groupId) navigate(`/pay/g/${groupId}`);
-    else navigate('/');
-  };
 
   const downloadTicketPDF = async (ticket: TicketInfo, index: number) => {
     const blob = await pdf(<SingleTicketPDF ticket={ticket} index={index} />).toBlob();
@@ -385,15 +377,7 @@ export const PaymentSuccessPage: React.FC = () => {
                     </button>
                   </div>
 
-                  {(ticket.valid_from || ticket.valid_until) && (
-                    <p className="of-offer__validity" style={{ marginTop: 4 }}>
-                      {ticket.valid_from && `Valide à partir du ${ticket.valid_from}`}
-                      {ticket.valid_from && ticket.valid_until && ' — '}
-                      {ticket.valid_until && `jusqu'au ${ticket.valid_until}`}
-                    </p>
-                  )}
-
-                  {canConnect && (
+                  {canConnect && tickets.length > 1 && (
                     <button
                       type="button"
                       className="of-btn of-btn--success of-btn--block"
@@ -425,46 +409,8 @@ export const PaymentSuccessPage: React.FC = () => {
                 </div>
               );
             })}
-
-            <div className="of-notice of-notice--warn">
-              <FiAlertTriangle aria-hidden="true" />
-              <span>Conservez précieusement vos identifiants. Ils vous seront également envoyés par SMS et/ou email.</span>
-            </div>
           </div>
         )}
-
-        {/* Transaction details */}
-        {paymentData?.paymentInfo && (
-          <div className="of-details">
-            <div className="of-detail-row">
-              <span className="of-detail-row__label">Référence</span>
-              <span className="of-detail-row__value">{paymentData.paymentInfo.reference || 'N/A'}</span>
-            </div>
-            <div className="of-detail-row">
-              <span className="of-detail-row__label">Montant payé</span>
-              <span className="of-detail-row__value">
-                {formatPrice(paymentData.paymentInfo.amount, paymentData.paymentInfo.currency)}
-              </span>
-            </div>
-            <div className="of-detail-row">
-              <span className="of-detail-row__label">Statut</span>
-              <span className="of-detail-row__value" style={{ color: 'var(--color-success)' }}>
-                Complété
-              </span>
-            </div>
-            <div className="of-detail-row">
-              <span className="of-detail-row__label">Date</span>
-              <span className="of-detail-row__value">{new Date().toLocaleDateString('fr-FR')}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="of-actions">
-          <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={handleContinue}>
-            <FiArrowLeft aria-hidden="true" />
-            Continuer
-          </button>
-        </div>
       </div>
     </div>
   );

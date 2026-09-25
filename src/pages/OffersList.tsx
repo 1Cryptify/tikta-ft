@@ -1048,6 +1048,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
         is_package: false,
         is_active: true,
         is_featured: false,
+        header_html: '',
     });
     const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
     const [groupOfferSearch, setGroupOfferSearch] = useState('');
@@ -1152,6 +1153,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                 is_package: group.is_package || false,
                 is_active: group.is_active ?? true,
                 is_featured: group.is_featured ?? false,
+                header_html: group.header_html || '',
             });
             setSelectedOfferIds(group.offers?.map(o => o.id) || []);
         } else {
@@ -1167,6 +1169,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                 is_package: false,
                 is_active: true,
                 is_featured: false,
+                header_html: '',
             });
             setSelectedOfferIds([]);
         }
@@ -1186,6 +1189,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
             is_package: false,
             is_active: true,
             is_featured: false,
+            header_html: '',
         });
         setSelectedOfferIds([]);
         setGroupOfferSearch('');
@@ -1224,6 +1228,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                 is_package: groupFormData.is_package,
                 is_active: groupFormData.is_active,
                 is_featured: groupFormData.is_featured,
+                header_html: groupFormData.header_html,
             };
 
             // Include company_id for superuser
@@ -2097,6 +2102,29 @@ export const OffersList: React.FC<OffersListProps> = () => {
                             placeholder="Enter a description for this group..."
                             disabled={isSaving}
                         />
+                    </FormGroup>
+
+                    <FormGroup>
+                        <label>Header HTML (optionnel)</label>
+                        <textarea
+                            rows={5}
+                            value={groupFormData.header_html}
+                            onChange={(e) =>
+                                setGroupFormData({ ...groupFormData, header_html: e.target.value })
+                            }
+                            placeholder={
+                                '<div style="background:#1e3a5f;color:#fff;padding:24px;border-radius:12px">\n' +
+                                '  <div style="font-size:22px;font-weight:800">Pack WiFi</div>\n' +
+                                '  <div style="opacity:.85">Choisissez votre offre ci-dessous</div>\n' +
+                                '</div>'
+                            }
+                            disabled={isSaving}
+                            style={{ width: '100%', fontFamily: 'monospace', fontSize: '0.82rem' }}
+                        />
+                        <small style={{ color: colors.textSecondary, fontSize: '0.75rem', display: 'block', marginTop: spacing.xs }}>
+                            Si renseigné, remplace l'image de couverture sur la page de vente. Uniquement des balises{' '}
+                            <code>&lt;div&gt;</code> avec <code>style</code> inline (pas de script, pas d'autre balise).
+                        </small>
                     </FormGroup>
 
                     <FormGroup>

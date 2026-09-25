@@ -5,6 +5,7 @@ import { colors, spacing, borderRadius, shadows } from '../config/theme';
 import { PieChart } from './Charts/PieChart';
 import { BarChart } from './Charts/BarChart';
 import { PeriodSelector, StatsPeriod } from './Charts/PeriodSelector';
+import { ActivationRatioCard } from './Charts/ActivationRatioCard';
 
 const Wrap = styled.div`display: flex; flex-direction: column; gap: ${spacing.lg};`;
 
@@ -71,6 +72,8 @@ const OfferStatsPanel: React.FC = () => {
         </div>
         <PeriodSelector value={period} onChange={setPeriod} />
       </Header>
+
+      <ActivationRatioCard />
 
       {stats.total_sales === 0 ? (
         <Empty>Aucune vente sur la période sélectionnée</Empty>

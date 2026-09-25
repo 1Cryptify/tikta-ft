@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { FiAlertTriangle } from 'react-icons/fi';
+import { FiAlertTriangle, FiX } from 'react-icons/fi';
+import { closePaymentTab } from '../utils/closeTab';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { paymentService } from '../services/paymentService';
 import { OfferGroup } from '../types/payment.types';
@@ -108,6 +109,7 @@ export const PayRouterPage: React.FC<PayRouterPageProps> = ({ type }) => {
                 discount: groupResponse.discount,
                 image: groupResponse.image,
                 coverImage: groupResponse.coverImage || groupResponse.image,
+                header_html: groupResponse.header_html || '',
                 items: (groupResponse.offers || []).map((offer: any) => {
                   const basePrice = parseFloat(offer.price) || 0;
                   const finalPrice = offer.final_price != null ? parseFloat(offer.final_price) : basePrice;
@@ -175,8 +177,8 @@ export const PayRouterPage: React.FC<PayRouterPageProps> = ({ type }) => {
           <h1 className="of-title">Indisponible</h1>
           <p className="of-subtitle">{error}</p>
           <div className="of-actions">
-            <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={() => navigate('/')}>
-              Retour à l'accueil
+            <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={closePaymentTab}>
+              <FiX aria-hidden="true" /> Sortir
             </button>
           </div>
         </div>
@@ -199,8 +201,8 @@ export const PayRouterPage: React.FC<PayRouterPageProps> = ({ type }) => {
         <h1 className="of-title">Une erreur est survenue</h1>
         <p className="of-subtitle">Impossible de déterminer le type de paiement. Veuillez réessayer.</p>
         <div className="of-actions">
-          <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={() => navigate('/')}>
-            Retour à l'accueil
+          <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={closePaymentTab}>
+            <FiX aria-hidden="true" /> Sortir
           </button>
         </div>
       </div>

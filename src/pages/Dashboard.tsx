@@ -15,7 +15,8 @@ import { SupportPage } from './SupportPage';
 import { PaymentMethodsCurrencyPage } from './PaymentMethodsCurrencyPage';
 import { ZonesHubPage } from './ZonesHubPage';
 import ContractPage from './ContractPage';
-import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiTag, FiSliders, FiBell, FiMessageSquare, FiMapPin, FiFileText } from 'react-icons/fi';
+import GuidePage from './GuidePage';
+import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiTag, FiSliders, FiBell, FiMessageSquare, FiMapPin, FiFileText, FiBookOpen } from 'react-icons/fi';
 
 interface DashboardProps {
     user: User;
@@ -75,6 +76,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
         if (path.includes('settings')) return 'settings';
         if (path.includes('notifications')) return 'notifications';
         if (path.includes('support')) return 'support';
+        if (path.includes('guide')) return 'guide';
         return 'overview';
     };
 
@@ -159,6 +161,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 badge: supportCount > 0 ? String(supportCount) : undefined,
             },
             {
+                id: 'guide',
+                label: 'Guide',
+                icon: <FiBookOpen size={20} />,
+                active: activeNav === 'guide',
+                onClick: () => navigate('/dashboard/guide'),
+            },
+            {
                 id: 'settings',
                 label: 'Settings',
                 icon: <FiSettings size={20} />,
@@ -215,6 +224,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 <Route path="/tickets" element={<TicketsPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/support" element={<SupportPage />} />
+                <Route path="/guide" element={<GuidePage />} />
                 <Route path="/settings" element={<SettingsPage />} />
             </Routes>
         </MainLayout>

@@ -41,6 +41,8 @@ export interface Offer {
     id: string;
     group_id?: string;
     company_id: string;
+    /** Identifiant de l'entreprise tel que renvoyé par l'API (FK brute). */
+    company?: string;
     name: string;
     description?: string;
     price?: number;
@@ -83,6 +85,7 @@ export interface OfferGroup {
     offers?: Offer[];
     // New fields for package functionality
     image?: string; // Image URL path
+    header_html?: string; // Optional HTML header (only <div> with inline style)
     price?: number; // Price when is_package is true
     currency_id?: string;
     currency?: Currency;

@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiArrowLeft, FiCopy, FiCheckCircle, FiAlertCircle, FiShield, FiClock } from 'react-icons/fi';
+import { FiSearch, FiCopy, FiCheckCircle, FiAlertCircle, FiShield, FiClock, FiDownload, FiWifi } from 'react-icons/fi';
+import { Document, Page, Text, View, StyleSheet, pdf } from '@react-pdf/renderer';
 import { AuthLayout } from '../components/Auth/AuthLayout';
 import { Button } from '../components/Form/Button';
+import WifiLoader from '../components/Payment/WifiLoader';
 import { colors, spacing, borderRadius } from '../config/theme';
 import { paymentService } from '../services/paymentService';
 import { getCanvasFingerprint } from '../utils/fingerprint';
@@ -14,8 +15,37 @@ interface RecoveredTicket {
     offer_name?: string;
     valid_from?: string;
     valid_until?: string;
+    callback_url?: string;
 }
 
+/* ---------- PDF ---------- */
+const pdfStyles = StyleSheet.create({
+    page: { padding: 40, fontFamily: 'Helvetica', backgroundColor: '#ffffff' },
+    title: { fontSize: 26, fontWeight: 'bold', color: '#1e3a5f', marginBottom: 4 },
+    subtitle: { fontSize: 13, color: '#6b7280', marginBottom: 24 },
+    box: { border: '2px solid #e5e7eb', borderRadius: 8, padding: 20, backgroundColor: '#fafafa' },
+    label: { fontSize: 11, color: '#6b7280', marginBottom: 4, marginTop: 10 },
+    value: { fontSize: 18, fontWeight: 'bold', color: '#1f2937', backgroundColor: '#e5e7eb', padding: 10, borderRadius: 4, fontFamily: 'Courier' },
+    footer: { position: 'absolute', bottom: 30, left: 40, right: 40, textAlign: 'center', fontSize: 10, color: '#9ca3af' },
+});
+
+const RecoveredTicketPDF: React.FC<{ ticket: RecoveredTicket }> = ({ ticket }) => (
+    <Document>
+        <Page size="A4" style={pdfStyles.page}>
+            <Text style={pdfStyles.title}>TICKET WIFI</Text>
+            <Text style={pdfStyles.subtitle}>{ticket.offer_name || 'Accès WiFi'}</Text>
+            <View style={pdfStyles.box}>
+                <Text style={pdfStyles.label}>Identifiant</Text>
+                <Text style={pdfStyles.value}>{ticket.ticket_id}</Text>
+                <Text style={pdfStyles.label}>Mot de passe</Text>
+                <Text style={pdfStyles.value}>{ticket.password}</Text>
+            </View>
+            <Text style={pdfStyles.footer}>Généré le {new Date().toLocaleDateString('fr-FR')} - Tikta</Text>
+        </Page>
+    </Document>
+);
+
+/* ---------- Styles ---------- */
 const Form = styled.form`
   display: flex;
   flex-direction: column;
@@ -139,25 +169,59 @@ const CopyBtn = styled.button`
   }
 `;
 
-const BackLink = styled.button`
-  background: none;
-  border: none;
-  color: ${colors.primary};
-  cursor: pointer;
+const ConnectBtn = styled.button`
+  margin-top: 0.4rem;
+  width: 100%;
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
-  margin: 0 auto;
-  font-size: 0.85rem;
-  font-weight: 600;
+  padding: 0.85rem 1rem;
+  border: none;
+  border-radius: ${borderRadius.md};
+  background: linear-gradient(135deg, #047857, #10b981);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: box-shadow 0.2s, opacity 0.2s;
 
-  &:hover {
-    text-decoration: underline;
+  &:hover:not(:disabled) {
+    box-shadow: 0 10px 22px rgba(5, 150, 105, 0.32);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    cursor: default;
   }
 `;
 
+const DownloadBtn = styled.button`
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid ${colors.border};
+  border-radius: ${borderRadius.md};
+  background: ${colors.surface};
+  color: ${colors.textPrimary};
+  font-weight: 600;
+  font-size: 0.88rem;
+  cursor: pointer;
+
+  &:hover {
+    background: ${colors.neutral};
+  }
+`;
+
+const buildConnectUrl = (base: string, ticket: RecoveredTicket): string => {
+    const sep = base.includes('?') ? '&' : '?';
+    return `${base}${sep}login=${encodeURIComponent(ticket.ticket_id)}&password=${encodeURIComponent(ticket.password)}`;
+};
+
 export const RecoverTicketPage: React.FC = () => {
-    const navigate = useNavigate();
     const [reference, setReference] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState('');
@@ -165,6 +229,7 @@ export const RecoverTicketPage: React.FC = () => {
     const [tickets, setTickets] = useState<RecoveredTicket[]>([]);
     const [retryIn, setRetryIn] = useState(0);
     const [copied, setCopied] = useState('');
+    const [connectingId, setConnectingId] = useState<string | null>(null);
 
     useEffect(() => {
         if (retryIn > 0) {
@@ -215,6 +280,26 @@ export const RecoverTicketPage: React.FC = () => {
         });
     };
 
+    const handleConnect = (ticket: RecoveredTicket) => {
+        if (!ticket.callback_url) return;
+        setConnectingId(ticket.ticket_id);
+        window.setTimeout(() => {
+            window.location.href = buildConnectUrl(ticket.callback_url as string, ticket);
+        }, 1200);
+    };
+
+    const downloadTicket = async (ticket: RecoveredTicket) => {
+        const blob = await pdf(<RecoveredTicketPDF ticket={ticket} />).toBlob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `ticket-${ticket.ticket_id}.pdf`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+    };
+
     return (
         <AuthLayout
           title="Récupérer mon ticket"
@@ -227,11 +312,6 @@ export const RecoverTicketPage: React.FC = () => {
             <><FiClock size={18} /> Fonctionne même après un paiement interrompu</>,
             <><FiShield size={18} /> Accès sécurisé, protégé contre les abus</>,
           ]}
-          footer={
-            <BackLink onClick={() => navigate('/login')} type="button">
-              <FiArrowLeft /> Retour à la connexion
-            </BackLink>
-          }
         >
           <Form onSubmit={handleSubmit}>
             {error && (
@@ -270,40 +350,59 @@ export const RecoverTicketPage: React.FC = () => {
               Retrouver mon ticket
             </Button>
 
-            {tickets.map((t, i) => (
-              <TicketCard key={`${t.ticket_id}-${i}`}>
-                {t.offer_name && (
+            {tickets.map((t, i) => {
+              const isConnecting = connectingId === t.ticket_id;
+              return (
+                <TicketCard key={`${t.ticket_id}-${i}`}>
+                  {t.offer_name && (
+                    <TicketRow>
+                      <TicketLabel>Offre</TicketLabel>
+                      <TicketValue>{t.offer_name}</TicketValue>
+                    </TicketRow>
+                  )}
                   <TicketRow>
-                    <TicketLabel>Offre</TicketLabel>
-                    <TicketValue>{t.offer_name}</TicketValue>
+                    <TicketLabel>Identifiant</TicketLabel>
+                    <TicketValue>
+                      {t.ticket_id}
+                      <CopyBtn type="button" title="Copier" onClick={() => copy(t.ticket_id, `id-${i}`)}>
+                        {copied === `id-${i}` ? <FiCheckCircle color={colors.success} /> : <FiCopy />}
+                      </CopyBtn>
+                    </TicketValue>
                   </TicketRow>
-                )}
-                <TicketRow>
-                  <TicketLabel>Identifiant</TicketLabel>
-                  <TicketValue>
-                    {t.ticket_id}
-                    <CopyBtn type="button" title="Copier" onClick={() => copy(t.ticket_id, `id-${i}`)}>
-                      {copied === `id-${i}` ? <FiCheckCircle color={colors.success} /> : <FiCopy />}
-                    </CopyBtn>
-                  </TicketValue>
-                </TicketRow>
-                <TicketRow>
-                  <TicketLabel>Mot de passe</TicketLabel>
-                  <TicketValue>
-                    {t.password}
-                    <CopyBtn type="button" title="Copier" onClick={() => copy(t.password, `pw-${i}`)}>
-                      {copied === `pw-${i}` ? <FiCheckCircle color={colors.success} /> : <FiCopy />}
-                    </CopyBtn>
-                  </TicketValue>
-                </TicketRow>
-                {(t.valid_from || t.valid_until) && (
                   <TicketRow>
-                    <TicketLabel>Validité</TicketLabel>
-                    <TicketValue>{t.valid_from}{t.valid_until ? ` → ${t.valid_until}` : ''}</TicketValue>
+                    <TicketLabel>Mot de passe</TicketLabel>
+                    <TicketValue>
+                      {t.password}
+                      <CopyBtn type="button" title="Copier" onClick={() => copy(t.password, `pw-${i}`)}>
+                        {copied === `pw-${i}` ? <FiCheckCircle color={colors.success} /> : <FiCopy />}
+                      </CopyBtn>
+                    </TicketValue>
                   </TicketRow>
-                )}
-              </TicketCard>
-            ))}
+
+                  {t.callback_url && (
+                    <ConnectBtn
+                      type="button"
+                      onClick={() => handleConnect(t)}
+                      disabled={Boolean(connectingId)}
+                    >
+                      {isConnecting ? (
+                        <WifiLoader label="Connexion en cours…" />
+                      ) : (
+                        <>
+                          <FiWifi aria-hidden="true" />
+                          CONNECT ME
+                        </>
+                      )}
+                    </ConnectBtn>
+                  )}
+
+                  <DownloadBtn type="button" onClick={() => downloadTicket(t)}>
+                    <FiDownload aria-hidden="true" />
+                    Télécharger mon ticket
+                  </DownloadBtn>
+                </TicketCard>
+              );
+            })}
           </Form>
         </AuthLayout>
     );

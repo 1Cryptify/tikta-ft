@@ -6,6 +6,8 @@ export interface PaymentOverlayProps {
   visible: boolean;
   title: string;
   subtitle?: string;
+  /** Extra content (e.g. USSD instructions) shown prominently. */
+  hint?: React.ReactNode;
   /** Ordered list of steps shown under the spinner. */
   steps?: string[];
   /** Index of the currently active step (0-based). */
@@ -26,6 +28,7 @@ export const PaymentOverlay: React.FC<PaymentOverlayProps> = ({
   visible,
   title,
   subtitle,
+  hint,
   steps,
   activeStep = 0,
   elapsedSeconds,
@@ -53,6 +56,8 @@ export const PaymentOverlay: React.FC<PaymentOverlayProps> = ({
 
         <h2 className="payment-overlay__title">{title}</h2>
         {subtitle && <p className="payment-overlay__subtitle">{subtitle}</p>}
+
+        {hint && <div className="payment-overlay__hint">{hint}</div>}
 
         {typeof elapsedSeconds === 'number' && elapsedSeconds > 0 && (
           <p className="payment-overlay__timer">En attente depuis {elapsedSeconds}s…</p>

@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { FiAlertTriangle, FiArrowLeft } from 'react-icons/fi';
+import { FiAlertTriangle, FiX } from 'react-icons/fi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PaymentOverlay from '../components/Payment/PaymentOverlay';
 import TermsModal from '../components/Payment/TermsModal';
@@ -11,6 +11,7 @@ import { CheckoutViewProps, LocationState } from '../components/Payment/Checkout
 import { ToastContainer, ToastMessage } from '../components/Toast';
 import { paymentService, zoneService, PaymentApiError } from '../services/paymentService';
 import { getMediaUrl } from '../services/api';
+import { closePaymentTab } from '../utils/closeTab';
 import {
   MobileOperator,
   PaymentItem,
@@ -75,6 +76,24 @@ export const PaymentCheckoutPage: React.FC = () => {
   const operator: MobileOperator = isMobileMoney ? detectOperator(phone) : 'unknown';
   const price = item?.price ?? 0;
   const currency = item?.currency || 'XAF';
+
+  // Opérateur effectif (numéro prioritaire, sinon le moyen choisi).
+  const methodOperator: MobileOperator = selectedMethod
+    ? operatorFromChannel(selectedMethod.channel, selectedMethod.name)
+    : 'unknown';
+  const effectiveOperator: MobileOperator = operator !== 'unknown' ? operator : methodOperator;
+
+  // Codes USSD à composer si l'invite n'apparaît pas automatiquement.
+  const ussdHint = isMobileMoney && effectiveOperator !== 'unknown'
+    ? (effectiveOperator === 'mtn'
+        ? { code: '*126#', operator: 'MTN Mobile Money', action: 'valider la transaction' }
+        : { code: '#150*50#', operator: 'Orange Money', action: 'continuer le paiement' })
+    : null;
+
+  // Page des offres d'origine (pour « Retour aux offres » après échec).
+  const offersPath: string | null =
+    (location.state as any)?.from ||
+    (groupId && !isBuyingGroup ? `/pay/g/${groupId}` : null);
 
   const formatPrice = useCallback((amount: number, curr: string = currency): string => {
     try {
@@ -301,7 +320,11 @@ export const PaymentCheckoutPage: React.FC = () => {
       navigate('/pay/success', { state: { paymentData: successData } });
     } else if (verificationStatus === 'failed') {
       navigate('/pay/failed', {
-        state: { errorMessage: verificationResult.message, returnTo: location.pathname },
+        state: {
+          errorMessage: verificationResult.message,
+          returnTo: location.pathname,
+          offersPath,
+        },
       });
     } else if (verificationStatus === 'timeout') {
       const stored = localStorage.getItem('pendingPayment');
@@ -443,8 +466,8 @@ export const PaymentCheckoutPage: React.FC = () => {
           <div className="payment-state__icon"><FiAlertTriangle /></div>
           <h1>Paiement indisponible</h1>
           <p>{fatalError || 'Article introuvable.'}</p>
-          <button type="button" className="payment-state__btn" onClick={() => navigate('/')}>
-            <FiArrowLeft /> Retour à l'accueil
+          <button type="button" className="payment-state__btn" onClick={closePaymentTab}>
+            <FiX /> Sortir
           </button>
         </div>
       </div>
@@ -531,6 +554,18 @@ export const PaymentCheckoutPage: React.FC = () => {
           isVerifying
             ? 'Saisissez votre code PIN sur la demande reçue. Cette page se mettra à jour automatiquement.'
             : 'Nous préparons la demande de paiement.'
+        }
+        hint={
+          isVerifying && ussdHint ? (
+            <div>
+              <span className="payment-overlay__ussd-label">{ussdHint.operator}</span>
+              <span className="payment-overlay__ussd-code">{ussdHint.code}</span>
+              <span className="payment-overlay__ussd-desc">
+                Si la demande n'apparaît pas automatiquement, composez ce code sur votre téléphone
+                pour {ussdHint.action}.
+              </span>
+            </div>
+          ) : undefined
         }
         steps={
           isVerifying

@@ -110,6 +110,48 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* ----- Hint (USSD instructions) ----- */
+.payment-overlay__hint {
+  margin: 16px 0 4px;
+  padding: 14px;
+  border-radius: 12px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  text-align: left;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.payment-overlay__ussd-code {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 22px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  text-align: center;
+  color: #b45309;
+  background: #fff;
+  border: 1px dashed #f59e0b;
+  border-radius: 8px;
+  padding: 8px;
+  margin-bottom: 8px;
+}
+
+.payment-overlay__ussd-label {
+  display: block;
+  text-align: center;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.payment-overlay__ussd-desc {
+  display: block;
+  text-align: center;
+  font-size: 12.5px;
+  color: #92400e;
+}
+
 /* ----- Steps ----- */
 .payment-overlay__steps {
   list-style: none;
