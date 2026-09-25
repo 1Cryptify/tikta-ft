@@ -786,7 +786,58 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
             Lorsque le solde associé de la zone atteint le seuil, un retrait est automatiquement payé
             vers le contact de retrait validé. Utile pour les associés sans accès à l'application.
           </p>
-          <form onSubmit={saveAuto} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: spacing.md, alignItems: 'end', marginBottom: spacing.lg }}>
+
+          {autoCfg && (
+            <div style={{
+              border: `1px solid ${autoCfg.is_enabled ? `${colors.success}55` : colors.border}`,
+              borderLeft: `4px solid ${autoCfg.is_enabled ? colors.success : colors.border}`,
+              borderRadius: borderRadius.md,
+              padding: spacing.md,
+              marginBottom: spacing.xl,
+              background: autoCfg.is_enabled ? `${colors.success}06` : 'white',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm }}>
+                <strong style={{ color: colors.textPrimary }}>Configuration actuelle</strong>
+                <StatusBadge status={autoCfg.is_enabled ? 'active' : 'offline'}>
+                  {autoCfg.is_enabled ? 'Activé' : 'Désactivé'}
+                </StatusBadge>
+              </div>
+              <div style={{ marginTop: spacing.sm, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: spacing.md }}>
+                <div>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: colors.textSecondary, fontWeight: 600 }}>Contact payé</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary }}>
+                    {autoCfgContact
+                      ? `${autoCfgContact.number}${autoCfgContact.label ? ` — ${autoCfgContact.label}` : ''}`
+                      : 'Contact introuvable'}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: colors.textSecondary, fontWeight: 600 }}>Seuil</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary }}>{fmt(autoCfg.minimum_amount)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: colors.textSecondary, fontWeight: 600 }}>Montant</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary }}>
+                    {autoCfg.withdraw_full_balance ? 'Tout le solde' : fmt(autoCfg.fixed_amount)}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: colors.textSecondary, fontWeight: 600 }}>Dernier traitement</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary }}>{fmtDate(autoCfg.last_processed_at)}</div>
+                </div>
+              </div>
+              {autoCfg.last_error && (
+                <div style={{ color: colors.error, marginTop: spacing.sm, fontSize: '0.8rem' }}>Dernière erreur : {autoCfg.last_error}</div>
+              )}
+              <div style={{ marginTop: spacing.md, display: 'flex', gap: spacing.xs, flexWrap: 'wrap' }}>
+                <SmallBtn className="primary" onClick={runAuto}>Déclencher maintenant</SmallBtn>
+                {autoCfg.is_enabled && <SmallBtn onClick={disableAuto}>Désactiver</SmallBtn>}
+                <SmallBtn className="danger" onClick={deleteAuto}>Supprimer</SmallBtn>
+              </div>
+            </div>
+          )}
+
+          <form onSubmit={saveAuto} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: spacing.lg, alignItems: 'start' }}>
             <FormGroup>
               <label>Contact de retrait validé</label>
               <select value={autoForm.contact_id} onChange={(e) => setAutoForm({ ...autoForm, contact_id: e.target.value })}>
@@ -801,47 +852,30 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
               <input type="number" min={0} step={50} value={autoForm.minimum_amount}
                 onChange={(e) => setAutoForm({ ...autoForm, minimum_amount: e.target.value })} placeholder="Ex: 5000" />
             </FormGroup>
+            {!autoForm.withdraw_full_balance && (
+              <FormGroup>
+                <label>Montant fixe à retirer</label>
+                <input type="number" min={50} step={50} value={autoForm.fixed_amount}
+                  onChange={(e) => setAutoForm({ ...autoForm, fixed_amount: e.target.value })} />
+              </FormGroup>
+            )}
             <FormGroup>
-              <label>Montant</label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, fontSize: '0.82rem' }}>
+              <label>Options</label>
+              <CheckLine>
                 <input type="checkbox" checked={autoForm.withdraw_full_balance}
                   onChange={(e) => setAutoForm({ ...autoForm, withdraw_full_balance: e.target.checked })} />
-                Tout le solde
-              </label>
+                Retirer tout le solde atteint
+              </CheckLine>
+              <CheckLine>
+                <input type="checkbox" checked={autoForm.is_enabled}
+                  onChange={(e) => setAutoForm({ ...autoForm, is_enabled: e.target.checked })} />
+                Activer le retrait automatique
+              </CheckLine>
             </FormGroup>
-            <PrimaryButton type="submit" disabled={autoSaving}>{autoSaving ? 'Enregistrement...' : 'Enregistrer'}</PrimaryButton>
-          </form>
-          {!autoForm.withdraw_full_balance && (
-            <FormGroup style={{ maxWidth: 260 }}>
-              <label>Montant fixe à retirer</label>
-              <input type="number" min={50} step={50} value={autoForm.fixed_amount}
-                onChange={(e) => setAutoForm({ ...autoForm, fixed_amount: e.target.value })} />
-            </FormGroup>
-          )}
-          <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg, cursor: 'pointer' }}>
-            <input type="checkbox" checked={autoForm.is_enabled}
-              onChange={(e) => setAutoForm({ ...autoForm, is_enabled: e.target.checked })} />
-            <strong>Activer le retrait automatique</strong>
-          </label>
-
-          {zone.automatic_withdrawal && (
-            <div style={{ border: `1px solid ${colors.border}`, borderRadius: borderRadius.md, padding: spacing.md, fontSize: '0.82rem', color: colors.textSecondary }}>
-              <div>Statut : <strong style={{ color: zone.automatic_withdrawal.is_enabled ? colors.success : colors.textSecondary }}>
-                {zone.automatic_withdrawal.is_enabled ? 'Activé' : 'Désactivé'}
-              </strong></div>
-              <div>Dernier traitement : {fmtDate(zone.automatic_withdrawal.last_processed_at)}</div>
-              {zone.automatic_withdrawal.last_error && (
-                <div style={{ color: colors.error }}>Dernière erreur : {zone.automatic_withdrawal.last_error}</div>
-              )}
-              <div style={{ marginTop: spacing.sm, display: 'flex', gap: spacing.xs, flexWrap: 'wrap' }}>
-                <SmallBtn className="primary" onClick={runAuto}>Déclencher maintenant</SmallBtn>
-                {zone.automatic_withdrawal.is_enabled && (
-                  <SmallBtn onClick={disableAuto}>Désactiver</SmallBtn>
-                )}
-                <SmallBtn className="danger" onClick={deleteAuto}>Supprimer</SmallBtn>
-              </div>
+            <div style={{ alignSelf: 'end' }}>
+              <PrimaryButton type="submit" disabled={autoSaving}>{autoSaving ? 'Enregistrement...' : 'Enregistrer'}</PrimaryButton>
             </div>
-          )}
+          </form>
         </div>
       )}
 
@@ -1058,7 +1092,7 @@ export const ZonesPage: React.FC = () => {
                 <span>Surface : <strong>{fmt(z.area_sqm, 0)} m²</strong></span>
                 <span>Revenus générés : <strong>{fmt(z.total_generated)}</strong></span>
                 <span>Solde associé : <strong>{fmt(z.associate_balance)}</strong></span>
-                <span>Statut : <StatusBadge status={z.is_active ? 'active' : 'offline'}>{z.is_active ? 'Active' : 'Désactivée'}</StatusBadge> <StatusBadge status={z.is_closed ? 'active' : 'pending'}>{z.is_closed ? 'Tracé validé' : 'Tracé non validé'}</StatusBadge> {z.automatic_withdrawal_enabled && <StatusBadge status="active">Retrait auto actif</StatusBadge>}</span>
+                <span>Statut : <StatusBadge status={z.is_active ? 'active' : 'offline'}>{z.is_active ? 'Active' : 'Désactivée'}</StatusBadge> <StatusBadge status={z.is_closed ? 'active' : 'pending'}>{z.is_closed ? 'Tracé validé' : 'Tracé non validé'}</StatusBadge> {z.automatic_withdrawal_enabled && <StatusBadge status="active">Retrait auto → {z.automatic_withdrawal_contact || '—'}</StatusBadge>}</span>
               </CardMeta>
               <CardActions>
                 <SmallBtn className="primary" onClick={() => setSelectedId(z.id)}>Détail</SmallBtn>
