@@ -454,6 +454,8 @@ export const PaymentCheckoutPage: React.FC = () => {
   const viewProps: CheckoutViewProps = {
     itemName: item.name,
     itemImage: item.image ? getMediaUrl(item.image) : undefined,
+    itemIcon: item.icon,
+    itemIconBackground: item.icon_background,
     priceLabel,
     formError,
     requiresLocation,
