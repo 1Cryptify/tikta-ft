@@ -1491,7 +1491,6 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                             icon={offer.icon}
                                             background={offer.icon_background}
                                             alt={offer.name}
-                                            iconSize={64}
                                             placeholder={
                                                 <OfferImagePlaceholder>
                                                     <FiImage />

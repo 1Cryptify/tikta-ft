@@ -9,7 +9,6 @@ import { getMediaUrl } from '../services/api';
 import { OfferVisual } from './OfferVisual';
 import {
   OFFER_ILLUSTRATIONS,
-  OFFER_ILLUSTRATION_THEMES,
   OFFER_BACKGROUNDS,
   DEFAULT_OFFER_BACKGROUND_ID,
   getOfferBackground,
@@ -338,12 +337,8 @@ const ThemeTitle = styled.p`
 
 const IconGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(58px, 1fr));
   gap: ${spacing.sm};
-
-  @media (max-width: 480px) {
-    grid-template-columns: repeat(4, 1fr);
-  }
 `;
 
 const IconButton = styled.button<{ isSelected: boolean }>`
@@ -758,7 +753,6 @@ export const OfferModal: React.FC<OfferModalProps> = ({
                 <OfferVisual
                   icon={formData.icon}
                   background={formData.icon_background}
-                  iconSize={56}
                   placeholder={
                     <div
                       style={{
@@ -802,7 +796,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
                         onClick={() => handleSelectIllustration(illustration.id)}
                         disabled={isLoading}
                       >
-                        <Icon size="56%" aria-hidden="true" />
+                        <Icon size="62%" aria-hidden="true" />
                       </IconButton>
                     );
                   })}

@@ -82,7 +82,6 @@ export const OrderSummary: React.FC<{
         icon={icon}
         background={iconBackground}
         alt={name}
-        iconSize={24}
         style={{ borderRadius: 'inherit' }}
         placeholder={<FiTag />}
       />

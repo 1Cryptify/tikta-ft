@@ -11,8 +11,8 @@ interface OfferVisualProps {
   /** Background identifier for the illustration. */
   background?: string | null;
   alt?: string;
-  /** Icon size in pixels. */
-  iconSize?: number;
+  /** Icon size (number = px, string = any CSS length such as '58%'). */
+  iconSize?: number | string;
   className?: string;
   style?: React.CSSProperties;
   /** Rendered when there is neither an image nor a known illustration. */
@@ -28,7 +28,7 @@ export const OfferVisual: React.FC<OfferVisualProps> = ({
   icon,
   background,
   alt = '',
-  iconSize = 48,
+  iconSize = '66%',
   className,
   style,
   placeholder,

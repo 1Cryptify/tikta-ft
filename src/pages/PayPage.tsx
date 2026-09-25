@@ -202,7 +202,6 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
                       icon={(item as Offer).icon}
                       background={(item as Offer).icon_background}
                       alt={item.name}
-                      iconSize={30}
                       placeholder={<FiTag />}
                     />
                   </div>
