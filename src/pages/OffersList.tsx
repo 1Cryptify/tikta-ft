@@ -563,17 +563,66 @@ const GroupModalOverlay = styled.div<{ isOpen: boolean }>`
 const GroupModalContent = styled.div`
   background: ${colors.surface};
   border-radius: ${borderRadius.lg};
-  padding: ${spacing.xl};
-  max-width: 700px;
-  width: 90%;
-  max-height: 90vh;
-  overflow-y: auto;
+  width: 92%;
+  max-width: 760px;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   box-shadow: ${shadows.lg};
+`;
+
+const GroupModalHeader = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: ${spacing.md};
+  padding: ${spacing.xl} ${spacing.xl} ${spacing.lg};
+  border-bottom: 1px solid ${colors.border};
 
   h2 {
     color: ${colors.textPrimary};
-    margin: 0 0 ${spacing.lg} 0;
+    margin: 0;
+    font-size: 1.25rem;
   }
+`;
+
+const GroupModalSubtitle = styled.p`
+  margin: ${spacing.xs} 0 0 0;
+  color: ${colors.textSecondary};
+  font-size: 0.85rem;
+  line-height: 1.4;
+`;
+
+const GroupModalClose = styled.button`
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: none;
+  color: ${colors.textSecondary};
+  font-size: 1.25rem;
+  border-radius: ${borderRadius.md};
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: ${colors.neutral};
+    color: ${colors.textPrimary};
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const GroupForm = styled.form`
+  padding: ${spacing.xl};
+  overflow-y: auto;
 `;
 
 const FormGroup = styled.div`
@@ -588,19 +637,32 @@ const FormGroup = styled.div`
   }
 
   input,
+  select,
   textarea {
     width: 100%;
-    padding: ${spacing.md};
+    padding: ${spacing.md} ${spacing.lg};
     border: 1px solid ${colors.border};
     border-radius: ${borderRadius.md};
     font-size: 0.875rem;
     font-family: inherit;
-    transition: border-color 0.3s ease;
+    color: ${colors.textPrimary};
+    background-color: ${colors.surface};
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+    &:hover:not(:disabled) {
+      border-color: #c2ccd6;
+    }
 
     &:focus {
       outline: none;
       border-color: ${colors.primary};
-      box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.1);
+      box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
+    }
+
+    &:disabled {
+      background-color: ${colors.neutral};
+      color: ${colors.textSecondary};
+      cursor: not-allowed;
     }
   }
 
@@ -610,8 +672,64 @@ const FormGroup = styled.div`
   }
 `;
 
+const FormRow = styled.div`
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: ${spacing.lg};
+
+  @media (max-width: 560px) {
+    grid-template-columns: 1fr;
+  }
+`;
+
+const ToggleCard = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: ${spacing.md};
+  margin: 0;
+  padding: ${spacing.md} ${spacing.lg};
+  border: 1px solid ${colors.border};
+  border-radius: ${borderRadius.md};
+  background-color: ${colors.surface};
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+
+  &:hover {
+    border-color: ${colors.primary};
+  }
+
+  &:has(input:checked) {
+    border-color: ${colors.primary};
+    background-color: rgba(30, 58, 95, 0.04);
+  }
+
+  input {
+    width: auto;
+    margin-top: 2px;
+  }
+
+  .toggle-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .toggle-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: ${colors.textPrimary};
+  }
+
+  .toggle-hint {
+    font-size: 0.78rem;
+    font-weight: 400;
+    color: ${colors.textSecondary};
+    line-height: 1.4;
+  }
+`;
+
 const OffersSelector = styled.div`
-  label {
+  > label {
     display: block;
     font-size: 0.875rem;
     font-weight: 600;
@@ -622,56 +740,121 @@ const OffersSelector = styled.div`
   .offers-list {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: ${spacing.md};
-    max-height: 500px;
+    gap: ${spacing.sm};
+    max-height: 320px;
     overflow-y: auto;
-    padding: ${spacing.md};
+    padding: ${spacing.sm};
     border: 1px solid ${colors.border};
     border-radius: ${borderRadius.md};
     background-color: ${colors.neutral};
   }
 `;
 
-const OfferCheckbox = styled.label`
+const OffersSelectorHeader = styled.div`
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: ${spacing.md};
+  flex-wrap: wrap;
+  margin-bottom: ${spacing.sm};
+
+  > label {
+    margin: 0;
+  }
+`;
+
+const OffersTools = styled.div`
+  display: flex;
   gap: ${spacing.sm};
-  padding: ${spacing.sm};
+
+  button {
+    border: none;
+    background: none;
+    padding: 0;
+    color: ${colors.primary};
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover:not(:disabled) {
+      text-decoration: underline;
+    }
+
+    &:disabled {
+      color: ${colors.textSecondary};
+      cursor: not-allowed;
+    }
+  }
+`;
+
+const OffersSearch = styled.input`
+  margin-bottom: ${spacing.sm};
+`;
+
+const EmptyOffers = styled.p`
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: ${spacing.lg};
+  text-align: center;
+  color: ${colors.textSecondary};
+  font-size: 0.85rem;
+`;
+
+const OfferCheckbox = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: ${spacing.sm};
+  padding: ${spacing.md};
   cursor: pointer;
-  border-radius: ${borderRadius.sm};
-  transition: background-color 0.3s ease;
+  border: 1px solid ${colors.border};
+  border-radius: ${borderRadius.md};
+  background-color: ${colors.surface};
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 
   &:hover {
-    background-color: rgba(30, 58, 95, 0.05);
+    border-color: ${colors.primary};
+    box-shadow: ${shadows.sm};
+  }
+
+  &:has(input:checked) {
+    border-color: ${colors.primary};
+    background-color: rgba(30, 58, 95, 0.04);
   }
 
   input {
     width: auto;
-    cursor: pointer;
+    margin-top: 2px;
   }
 
-  span {
+  .offer-name {
     font-size: 0.85rem;
+    font-weight: 600;
     color: ${colors.textPrimary};
+  }
+
+  .offer-price {
+    display: block;
+    font-size: 0.75rem;
+    color: ${colors.textSecondary};
+    margin-top: 2px;
   }
 `;
 
 const FormActions = styled.div`
   display: flex;
+  justify-content: flex-end;
   gap: ${spacing.md};
-  margin-top: ${spacing.lg};
+  margin-top: ${spacing.xl};
   border-top: 1px solid ${colors.border};
   padding-top: ${spacing.lg};
 
   button {
-    flex: 1;
-    padding: ${spacing.md} ${spacing.lg};
-    border: none;
+    padding: ${spacing.md} ${spacing.xl};
     border-radius: ${borderRadius.md};
     font-size: 0.875rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: all 0.2s ease;
 
     &:disabled {
       opacity: 0.6;
@@ -682,17 +865,18 @@ const FormActions = styled.div`
   .submit {
     background-color: ${colors.primary};
     color: ${colors.surface};
+    border: 1px solid ${colors.primary};
 
     &:hover:not(:disabled) {
-      opacity: 0.9;
-      transform: translateY(-2px);
+      background-color: ${colors.primaryDark};
+      border-color: ${colors.primaryDark};
       box-shadow: ${shadows.md};
     }
   }
 
   .cancel {
     background-color: transparent;
-    color: ${colors.primary};
+    color: ${colors.textPrimary};
     border: 1px solid ${colors.border};
 
     &:hover:not(:disabled) {
@@ -858,6 +1042,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
         is_featured: false,
     });
     const [selectedOfferIds, setSelectedOfferIds] = useState<string[]>([]);
+    const [groupOfferSearch, setGroupOfferSearch] = useState('');
     const [groupSearchTerm, setGroupSearchTerm] = useState('');
     const [copiedGroupId, setCopiedGroupId] = useState<string | null>(null);
 
@@ -868,6 +1053,16 @@ export const OffersList: React.FC<OffersListProps> = () => {
                 offer.description?.toLowerCase().includes(searchTerm.toLowerCase())
         );
     }, [offers, searchTerm]);
+
+    const selectableOffers = useMemo(() => {
+        const term = groupOfferSearch.trim().toLowerCase();
+        if (!term) return offers;
+        return offers.filter(
+            (offer) =>
+                offer.name.toLowerCase().includes(term) ||
+                offer.description?.toLowerCase().includes(term)
+        );
+    }, [offers, groupOfferSearch]);
 
     const handleOpenModal = (offer?: Offer) => {
         if (offer) {
@@ -962,6 +1157,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
             });
             setSelectedOfferIds([]);
         }
+        setGroupOfferSearch('');
         setGroupModalOpen(true);
     };
 
@@ -979,6 +1175,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
             is_featured: false,
         });
         setSelectedOfferIds([]);
+        setGroupOfferSearch('');
     };
 
     const handleSubmitGroup = async () => {
@@ -1057,6 +1254,20 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const handleToggleOfferSelection = (offerId: string) => {
         setSelectedOfferIds((prev) =>
             prev.includes(offerId) ? prev.filter(id => id !== offerId) : [...prev, offerId]
+        );
+    };
+
+    const handleSelectAllOffers = () => {
+        setSelectedOfferIds((prev) => {
+            const ids = new Set(prev);
+            selectableOffers.forEach((offer) => ids.add(offer.id));
+            return Array.from(ids);
+        });
+    };
+
+    const handleClearOffers = () => {
+        setSelectedOfferIds((prev) =>
+            prev.filter((id) => !selectableOffers.some((offer) => offer.id === id))
         );
     };
 
@@ -1787,8 +1998,27 @@ export const OffersList: React.FC<OffersListProps> = () => {
 
             <GroupModalOverlay isOpen={groupModalOpen} onClick={handleCloseGroupModal}>
                 <GroupModalContent onClick={(e) => e.stopPropagation()}>
-                    <h2>{editingGroup ? 'Edit Group' : 'Create New Group'}</h2>
+                    <GroupModalHeader>
+                        <div>
+                            <h2>{editingGroup ? 'Edit Group' : 'Create New Group'}</h2>
+                            <GroupModalSubtitle>
+                                {editingGroup
+                                    ? 'Update the details and offers of this group.'
+                                    : 'Bundle offers into a group customers can browse or pay for.'}
+                            </GroupModalSubtitle>
+                        </div>
+                        <GroupModalClose
+                            type="button"
+                            onClick={handleCloseGroupModal}
+                            disabled={isSaving}
+                            title="Close"
+                            aria-label="Close"
+                        >
+                            <FiX />
+                        </GroupModalClose>
+                    </GroupModalHeader>
 
+                    <GroupForm onSubmit={(e) => { e.preventDefault(); handleSubmitGroup(); }}>
                     <FormGroup>
                         <label>Group Name *</label>
                         <input
@@ -1799,6 +2029,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                             }
                             placeholder="e.g., Premium Packages"
                             disabled={isSaving}
+                            autoFocus
                         />
                     </FormGroup>
 
@@ -1811,13 +2042,6 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                     setGroupFormData({ ...groupFormData, company_id: e.target.value })
                                 }
                                 disabled={isSaving}
-                                style={{
-                                    width: '100%',
-                                    padding: spacing.md,
-                                    border: `1px solid ${colors.border}`,
-                                    borderRadius: borderRadius.md,
-                                    fontSize: '0.875rem',
-                                }}
                             >
                                 <option value="">Select a company</option>
                                 {businesses.map((business) => (
@@ -1832,6 +2056,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                     <FormGroup>
                         <label>Description</label>
                         <textarea
+                            rows={3}
                             value={groupFormData.description}
                             onChange={(e) =>
                                 setGroupFormData({ ...groupFormData, description: e.target.value })
@@ -1841,9 +2066,8 @@ export const OffersList: React.FC<OffersListProps> = () => {
                         />
                     </FormGroup>
 
-                    {/* Package Toggle */}
                     <FormGroup>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
+                        <ToggleCard>
                             <input
                                 type="checkbox"
                                 checked={groupFormData.is_package}
@@ -1852,16 +2076,17 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                 }
                                 disabled={isSaving}
                             />
-                            <span>This group is a payable package</span>
-                        </label>
-                        <p style={{ fontSize: '0.8rem', color: colors.textSecondary, margin: `${spacing.xs} 0 0 0` }}>
-                            If checked, customers can pay for the entire package. If unchecked, customers will only see the individual offers.
-                        </p>
+                            <span className="toggle-text">
+                                <span className="toggle-title">Payable package</span>
+                                <span className="toggle-hint">
+                                    Customers can pay for the whole bundle. Otherwise they only see the individual offers.
+                                </span>
+                            </span>
+                        </ToggleCard>
                     </FormGroup>
 
-                    {/* Price and Currency - Only shown when is_package is true */}
                     {groupFormData.is_package && (
-                        <>
+                        <FormRow>
                             <FormGroup>
                                 <label>Price *</label>
                                 <input
@@ -1872,7 +2097,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                     onChange={(e) =>
                                         setGroupFormData({ ...groupFormData, price: e.target.value })
                                     }
-                                    placeholder="Enter package price"
+                                    placeholder="0.00"
                                     disabled={isSaving}
                                 />
                             </FormGroup>
@@ -1885,13 +2110,6 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                         setGroupFormData({ ...groupFormData, currency_id: e.target.value })
                                     }
                                     disabled={isSaving}
-                                    style={{
-                                        width: '100%',
-                                        padding: spacing.md,
-                                        border: `1px solid ${colors.border}`,
-                                        borderRadius: borderRadius.md,
-                                        fontSize: '0.875rem',
-                                    }}
                                 >
                                     <option value="">Select a currency</option>
                                     {currencies.map((currency) => (
@@ -1901,37 +2119,44 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                     ))}
                                 </select>
                             </FormGroup>
-                        </>
+                        </FormRow>
                     )}
 
-                    {/* Status Toggles */}
-                    <FormGroup>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
-                            <input
-                                type="checkbox"
-                                checked={groupFormData.is_active}
-                                onChange={(e) =>
-                                    setGroupFormData({ ...groupFormData, is_active: e.target.checked })
-                                }
-                                disabled={isSaving}
-                            />
-                            <span>Active</span>
-                        </label>
-                    </FormGroup>
+                    <FormRow>
+                        <FormGroup>
+                            <ToggleCard>
+                                <input
+                                    type="checkbox"
+                                    checked={groupFormData.is_active}
+                                    onChange={(e) =>
+                                        setGroupFormData({ ...groupFormData, is_active: e.target.checked })
+                                    }
+                                    disabled={isSaving}
+                                />
+                                <span className="toggle-text">
+                                    <span className="toggle-title">Active</span>
+                                    <span className="toggle-hint">Visible and available to customers.</span>
+                                </span>
+                            </ToggleCard>
+                        </FormGroup>
 
-                    <FormGroup>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, cursor: 'pointer' }}>
-                            <input
-                                type="checkbox"
-                                checked={groupFormData.is_featured}
-                                onChange={(e) =>
-                                    setGroupFormData({ ...groupFormData, is_featured: e.target.checked })
-                                }
-                                disabled={isSaving}
-                            />
-                            <span>Featured</span>
-                        </label>
-                    </FormGroup>
+                        <FormGroup>
+                            <ToggleCard>
+                                <input
+                                    type="checkbox"
+                                    checked={groupFormData.is_featured}
+                                    onChange={(e) =>
+                                        setGroupFormData({ ...groupFormData, is_featured: e.target.checked })
+                                    }
+                                    disabled={isSaving}
+                                />
+                                <span className="toggle-text">
+                                    <span className="toggle-title">Featured</span>
+                                    <span className="toggle-hint">Highlight this group in listings.</span>
+                                </span>
+                            </ToggleCard>
+                        </FormGroup>
+                    </FormRow>
 
                     <OffersSelector>
                         <label>Select Offers ({selectedOfferIds.length})</label>

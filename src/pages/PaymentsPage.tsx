@@ -5,8 +5,9 @@ import { useAuth } from '../hooks/useAuth';
 import { TransactionsPanel } from '../components/Payments/TransactionsPanel';
 import { WithdrawalPanel } from '../components/Payments/WithdrawalPanel';
 import { LogsPanel } from '../components/Payments/LogsPanel';
-import { AdminRevenuePanel } from '../components/Payments/AdminRevenuePanel';
+import AdminAnalyticsPanel from '../components/Payments/AdminAnalyticsPanel';
 import AutomaticWithdrawalSchedules from '../components/Payments/AutomaticWithdrawalSchedules';
+import CompanyStatsPanel from '../components/Payments/CompanyStatsPanel';
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -155,7 +156,9 @@ interface PaymentStats {
 
 export const PaymentsPage: React.FC = () => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState<'withdrawal' | 'transactions' | 'logs' | 'auto' | 'revenue'>('withdrawal');
+  const [activeTab, setActiveTab] = useState<'administration' | 'withdrawal' | 'transactions' | 'logs' | 'auto' | 'stats'>(
+    user?.is_superuser ? 'administration' : 'withdrawal'
+  );
   const [stats, setStats] = useState<PaymentStats>({
     totalTransactions: 0,
     totalWithdrawals: 0,
@@ -187,11 +190,19 @@ export const PaymentsPage: React.FC = () => {
       </PageHeader>
 
       <MenuNav>
+        {user?.is_superuser && (
+          <MenuButton
+            isActive={activeTab === 'administration'}
+            onClick={() => setActiveTab('administration')}
+          >
+            Administration
+          </MenuButton>
+        )}
         <MenuButton
           isActive={activeTab === 'withdrawal'}
           onClick={() => setActiveTab('withdrawal')}
         >
-          Withdrawal
+          {user?.is_superuser ? 'Retraits (entreprise)' : 'Withdrawal'}
         </MenuButton>
         <MenuButton
           isActive={activeTab === 'transactions'}
@@ -211,22 +222,21 @@ export const PaymentsPage: React.FC = () => {
         >
           Retrait auto
         </MenuButton>
-        {user?.is_superuser && (
-          <MenuButton
-            isActive={activeTab === 'revenue'}
-            onClick={() => setActiveTab('revenue')}
-          >
-            Revenus
-          </MenuButton>
-        )}
+        <MenuButton
+          isActive={activeTab === 'stats'}
+          onClick={() => setActiveTab('stats')}
+        >
+          {user?.is_superuser ? 'Stats entreprise' : 'Stats'}
+        </MenuButton>
       </MenuNav>
 
       <PanelContent>
+        {activeTab === 'administration' && user?.is_superuser && <AdminAnalyticsPanel />}
         {activeTab === 'withdrawal' && <WithdrawalPanel />}
         {activeTab === 'transactions' && <TransactionsPanel />}
         {activeTab === 'logs' && <LogsPanel />}
         {activeTab === 'auto' && <AutomaticWithdrawalSchedules />}
-        {activeTab === 'revenue' && <AdminRevenuePanel />}
+        {activeTab === 'stats' && <CompanyStatsPanel />}
       </PanelContent>
     </ContentSection>
   );

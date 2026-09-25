@@ -593,7 +593,7 @@ export const MyZonesPage: React.FC = () => {
             </WithdrawList>
           )}
         </>
-      )}
+      ))}
 
       {withdrawFor && (
         <ModalOverlay onClick={() => setWithdrawFor(null)}>

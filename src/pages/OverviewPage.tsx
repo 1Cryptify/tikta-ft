@@ -4,6 +4,7 @@ import { colors, spacing } from '../config/theme';
 import { User } from '../hooks/useAuth';
 import { useTransaction } from '../hooks/useTransaction';
 import { useWithdrawal } from '../hooks/useWithdrawal';
+import { useAdminAnalytics } from '../hooks/useAdminAnalytics';
 
 const ContentSection = styled.div`
   padding: ${spacing.xl};
@@ -145,6 +146,14 @@ interface OverviewPageProps {
 export const OverviewPage: React.FC<OverviewPageProps> = ({ user }) => {
   const { transactions, isLoading: transactionsLoading } = useTransaction();
   const { balance, isLoading: withdrawalLoading } = useWithdrawal();
+  const isAdmin = !!user.is_superuser;
+  const { data: adminData, isLoading: adminLoading } = useAdminAnalytics({ months: 12, enabled: isAdmin });
+
+  const formatMoney = (value: string | number | null | undefined) => {
+    const n = parseFloat(String(value ?? '0'));
+    if (Number.isNaN(n)) return '0';
+    return n.toLocaleString('fr-FR', { maximumFractionDigits: 0 });
+  };
 
   const maskEmail = (email: string): string => {
     if (!email) return '';
@@ -191,16 +200,41 @@ export const OverviewPage: React.FC<OverviewPageProps> = ({ user }) => {
       </PageHeader>
 
       <CardsGrid>
-        <Card>
-          <h3>Available Balance</h3>
-          <div className="value">{withdrawalLoading ? '...' : stats.availableBalance.toLocaleString()}</div>
-          <div className="subtitle">{balance?.currency?.code || 'XAF'}</div>
-        </Card>
-        <Card>
-          <h3>Total Payments</h3>
-          <div className="value">{withdrawalLoading ? '...' : stats.totalPayments.toLocaleString()}</div>
-          <div className="subtitle">{balance?.currency?.code || 'XAF'}</div>
-        </Card>
+        {isAdmin ? (
+          <>
+            <Card>
+              <h3>Frais admin disponibles</h3>
+              <div className="value">
+                {adminLoading || !adminData ? '...' : formatMoney(adminData.kpi.fees_available_all_time)}
+              </div>
+              <div className="subtitle">
+                Frais de retrait · {adminData?.currency?.symbol || 'XAF'}
+              </div>
+            </Card>
+            <Card>
+              <h3>Encaissements bruts (12 mois)</h3>
+              <div className="value">
+                {adminLoading || !adminData ? '...' : formatMoney(adminData.kpi.gross_inflow)}
+              </div>
+              <div className="subtitle">
+                {adminData?.kpi?.companies_count ?? 0} entreprises · {adminData?.currency?.code || 'XAF'}
+              </div>
+            </Card>
+          </>
+        ) : (
+          <>
+            <Card>
+              <h3>Available Balance</h3>
+              <div className="value">{withdrawalLoading ? '...' : stats.availableBalance.toLocaleString()}</div>
+              <div className="subtitle">{balance?.currency?.code || 'XAF'}</div>
+            </Card>
+            <Card>
+              <h3>Total Payments</h3>
+              <div className="value">{withdrawalLoading ? '...' : stats.totalPayments.toLocaleString()}</div>
+              <div className="subtitle">{balance?.currency?.code || 'XAF'}</div>
+            </Card>
+          </>
+        )}
         <Card>
           <h3>Pending Transactions</h3>
           <div className="value">{transactionsLoading ? '...' : stats.pendingCount}</div>
