@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
-import { zonesApi, MyZoneItem, ZoneWithdrawal } from '../services/zoneService';
+import { zonesApi, MyZoneItem, ZoneWithdrawal, ZoneWithdrawalContact } from '../services/zoneService';
 import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -148,6 +148,10 @@ const FormGroup = styled.div`
   }
 `;
 
+const FormRow = styled.div`
+  display: grid; grid-template-columns: 1fr 1fr; gap: ${spacing.md};
+`;
+
 const ModalFooter = styled.div`
   display: flex; justify-content: flex-end; gap: ${spacing.md}; margin-top: ${spacing.xl};
 `;
@@ -180,13 +184,27 @@ export const MyZonesPage: React.FC = () => {
   const [zones, setZones] = useState<MyZoneItem[]>([]);
   const [pending, setPending] = useState<MyZoneItem[]>([]);
   const [withdrawals, setWithdrawals] = useState<ZoneWithdrawal[]>([]);
+  const [contacts, setContacts] = useState<ZoneWithdrawalContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [withdrawFor, setWithdrawFor] = useState<MyZoneItem | null>(null);
   const [amount, setAmount] = useState('');
-  const [recipient, setRecipient] = useState('');
-  const [provider, setProvider] = useState('MTN');
+  const [selectedContactId, setSelectedContactId] = useState('');
+  const [contactsFor, setContactsFor] = useState<MyZoneItem | null>(null);
+  const [contactForm, setContactForm] = useState({ number: '', provider: 'MTN', label: '' });
+  const [savingContact, setSavingContact] = useState(false);
+  const [autoFor, setAutoFor] = useState<MyZoneItem | null>(null);
+  const [autoLoading, setAutoLoading] = useState(false);
+  const [autoSaving, setAutoSaving] = useState(false);
+  const [autoExists, setAutoExists] = useState(false);
+  const [autoForm, setAutoForm] = useState({
+    is_enabled: false,
+    minimum_amount: '',
+    withdraw_full_balance: true,
+    fixed_amount: '',
+    contact_id: '',
+  });
   const [submitting, setSubmitting] = useState(false);
 
   const load = useCallback(async () => {
@@ -196,8 +214,12 @@ export const MyZonesPage: React.FC = () => {
       const { zones: z, pending_confirmations: p } = await zonesApi.myZones();
       setZones(z);
       setPending(p);
-      const wds = await zonesApi.withdrawals();
+      const [wds, contactLists] = await Promise.all([
+        zonesApi.withdrawals(),
+        Promise.all(z.map((zi) => zonesApi.withdrawalContacts(zi.zone_id).catch(() => [] as ZoneWithdrawalContact[]))),
+      ]);
       setWithdrawals(wds);
+      setContacts(contactLists.flat());
     } catch (e: any) {
       setError(e.message || 'Impossible de charger vos zones');
     } finally {
@@ -220,27 +242,129 @@ export const MyZonesPage: React.FC = () => {
     const amt = parseFloat(amount);
     const balance = parseFloat(withdrawFor.associate_balance || '0');
     if (!amt || amt <= 0) { alert('Montant invalide'); return; }
+    if (amt % 50 !== 0) { alert('Le montant doit être un multiple de 50.'); return; }
     if (amt > balance) { alert(`Votre solde est de ${fmt(balance)} ${withdrawFor.currency_code}.`); return; }
-    if (recipient.replace(/[^0-9+]/g, '').length < 9) { alert('Numéro de retrait invalide'); return; }
+    const contact = contacts.find((c) => c.id === selectedContactId);
+    if (!contact) { alert('Sélectionnez un contact de retrait validé.'); return; }
     setSubmitting(true);
     try {
-      await zonesApi.createWithdrawal({
+      const created = await zonesApi.createWithdrawal({
         zone_id: withdrawFor.zone_id,
         amount: amt,
         currency: withdrawFor.currency_code || 'XAF',
-        recipient_number: recipient.trim(),
-        provider,
+        contact_id: contact.id,
+        recipient_number: contact.number,
+        provider: contact.provider,
       });
-      setSuccess('Demande de retrait soumise : elle attend la validation de l entreprise puis de Tikta.');
+      setSuccess(
+        created.status === 'completed'
+          ? 'Retrait payé automatiquement vers le contact validé.'
+          : created.status === 'approved'
+            ? 'Retrait initié : le paiement automatique a échoué et sera relancé (fonds bloqués).'
+            : 'Retrait initié.'
+      );
       setTimeout(() => setSuccess(''), 6000);
       setWithdrawFor(null);
       setAmount('');
-      setRecipient('');
+      setSelectedContactId('');
       await load();
     } catch (err: any) {
       alert(err.message || 'Erreur lors de la demande');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const openAuto = async (m: MyZoneItem) => {
+    setAutoFor(m);
+    setAutoLoading(true);
+    try {
+      const cfg = await zonesApi.getAutoWithdrawal(m.zone_id);
+      setAutoExists(!!cfg);
+      setAutoForm({
+        is_enabled: cfg?.is_enabled || false,
+        minimum_amount: cfg?.minimum_amount || '',
+        withdraw_full_balance: cfg?.withdraw_full_balance ?? true,
+        fixed_amount: cfg?.fixed_amount || '',
+        contact_id: cfg?.contact_id || '',
+      });
+    } catch {
+      setAutoExists(false);
+      setAutoForm({ is_enabled: false, minimum_amount: '', withdraw_full_balance: true, fixed_amount: '', contact_id: '' });
+    } finally {
+      setAutoLoading(false);
+    }
+  };
+
+  const disableAuto = async () => {
+    if (!autoFor) return;
+    try {
+      await zonesApi.saveAutoWithdrawal(autoFor.zone_id, { is_enabled: false });
+      setAutoFor(null);
+      await load();
+    } catch (err: any) {
+      alert(err.message || 'Erreur');
+    }
+  };
+
+  const deleteAuto = async () => {
+    if (!autoFor) return;
+    if (!confirm('Supprimer la configuration de retrait automatique de cette zone ?')) return;
+    try {
+      await zonesApi.deleteAutoWithdrawal(autoFor.zone_id);
+      setAutoFor(null);
+      await load();
+    } catch (err: any) {
+      alert(err.message || 'Erreur');
+    }
+  };
+
+  const saveAuto = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!autoFor) return;
+    if (autoForm.is_enabled && !autoForm.contact_id) {
+      alert('Sélectionnez un contact de retrait validé pour activer le retrait automatique.');
+      return;
+    }
+    setAutoSaving(true);
+    try {
+      await zonesApi.saveAutoWithdrawal(autoFor.zone_id, {
+        is_enabled: autoForm.is_enabled,
+        minimum_amount: parseFloat(autoForm.minimum_amount) || 0,
+        withdraw_full_balance: autoForm.withdraw_full_balance,
+        fixed_amount: autoForm.withdraw_full_balance ? null : (parseFloat(autoForm.fixed_amount) || null),
+        contact_id: autoForm.contact_id || null,
+      });
+      setSuccess('Retrait automatique enregistré.');
+      setTimeout(() => setSuccess(''), 5000);
+      setAutoFor(null);
+      await load();
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de l enregistrement');
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
+  const submitContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!contactsFor) return;
+    if (contactForm.number.replace(/[^0-9]/g, '').length < 9) { alert('Numéro de retrait invalide'); return; }
+    setSavingContact(true);
+    try {
+      await zonesApi.addWithdrawalContact(contactsFor.zone_id, {
+        number: contactForm.number.trim(),
+        provider: contactForm.provider,
+        label: contactForm.label.trim(),
+      });
+      setSuccess('Contact de retrait soumis : il attend la validation de l entreprise puis de Tikta.');
+      setTimeout(() => setSuccess(''), 6000);
+      setContactForm({ number: '', provider: 'MTN', label: '' });
+      await load();
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de l enregistrement du contact');
+    } finally {
+      setSavingContact(false);
     }
   };
 
@@ -293,15 +417,22 @@ export const MyZonesPage: React.FC = () => {
                       <span>Votre part : <strong>{m.percentage}%</strong></span>
                       <span>Revenus générés : <strong>{fmt(m.total_generated)} {m.currency_code}</strong></span>
                       <span>Solde associé : <strong>{fmt(m.associate_balance)} {m.currency_code}</strong></span>
+                      <span>Retrait auto : <strong style={{ color: m.automatic_withdrawal_enabled ? colors.success : colors.textSecondary }}>{m.automatic_withdrawal_enabled ? 'Activé' : 'Désactivé'}</strong></span>
                     </CardMeta>
-                    <GhostButton
-                      className="success"
-                      disabled={balance <= 0}
-                      onClick={() => setWithdrawFor(m)}
-                      title={balance <= 0 ? 'Solde associé vide' : 'Demander un retrait'}
-                    >
-                      Demander un retrait
-                    </GhostButton>
+                    <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+                      <GhostButton
+                        className="success"
+                        disabled={balance <= 0}
+                        onClick={() => { setWithdrawFor(m); setSelectedContactId(''); }}
+                        title={balance <= 0 ? 'Solde associé vide' : 'Demander un retrait'}
+                      >
+                        Demander un retrait
+                      </GhostButton>
+                      <GhostButton onClick={() => setContactsFor(m)}>
+                        Contacts de retrait ({contacts.filter((c) => c.zone_id === m.zone_id).length})
+                      </GhostButton>
+                      <GhostButton onClick={() => openAuto(m)}>Retrait automatique</GhostButton>
+                    </div>
                   </Card>
                 );
               })}
@@ -321,7 +452,10 @@ export const MyZonesPage: React.FC = () => {
                     </div>
                     <div className="meta">
                       Reçu vers {wd.recipient_number || '—'} · {fmtDate(wd.created_at)}
-                      {wd.status === 'company_approved' && ` · En attente de la validation finale Tikta`}
+                      {wd.status === 'completed' && ' · Payé automatiquement'}
+                      {wd.status === 'approved' && ' · Paiement à relancer (fonds bloqués)'}
+                      {wd.status === 'processing' && ' · Paiement en cours'}
+                      {wd.status === 'company_approved' && ' · En attente de la validation Tikta'}
                     </div>
                   </div>
                   <StatusBadge status={wd.status}>{wd.status_display}</StatusBadge>
@@ -342,31 +476,190 @@ export const MyZonesPage: React.FC = () => {
             <form onSubmit={submitWithdrawal}>
               <FormGroup>
                 <label>Montant ({withdrawFor.currency_code}) — disponible : {fmt(withdrawFor.associate_balance)}</label>
-                <input type="number" min={1} step="50" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Montant du retrait" required />
+                <input type="number" min={50} step={50} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="Multiple de 50" required />
               </FormGroup>
-              <FormGroup>
-                <label>Numéro de retrait (MTN / Orange)</label>
-                <input value={recipient} onChange={(e) => setRecipient(e.target.value)} placeholder="Ex: +237 6XX XXX XXX" required />
-              </FormGroup>
-              <FormGroup>
-                <label>Opérateur</label>
-                <select value={provider} onChange={(e) => setProvider(e.target.value)}>
-                  <option value="MTN">MTN Mobile Money</option>
-                  <option value="Orange">Orange Money</option>
-                  <option value="Autre">Autre</option>
-                </select>
-              </FormGroup>
+              {(() => {
+                const validated = contacts.filter((c) => c.zone_id === withdrawFor.zone_id && c.is_validated);
+                if (validated.length === 0) {
+                  return (
+                    <FormGroup>
+                      <label>Contact de retrait</label>
+                      <div style={{ fontSize: 0.82 + 'rem', color: colors.warning, lineHeight: 1.5 }}>
+                        Aucun contact de retrait validé pour cette zone. Enregistrez un numéro via
+                        « Contacts de retrait », puis attendez la validation de l'entreprise et de Tikta.
+                      </div>
+                    </FormGroup>
+                  );
+                }
+                return (
+                  <FormGroup>
+                    <label>Contact de retrait validé</label>
+                    <select value={selectedContactId} onChange={(e) => setSelectedContactId(e.target.value)} required>
+                      <option value="">— Sélectionnez un contact —</option>
+                      {validated.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.number}{c.label ? ` — ${c.label}` : ''} · frais {c.fee_percentage}%
+                        </option>
+                      ))}
+                    </select>
+                  </FormGroup>
+                );
+              })()}
               <p style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 1.5 }}>
-                Double validation : l'entreprise confirme d'abord (elle peut ajuster le % qui vous revient),
-                puis Tikta valide et déclenche le paiement.
+                Ce numéro est déjà validé : le retrait est payé automatiquement vers ce contact, sans
+                re-confirmation. Les frais de retrait (fixés par Tikta) sont retenus sur le montant.
               </p>
               <ModalFooter>
                 <GhostButton type="button" onClick={() => setWithdrawFor(null)}>Annuler</GhostButton>
-                <PrimaryButton type="submit" disabled={submitting}>
-                  {submitting ? 'Soumission...' : 'Soumettre la demande'}
+                <PrimaryButton
+                  type="submit"
+                  disabled={submitting || !contacts.some((c) => c.zone_id === withdrawFor.zone_id && c.is_validated)}
+                >
+                  {submitting ? 'Soumission...' : 'Initier le retrait'}
                 </PrimaryButton>
               </ModalFooter>
             </form>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {contactsFor && (
+        <ModalOverlay onClick={() => setContactsFor(null)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <h2>Contacts de retrait — {contactsFor.zone_name}</h2>
+              <CloseBtn onClick={() => setContactsFor(null)}>×</CloseBtn>
+            </ModalHeader>
+            <p style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 1.5, marginTop: 0 }}>
+              Enregistrez un ou plusieurs numéros de retrait. Chaque numéro est validé par l'entreprise
+              puis par Tikta (qui fixe les frais). Une fois validé, il est réutilisable sans re-confirmation.
+            </p>
+            <form onSubmit={submitContact}>
+              <FormGroup>
+                <label>Numéro (MTN / Orange) *</label>
+                <input value={contactForm.number} onChange={(e) => setContactForm({ ...contactForm, number: e.target.value })} placeholder="Ex: +237 6XX XXX XXX" required />
+              </FormGroup>
+              <FormRow>
+                <FormGroup>
+                  <label>Opérateur</label>
+                  <select value={contactForm.provider} onChange={(e) => setContactForm({ ...contactForm, provider: e.target.value })}>
+                    <option value="MTN">MTN Mobile Money</option>
+                    <option value="Orange">Orange Money</option>
+                    <option value="Autre">Autre</option>
+                  </select>
+                </FormGroup>
+                <FormGroup>
+                  <label>Libellé (optionnel)</label>
+                  <input value={contactForm.label} onChange={(e) => setContactForm({ ...contactForm, label: e.target.value })} placeholder="Ex: MoMo de Jean" />
+                </FormGroup>
+              </FormRow>
+              <ModalFooter>
+                <GhostButton type="button" onClick={() => setContactsFor(null)}>Fermer</GhostButton>
+                <PrimaryButton type="submit" disabled={savingContact}>
+                  {savingContact ? 'Enregistrement...' : 'Enregistrer le contact'}
+                </PrimaryButton>
+              </ModalFooter>
+            </form>
+
+            <div style={{ marginTop: spacing.lg }}>
+              <h4 style={{ margin: `0 0 ${spacing.sm} 0`, color: colors.textPrimary, fontSize: '0.95rem' }}>
+                Contacts enregistrés
+              </h4>
+              {contacts.filter((c) => c.zone_id === contactsFor.zone_id).length === 0 ? (
+                <EmptyState>Aucun contact enregistré pour cette zone</EmptyState>
+              ) : (
+                <WithdrawList>
+                  {contacts.filter((c) => c.zone_id === contactsFor.zone_id).map((c) => (
+                    <WithdrawRow key={c.id}>
+                      <div>
+                        <div className="info">{c.number}{c.label ? ` — ${c.label}` : ''}</div>
+                        <div className="meta">
+                          {c.provider || '—'} · Frais Tikta : {c.fee_percentage}%
+                          {c.status === 'pending_company' && ' · En attente de l\'entreprise'}
+                          {c.status === 'pending_tikta' && ' · En attente de Tikta'}
+                          {c.status === 'validated' && ' · Validé'}
+                          {c.rejection_reason ? ` · ${c.rejection_reason}` : ''}
+                        </div>
+                      </div>
+                      <StatusBadge status={c.is_validated ? 'active' : c.status === 'rejected' || c.status === 'revoked' ? 'rejected' : 'pending'}>
+                        {c.status_display}
+                      </StatusBadge>
+                    </WithdrawRow>
+                  ))}
+                </WithdrawList>
+              )}
+            </div>
+          </ModalContent>
+        </ModalOverlay>
+      )}
+
+      {autoFor && (
+        <ModalOverlay onClick={() => setAutoFor(null)}>
+          <ModalContent onClick={(e) => e.stopPropagation()}>
+            <ModalHeader>
+              <h2>Retrait automatique — {autoFor.zone_name}</h2>
+              <CloseBtn onClick={() => setAutoFor(null)}>×</CloseBtn>
+            </ModalHeader>
+            {autoLoading ? (
+              <LoadingSpinner />
+            ) : (
+              <form onSubmit={saveAuto}>
+                <p style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 1.5, marginTop: 0 }}>
+                  Dès que le solde associé de la zone atteint le seuil, un retrait est automatiquement
+                  envoyé vers le contact validé. Idéal pour les associés sans accès à l'application.
+                </p>
+                <FormGroup>
+                  <label>Contact de retrait validé</label>
+                  <select value={autoForm.contact_id} onChange={(e) => setAutoForm({ ...autoForm, contact_id: e.target.value })}>
+                    <option value="">— Sélectionnez un contact —</option>
+                    {contacts.filter((c) => c.zone_id === autoFor.zone_id && c.is_validated).map((c) => (
+                      <option key={c.id} value={c.id}>{c.number}{c.label ? ` — ${c.label}` : ''} · frais {c.fee_percentage}%</option>
+                    ))}
+                  </select>
+                </FormGroup>
+                <FormGroup>
+                  <label>Seuil de déclenchement ({autoFor.currency_code})</label>
+                  <input type="number" min={0} step={50} value={autoForm.minimum_amount}
+                    onChange={(e) => setAutoForm({ ...autoForm, minimum_amount: e.target.value })}
+                    placeholder="Ex: 5000" />
+                </FormGroup>
+                <FormGroup>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                    <input type="checkbox" checked={autoForm.withdraw_full_balance}
+                      onChange={(e) => setAutoForm({ ...autoForm, withdraw_full_balance: e.target.checked })} />
+                    Retirer tout le solde atteint
+                  </label>
+                </FormGroup>
+                {!autoForm.withdraw_full_balance && (
+                  <FormGroup>
+                    <label>Montant fixe à retirer</label>
+                    <input type="number" min={50} step={50} value={autoForm.fixed_amount}
+                      onChange={(e) => setAutoForm({ ...autoForm, fixed_amount: e.target.value })} />
+                  </FormGroup>
+                )}
+                <FormGroup>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                    <input type="checkbox" checked={autoForm.is_enabled}
+                      onChange={(e) => setAutoForm({ ...autoForm, is_enabled: e.target.checked })} />
+                    Activer le retrait automatique
+                  </label>
+                </FormGroup>
+                <ModalFooter>
+                  <div style={{ marginRight: 'auto', display: 'flex', gap: spacing.sm }}>
+                    {autoExists && autoForm.is_enabled && (
+                      <GhostButton type="button" onClick={disableAuto}>Désactiver</GhostButton>
+                    )}
+                    {autoExists && (
+                      <GhostButton type="button" className="danger" onClick={deleteAuto}>Supprimer</GhostButton>
+                    )}
+                  </div>
+                  <GhostButton type="button" onClick={() => setAutoFor(null)}>Annuler</GhostButton>
+                  <PrimaryButton type="submit" disabled={autoSaving}>
+                    {autoSaving ? 'Enregistrement...' : 'Enregistrer'}
+                  </PrimaryButton>
+                </ModalFooter>
+              </form>
+            )}
           </ModalContent>
         </ModalOverlay>
       )}

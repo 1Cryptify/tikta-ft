@@ -196,6 +196,9 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onSuccess }) => {
               <TextLink onClick={() => navigate('/register')} type="button">
                 Créer un compte
               </TextLink>
+              <TextLink onClick={() => navigate('/recover')} type="button">
+                Récupérer un ticket
+              </TextLink>
               <TextLink onClick={() => navigate('/forgot-password')} type="button">
                 Mot de passe oublié ?
               </TextLink>

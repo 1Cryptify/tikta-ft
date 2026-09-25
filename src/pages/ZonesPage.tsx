@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
-import { zonesApi, Zone, ZoneDetail, ZoneRouter, ZoneManager, ZoneWithdrawal, ZonePayment, ZonePaymentsData } from '../services/zoneService';
+import { zonesApi, Zone, ZoneDetail, ZoneRouter, ZoneManager, ZoneWithdrawal, ZoneWithdrawalContact, ZonePayment, ZonePaymentsData } from '../services/zoneService';
 import { useAuth } from '../hooks/useAuth';
 import { ZoneTracer } from './ZoneTracer';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -202,7 +202,21 @@ const FormGroup = styled.div`
     font-size: 0.9rem; color: ${colors.textPrimary};
     &:focus { outline: none; border-color: ${colors.primary}; box-shadow: 0 0 0 3px ${colors.primary}20; }
   }
+  input[type='checkbox'] {
+    width: 18px; height: 18px; min-width: 18px; padding: 0; margin: 0;
+    accent-color: ${colors.primary}; cursor: pointer; flex: 0 0 auto;
+  }
   textarea { min-height: 60px; resize: vertical; }
+`;
+
+const CheckLine = styled.label`
+  display: flex; align-items: center; gap: ${spacing.sm};
+  font-size: 0.85rem; color: ${colors.textPrimary}; cursor: pointer;
+  padding: ${spacing.xs} 0; user-select: none;
+  input[type='checkbox'] {
+    width: 18px; height: 18px; min-width: 18px; padding: 0; margin: 0;
+    accent-color: ${colors.primary}; cursor: pointer; flex: 0 0 auto;
+  }
 `;
 
 const FormRow = styled.div`
@@ -355,12 +369,17 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
   const { user } = useAuth();
   const [zone, setZone] = useState<ZoneDetail | null>(null);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'routers' | 'managers' | 'payments' | 'withdrawals'>('routers');
+  const [tab, setTab] = useState<'routers' | 'managers' | 'payments' | 'contacts' | 'auto' | 'withdrawals'>('routers');
   const [payments, setPayments] = useState<ZonePaymentsData | null>(null);
   const [routerForm, setRouterForm] = useState({ name: '', mac_address: '', serial_number: '', model: '', ip_address: '', status: 'active' });
-  const [managerForm, setManagerForm] = useState({ email: '', percentage: 100, initial_password: '' });
+  const [managerForm, setManagerForm] = useState({ email: '', percentage: 100, initial_password: '', create_account: true });
   const [wdPercents, setWdPercents] = useState<Record<string, number>>({});
-  const [fees, setFees] = useState<Record<string, number>>({});
+  const [contactFees, setContactFees] = useState<Record<string, number>>({});
+  const [contactForm, setContactForm] = useState({ number: '', provider: 'MTN', label: '', manager_email: '' });
+  const [autoForm, setAutoForm] = useState({
+    is_enabled: false, minimum_amount: '', withdraw_full_balance: true, fixed_amount: '', contact_id: '',
+  });
+  const [autoSaving, setAutoSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -376,6 +395,17 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
     }
   }, [tab, zoneId]);
 
+  useEffect(() => {
+    const cfg = zone?.automatic_withdrawal;
+    setAutoForm({
+      is_enabled: cfg?.is_enabled || false,
+      minimum_amount: cfg?.minimum_amount || '',
+      withdraw_full_balance: cfg?.withdraw_full_balance ?? true,
+      fixed_amount: cfg?.fixed_amount || '',
+      contact_id: cfg?.contact_id || '',
+    });
+  }, [zone?.automatic_withdrawal]);
+
   const refresh = () => { load(); if (tab === 'payments') zonesApi.payments(zoneId).then(setPayments).catch(() => {}); };
 
   if (!zone) {
@@ -383,6 +413,10 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
   }
 
   const isStaff = !!user?.is_superuser || !!user?.is_staff;
+  const autoCfg = zone.automatic_withdrawal;
+  const autoCfgContact = autoCfg
+    ? zone.withdrawal_contacts?.find((c) => c.id === autoCfg.contact_id)
+    : undefined;
 
   const handleToggle = async () => {
     const updated = await zonesApi.toggle(zone.id);
@@ -441,9 +475,10 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
     await zonesApi.addManager(zone.id, {
       email: managerForm.email.trim(),
       percentage: managerForm.percentage,
-      initial_password: managerForm.initial_password || undefined,
+      initial_password: managerForm.create_account ? (managerForm.initial_password || undefined) : undefined,
+      create_account: managerForm.create_account,
     });
-    setManagerForm({ email: '', percentage: 100, initial_password: '' });
+    setManagerForm({ email: '', percentage: 100, initial_password: '', create_account: true });
     refresh();
   };
 
@@ -454,8 +489,8 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
   };
 
   const adminApprove = async (wd: ZoneWithdrawal) => {
-    const fee = fees[wd.id];
-    await zonesApi.adminApprove(wd.id, fee);
+    // Les frais sont fixés par Tikta sur le contact de retrait, plus par l'entreprise.
+    await zonesApi.adminApprove(wd.id);
     refresh();
   };
 
@@ -463,6 +498,97 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
     if (!confirm('Rejeter cette demande de retrait ?')) return;
     await zonesApi.rejectWithdrawal(wd.id);
     refresh();
+  };
+
+  const submitContact = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (contactForm.number.replace(/[^0-9]/g, '').length < 9) { alert('Numéro de retrait invalide'); return; }
+    await zonesApi.addWithdrawalContact(zone.id, {
+      number: contactForm.number.trim(),
+      provider: contactForm.provider,
+      label: contactForm.label.trim(),
+      email: contactForm.manager_email.trim() || undefined,
+    });
+    setContactForm({ number: '', provider: 'MTN', label: '', manager_email: '' });
+    refresh();
+  };
+
+  const companyApproveContact = async (c: ZoneWithdrawalContact) => {
+    await zonesApi.companyApproveContact(c.id);
+    refresh();
+  };
+
+  const validateContact = async (c: ZoneWithdrawalContact) => {
+    const fee = contactFees[c.id] ?? parseFloat(c.fee_percentage || '0') ?? 0;
+    await zonesApi.validateContact(c.id, fee);
+    refresh();
+  };
+
+  const rejectContact = async (c: ZoneWithdrawalContact) => {
+    const reason = prompt('Motif du rejet (optionnel)') || undefined;
+    await zonesApi.rejectContact(c.id, reason);
+    refresh();
+  };
+
+  const revokeContact = async (c: ZoneWithdrawalContact) => {
+    if (!confirm(`Révoquer le contact ${c.number} ? Il ne pourra plus être utilisé pour un retrait.`)) return;
+    await zonesApi.revokeContact(c.id);
+    refresh();
+  };
+
+  const saveAuto = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!zone) return;
+    if (autoForm.is_enabled && !autoForm.contact_id) {
+      alert('Sélectionnez un contact de retrait validé pour activer le retrait automatique.');
+      return;
+    }
+    setAutoSaving(true);
+    try {
+      await zonesApi.saveAutoWithdrawal(zone.id, {
+        is_enabled: autoForm.is_enabled,
+        minimum_amount: parseFloat(autoForm.minimum_amount) || 0,
+        withdraw_full_balance: autoForm.withdraw_full_balance,
+        fixed_amount: autoForm.withdraw_full_balance ? null : (parseFloat(autoForm.fixed_amount) || null),
+        contact_id: autoForm.contact_id || null,
+      });
+      refresh();
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de l enregistrement');
+    } finally {
+      setAutoSaving(false);
+    }
+  };
+
+  const runAuto = async () => {
+    if (!zone) return;
+    try {
+      await zonesApi.runAutoWithdrawal(zone.id);
+      refresh();
+    } catch (err: any) {
+      alert(err.message || 'Aucun retrait automatique déclenché');
+    }
+  };
+
+  const disableAuto = async () => {
+    if (!zone) return;
+    try {
+      await zonesApi.saveAutoWithdrawal(zone.id, { is_enabled: false });
+      refresh();
+    } catch (err: any) {
+      alert(err.message || 'Erreur');
+    }
+  };
+
+  const deleteAuto = async () => {
+    if (!zone) return;
+    if (!confirm('Supprimer définitivement la configuration de retrait automatique ?')) return;
+    try {
+      await zonesApi.deleteAutoWithdrawal(zone.id);
+      refresh();
+    } catch (err: any) {
+      alert(err.message || 'Erreur');
+    }
   };
 
   return (
@@ -499,6 +625,8 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
       <MenuNav>
         <MenuButton isActive={tab === 'routers'} onClick={() => setTab('routers')}>Routeurs ({zone.routers?.length || 0})</MenuButton>
         <MenuButton isActive={tab === 'managers'} onClick={() => setTab('managers')}>Associés ({zone.managers?.length || 0})</MenuButton>
+        <MenuButton isActive={tab === 'contacts'} onClick={() => setTab('contacts')}>Contacts de retrait ({zone.withdrawal_contacts?.length || 0})</MenuButton>
+        <MenuButton isActive={tab === 'auto'} onClick={() => setTab('auto')}>Retrait auto</MenuButton>
         <MenuButton isActive={tab === 'payments'} onClick={() => setTab('payments')}>Paiements</MenuButton>
         <MenuButton isActive={tab === 'withdrawals'} onClick={() => setTab('withdrawals')}>Retraits ({zone.withdrawals?.length || 0})</MenuButton>
       </MenuNav>
@@ -553,12 +681,20 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
       {/* -------- Associés -------- */}
       {tab === 'managers' && (
         <div>
-          <form onSubmit={submitManager} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: spacing.md, alignItems: 'end', marginBottom: spacing.lg }}>
+          <form onSubmit={submitManager} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: spacing.md, alignItems: 'end', marginBottom: spacing.sm }}>
             <FormGroup><label>Email de l'associé *</label><input value={managerForm.email} onChange={(e) => setManagerForm({ ...managerForm, email: e.target.value })} placeholder="associe@exemple.com" /></FormGroup>
             <FormGroup><label>% associé *</label><input type="number" min={0} max={100} value={managerForm.percentage} onChange={(e) => setManagerForm({ ...managerForm, percentage: parseInt(e.target.value) || 0 })} /></FormGroup>
-            <FormGroup><label>Mot de passe initial (optionnel)</label><input value={managerForm.initial_password} onChange={(e) => setManagerForm({ ...managerForm, initial_password: e.target.value })} /></FormGroup>
+            {managerForm.create_account ? (
+              <FormGroup><label>Mot de passe initial (optionnel)</label><input value={managerForm.initial_password} onChange={(e) => setManagerForm({ ...managerForm, initial_password: e.target.value })} /></FormGroup>
+            ) : (
+              <FormGroup><label>&nbsp;</label><div style={{ fontSize: '0.78rem', color: colors.textSecondary }}>Aucun compte créé</div></FormGroup>
+            )}
             <PrimaryButton type="submit">Ajouter</PrimaryButton>
           </form>
+          <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg, cursor: 'pointer', fontSize: '0.82rem', color: colors.textSecondary }}>
+            <input type="checkbox" checked={!managerForm.create_account} onChange={(e) => setManagerForm({ ...managerForm, create_account: !e.target.checked })} />
+            Associé <strong>sans compte</strong> (dividendes payés automatiquement via un contact de retrait)
+          </label>
           {zone.managers?.length ? (
             <Table>
               <thead><tr><th>Email</th><th>Compte</th><th>% Associé</th><th>Statut</th><th>Confirmé le</th><th></th></tr></thead>
@@ -566,7 +702,7 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
                 {zone.managers.map((m: ZoneManager) => (
                   <tr key={m.id}>
                     <td>{m.email}</td>
-                    <td>{m.has_account ? 'Créé' : 'À créer'}</td>
+                    <td>{m.has_account ? 'Créé' : 'Sans compte'}</td>
                     <td>
                       <input type="number" min={0} max={100} style={{ width: 70, padding: 4 }} defaultValue={m.percentage}
                         onBlur={async (e) => { const v = parseInt(e.target.value) || 0; if (v !== m.percentage) { await zonesApi.updateManager(m.id, { percentage: v }); refresh(); } }} />
@@ -581,6 +717,131 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
               </tbody>
             </Table>
           ) : <EmptyState>Aucun associé — ajoutez son email pour qu'il confirme depuis son menu « Mes Zones »</EmptyState>}
+        </div>
+      )}
+
+      {/* -------- Contacts de retrait -------- */}
+      {tab === 'contacts' && (
+        <div>
+          <form onSubmit={submitContact} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 2fr 2fr auto', gap: spacing.md, alignItems: 'end', marginBottom: spacing.lg }}>
+            <FormGroup><label>Numéro de retrait *</label><input value={contactForm.number} onChange={(e) => setContactForm({ ...contactForm, number: e.target.value })} placeholder="Ex: +237 6XX XXX XXX" /></FormGroup>
+            <FormGroup><label>Opérateur</label>
+              <select value={contactForm.provider} onChange={(e) => setContactForm({ ...contactForm, provider: e.target.value })}>
+                <option value="MTN">MTN</option>
+                <option value="Orange">Orange</option>
+                <option value="Autre">Autre</option>
+              </select>
+            </FormGroup>
+            <FormGroup><label>Libellé</label><input value={contactForm.label} onChange={(e) => setContactForm({ ...contactForm, label: e.target.value })} placeholder="Ex: MoMo de Jean" /></FormGroup>
+            <FormGroup><label>Associé (email, optionnel)</label><input value={contactForm.manager_email} onChange={(e) => setContactForm({ ...contactForm, manager_email: e.target.value })} placeholder="associe@exemple.com" /></FormGroup>
+            <PrimaryButton type="submit">Enregistrer</PrimaryButton>
+          </form>
+          <p style={{ fontSize: 12, color: colors.textSecondary, marginTop: 0 }}>
+            L'entreprise peut enregistrer un numéro pour un associé, valider les numéros, ou les révoquer.
+            Tikta fixe les frais de retrait sur chaque numéro validé.
+          </p>
+          {zone.withdrawal_contacts?.length ? (
+            <Table>
+              <thead><tr><th>Numéro</th><th>Libellé</th><th>Associé</th><th>Frais</th><th>Statut</th><th>Actions</th></tr></thead>
+              <tbody>
+                {zone.withdrawal_contacts.map((c: ZoneWithdrawalContact) => (
+                  <tr key={c.id}>
+                    <td><strong>{c.number}</strong></td>
+                    <td>{c.label || '—'}</td>
+                    <td>{c.manager_email || 'Entreprise'}</td>
+                    <td>{c.status === 'validated' ? `${c.fee_percentage}%` : '—'}</td>
+                    <td><StatusBadge status={c.is_validated ? 'active' : c.status === 'rejected' || c.status === 'revoked' ? 'rejected' : 'pending'}>{c.status_display}</StatusBadge></td>
+                    <td>
+                      <span style={{ display: 'flex', gap: spacing.xs, alignItems: 'center', flexWrap: 'wrap' }}>
+                        {c.status === 'pending_company' && (
+                          <>
+                            <SmallBtn className="success" onClick={() => companyApproveContact(c)}>Valider (entreprise)</SmallBtn>
+                            <SmallBtn className="danger" onClick={() => rejectContact(c)}>Rejeter</SmallBtn>
+                          </>
+                        )}
+                        {isStaff && (c.status === 'pending_company' || c.status === 'pending_tikta') && (
+                          <>
+                            <input type="number" min={0} max={100} style={{ width: 64, padding: 4 }} placeholder="Frais %"
+                              value={contactFees[c.id] ?? ''} onChange={(e) => setContactFees({ ...contactFees, [c.id]: parseFloat(e.target.value) || 0 })} title="Frais Tikta %" />
+                            <SmallBtn className="primary" onClick={() => validateContact(c)}>Valider Tikta</SmallBtn>
+                          </>
+                        )}
+                        {c.status !== 'revoked' && c.status !== 'rejected' && (
+                          <SmallBtn className="danger" onClick={() => revokeContact(c)}>Révoquer</SmallBtn>
+                        )}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          ) : <EmptyState>Aucun contact de retrait pour cette zone. L'associé peut aussi en enregistrer depuis « Mes zones ».</EmptyState>}
+        </div>
+      )}
+
+      {/* -------- Retrait automatique -------- */}
+      {tab === 'auto' && (
+        <div>
+          <p style={{ fontSize: 13, color: colors.textSecondary, marginTop: 0, lineHeight: 1.5 }}>
+            Lorsque le solde associé de la zone atteint le seuil, un retrait est automatiquement payé
+            vers le contact de retrait validé. Utile pour les associés sans accès à l'application.
+          </p>
+          <form onSubmit={saveAuto} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: spacing.md, alignItems: 'end', marginBottom: spacing.lg }}>
+            <FormGroup>
+              <label>Contact de retrait validé</label>
+              <select value={autoForm.contact_id} onChange={(e) => setAutoForm({ ...autoForm, contact_id: e.target.value })}>
+                <option value="">— Aucun —</option>
+                {zone.withdrawal_contacts?.filter((c) => c.is_validated).map((c) => (
+                  <option key={c.id} value={c.id}>{c.number}{c.label ? ` — ${c.label}` : ''} · frais {c.fee_percentage}%</option>
+                ))}
+              </select>
+            </FormGroup>
+            <FormGroup>
+              <label>Seuil de déclenchement</label>
+              <input type="number" min={0} step={50} value={autoForm.minimum_amount}
+                onChange={(e) => setAutoForm({ ...autoForm, minimum_amount: e.target.value })} placeholder="Ex: 5000" />
+            </FormGroup>
+            <FormGroup>
+              <label>Montant</label>
+              <label style={{ display: 'flex', alignItems: 'center', gap: spacing.xs, fontSize: '0.82rem' }}>
+                <input type="checkbox" checked={autoForm.withdraw_full_balance}
+                  onChange={(e) => setAutoForm({ ...autoForm, withdraw_full_balance: e.target.checked })} />
+                Tout le solde
+              </label>
+            </FormGroup>
+            <PrimaryButton type="submit" disabled={autoSaving}>{autoSaving ? 'Enregistrement...' : 'Enregistrer'}</PrimaryButton>
+          </form>
+          {!autoForm.withdraw_full_balance && (
+            <FormGroup style={{ maxWidth: 260 }}>
+              <label>Montant fixe à retirer</label>
+              <input type="number" min={50} step={50} value={autoForm.fixed_amount}
+                onChange={(e) => setAutoForm({ ...autoForm, fixed_amount: e.target.value })} />
+            </FormGroup>
+          )}
+          <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg, cursor: 'pointer' }}>
+            <input type="checkbox" checked={autoForm.is_enabled}
+              onChange={(e) => setAutoForm({ ...autoForm, is_enabled: e.target.checked })} />
+            <strong>Activer le retrait automatique</strong>
+          </label>
+
+          {zone.automatic_withdrawal && (
+            <div style={{ border: `1px solid ${colors.border}`, borderRadius: borderRadius.md, padding: spacing.md, fontSize: '0.82rem', color: colors.textSecondary }}>
+              <div>Statut : <strong style={{ color: zone.automatic_withdrawal.is_enabled ? colors.success : colors.textSecondary }}>
+                {zone.automatic_withdrawal.is_enabled ? 'Activé' : 'Désactivé'}
+              </strong></div>
+              <div>Dernier traitement : {fmtDate(zone.automatic_withdrawal.last_processed_at)}</div>
+              {zone.automatic_withdrawal.last_error && (
+                <div style={{ color: colors.error }}>Dernière erreur : {zone.automatic_withdrawal.last_error}</div>
+              )}
+              <div style={{ marginTop: spacing.sm, display: 'flex', gap: spacing.xs, flexWrap: 'wrap' }}>
+                <SmallBtn className="primary" onClick={runAuto}>Déclencher maintenant</SmallBtn>
+                {zone.automatic_withdrawal.is_enabled && (
+                  <SmallBtn onClick={disableAuto}>Désactiver</SmallBtn>
+                )}
+                <SmallBtn className="danger" onClick={deleteAuto}>Supprimer</SmallBtn>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -636,16 +897,19 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
                           <SmallBtn className="danger" onClick={() => reject(wd)}>Rejeter</SmallBtn>
                         </span>
                       )}
-                      {wd.status === 'company_approved' && isStaff && (
+                      {(wd.status === 'company_approved' || wd.status === 'approved') && isStaff && (
                         <span style={{ display: 'flex', gap: spacing.xs, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <input type="number" min={0} max={100} style={{ width: 64, padding: 4 }} placeholder="Frais %"
-                            value={fees[wd.id] ?? ''} onChange={(e) => setFees({ ...fees, [wd.id]: parseFloat(e.target.value) || 0 })} title="Frais Tikta %" />
-                          <SmallBtn className="primary" onClick={() => adminApprove(wd)}>Valider Tikta & payer</SmallBtn>
+                          <span style={{ fontSize: 11, color: colors.textSecondary }}>
+                            Frais Tikta : {wd.contact_fee_percentage ?? wd.fee_percentage}%
+                          </span>
+                          <SmallBtn className="primary" onClick={() => adminApprove(wd)}>
+                            {wd.status === 'approved' ? 'Relancer le paiement' : 'Valider Tikta & payer'}
+                          </SmallBtn>
                           <SmallBtn className="danger" onClick={() => reject(wd)}>Rejeter</SmallBtn>
                         </span>
                       )}
-                      {(wd.status === 'processing' || wd.status === 'completed' || wd.status === 'approved') && (
-                        <span style={{ fontSize: 11, color: colors.textSecondary }}>{wd.payout_reference || wd.gateway_response ? 'Payé' : wd.status === 'approved' ? 'Validé (paiement à relancer)' : ''}</span>
+                      {(wd.status === 'processing' || wd.status === 'completed') && (
+                        <span style={{ fontSize: 11, color: colors.textSecondary }}>{wd.payout_reference || wd.gateway_response ? 'Payé' : ''}</span>
                       )}
                     </td>
                   </tr>
@@ -667,6 +931,8 @@ export const ZonesPage: React.FC = () => {
   const [error, setError] = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pendingContacts, setPendingContacts] = useState<ZoneWithdrawalContact[]>([]);
+  const [contactFees, setContactFees] = useState<Record<string, number>>({});
   const isStaff = !!user?.is_superuser || !!user?.is_staff;
 
   const load = useCallback(async () => {
@@ -681,7 +947,36 @@ export const ZonesPage: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  const loadContacts = useCallback(async () => {
+    try {
+      const [pc, pt] = await Promise.all([
+        zonesApi.allWithdrawalContacts('pending_company'),
+        zonesApi.allWithdrawalContacts('pending_tikta'),
+      ]);
+      setPendingContacts([...pc, ...pt]);
+    } catch {
+      /* silencieux */
+    }
+  }, []);
+
+  useEffect(() => { load(); loadContacts(); }, [load, loadContacts]);
+
+  const approveContact = async (c: ZoneWithdrawalContact) => {
+    await zonesApi.companyApproveContact(c.id);
+    loadContacts();
+  };
+
+  const validateContact = async (c: ZoneWithdrawalContact) => {
+    const fee = contactFees[c.id] ?? (parseFloat(c.fee_percentage || '0') || 0);
+    await zonesApi.validateContact(c.id, fee);
+    loadContacts();
+  };
+
+  const rejectContact = async (c: ZoneWithdrawalContact) => {
+    const reason = prompt('Motif du rejet (optionnel)') || undefined;
+    await zonesApi.rejectContact(c.id, reason);
+    loadContacts();
+  };
 
   if (selectedId) {
     return (
@@ -707,6 +1002,45 @@ export const ZonesPage: React.FC = () => {
 
       {error && <ErrorMsg>{error}</ErrorMsg>}
 
+      {pendingContacts.length > 0 && (
+        <div style={{ marginBottom: spacing.xl }}>
+          <h2 style={{ fontSize: '1.05rem', color: colors.textPrimary, margin: `0 0 ${spacing.md} 0` }}>
+            Contacts de retrait à valider ({pendingContacts.length})
+          </h2>
+          <Table>
+            <thead><tr><th>Zone</th><th>Numéro</th><th>Associé</th><th>Libellé</th><th>Statut</th><th>Actions</th></tr></thead>
+            <tbody>
+              {pendingContacts.map((c) => (
+                <tr key={c.id}>
+                  <td>{c.zone_name}</td>
+                  <td><strong>{c.number}</strong></td>
+                  <td>{c.manager_email || 'Entreprise'}</td>
+                  <td>{c.label || '—'}</td>
+                  <td><StatusBadge status="pending">{c.status_display}</StatusBadge></td>
+                  <td>
+                    <span style={{ display: 'flex', gap: spacing.xs, alignItems: 'center', flexWrap: 'wrap' }}>
+                      {c.status === 'pending_company' && (
+                        <>
+                          <SmallBtn className="success" onClick={() => approveContact(c)}>Valider (entreprise)</SmallBtn>
+                          <SmallBtn className="danger" onClick={() => rejectContact(c)}>Rejeter</SmallBtn>
+                        </>
+                      )}
+                      {isStaff && (
+                        <>
+                          <input type="number" min={0} max={100} style={{ width: 64, padding: 4 }} placeholder="Frais %"
+                            value={contactFees[c.id] ?? ''} onChange={(e) => setContactFees({ ...contactFees, [c.id]: parseFloat(e.target.value) || 0 })} />
+                          <SmallBtn className="primary" onClick={() => validateContact(c)}>Valider Tikta</SmallBtn>
+                        </>
+                      )}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </Table>
+        </div>
+      )}
+
       {loading ? (
         <LoadingSpinner />
       ) : zones.length === 0 ? (
@@ -724,7 +1058,7 @@ export const ZonesPage: React.FC = () => {
                 <span>Surface : <strong>{fmt(z.area_sqm, 0)} m²</strong></span>
                 <span>Revenus générés : <strong>{fmt(z.total_generated)}</strong></span>
                 <span>Solde associé : <strong>{fmt(z.associate_balance)}</strong></span>
-                <span>Statut : <StatusBadge status={z.is_active ? 'active' : 'offline'}>{z.is_active ? 'Active' : 'Désactivée'}</StatusBadge> <StatusBadge status={z.is_closed ? 'active' : 'pending'}>{z.is_closed ? 'Tracé validé' : 'Tracé non validé'}</StatusBadge></span>
+                <span>Statut : <StatusBadge status={z.is_active ? 'active' : 'offline'}>{z.is_active ? 'Active' : 'Désactivée'}</StatusBadge> <StatusBadge status={z.is_closed ? 'active' : 'pending'}>{z.is_closed ? 'Tracé validé' : 'Tracé non validé'}</StatusBadge> {z.automatic_withdrawal_enabled && <StatusBadge status="active">Retrait auto actif</StatusBadge>}</span>
               </CardMeta>
               <CardActions>
                 <SmallBtn className="primary" onClick={() => setSelectedId(z.id)}>Détail</SmallBtn>

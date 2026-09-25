@@ -8,6 +8,7 @@ import { RegisterPage } from './components/Auth/RegisterPage';
 import { ForgotPasswordPage } from './components/Auth/ForgotPasswordPage';
 import { FirstLoginChangePage } from './components/Auth/FirstLoginChangePage';
 import { HomePage } from './pages/HomePage';
+import { RecoverTicketPage } from './pages/RecoverTicketPage';
 import { Dashboard } from './pages/Dashboard';
 import LoadingSpinner from './components/LoadingSpinner';
 import PaymentRoutes from './config/payment-routes';
@@ -69,6 +70,7 @@ function App() {
                 <Route path="/verify-email" element={<VerificationPage />} />
                 <Route path="/confirm" element={<VerificationPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/recover" element={<RecoverTicketPage />} />
                 <Route
                     path="/change-password"
                     element={

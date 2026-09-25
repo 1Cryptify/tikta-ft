@@ -105,6 +105,21 @@ interface Point {
   lng: number;
 }
 
+/**
+ * Seuils de précision GPS (mètres).
+ * Le GPS d'un téléphone met plusieurs secondes à converger : les premières
+ * mesures peuvent être à ~100 m. On accumule donc les mesures et on ne retient
+ * que la meilleure avant d'accepter un point.
+ */
+const GOOD_ACCURACY_M = 10;
+const ACCEPT_ACCURACY_M = 25;
+
+const accuracyQuality = (a: number): { label: string; color: string } => {
+  if (a <= GOOD_ACCURACY_M) return { label: 'excellente', color: '#059669' };
+  if (a <= ACCEPT_ACCURACY_M) return { label: 'moyenne', color: '#d97706' };
+  return { label: 'faible', color: '#dc2626' };
+};
+
 interface ZoneTracerProps {
   points: Point[];
   onPointsChange: (pts: Point[]) => void;
@@ -146,7 +161,11 @@ export const ZoneTracer: React.FC<ZoneTracerProps> = ({
   const mapRef = useRef<L.Map | null>(null);
   const groupRef = useRef<L.LayerGroup | null>(null);
   const posRef = useRef<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const bestFixRef = useRef<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const watchIdRef = useRef<number | null>(null);
+  const centeredRef = useRef(false);
   const [pos, setPos] = useState<{ lat: number; lng: number; accuracy: number } | null>(null);
+  const [bestAccuracy, setBestAccuracy] = useState<number | null>(null);
   const [watching, setWatching] = useState(false);
 
   // ---- carte ----
@@ -187,9 +206,17 @@ export const ZoneTracer: React.FC<ZoneTracerProps> = ({
   const colorRef = useRef(color);
   colorRef.current = color;
 
+  const stopWatch = () => {
+    if (watchIdRef.current != null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+    setWatching(false);
+  };
+
   const toggleWatch = () => {
     if (watching) {
-      setWatching(false);
+      stopWatch();
       return;
     }
     if (!('geolocation' in navigator)) {
@@ -197,53 +224,84 @@ export const ZoneTracer: React.FC<ZoneTracerProps> = ({
       return;
     }
     setWatching(true);
-    navigator.geolocation.watchPosition(
+    // watchPosition continu : le GPS converge en quelques secondes. On garde la
+    // meilleure mesure et on ne fixe pas la première (souvent à ~100 m).
+    watchIdRef.current = navigator.geolocation.watchPosition(
       (p) => {
         const next = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
         posRef.current = next;
         setPos(next);
+        const best = bestFixRef.current;
+        if (!best || next.accuracy < best.accuracy) {
+          bestFixRef.current = next;
+          setBestAccuracy(next.accuracy);
+        }
         const map = mapRef.current;
-        if (map && !posRef.current?.focused) {
-          (posRef.current as any).focused = true;
-          map.flyTo([next.lat, next.lng], Math.max(map.getZoom(), 18));
+        if (map && !centeredRef.current) {
+          centeredRef.current = true;
+          map.flyTo([next.lat, next.lng], Math.max(map.getZoom(), 19));
         }
       },
       (err) => {
-        setWatching(false);
+        stopWatch();
         alert(
           err.code === err.PERMISSION_DENIED
             ? 'Partage de localisation refusé : activez-le pour tracer votre zone'
             : 'Impossible de récupérer la position'
         );
       },
-      { enableHighAccuracy: true, maximumAge: 1000, timeout: 15000 }
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
     );
   };
 
-  const useMyPosition = () => {
-    const cur = posRef.current;
-    if (!cur) {
-      // tentative ponctuelle
-      if (!('geolocation' in navigator)) {
-        alert('Géolocalisation non supportée');
-        return;
-      }
-      navigator.geolocation.getCurrentPosition(
-        (p) => {
-          const next = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
-          posRef.current = next;
-          setPos(next);
-          onPointsChange([...pointsRef.current, { lat: next.lat, lng: next.lng }]);
-          mapRef.current?.flyTo([next.lat, next.lng], 18);
-        },
-        () => alert('Géolocalisation refusée'),
-        { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+  /** Ajoute le meilleur point connu, avec garde-fou sur la précision. */
+  const addBestPosition = (fallback: { lat: number; lng: number; accuracy: number }) => {
+    const best = bestFixRef.current;
+    const chosen = best && best.accuracy <= fallback.accuracy ? best : fallback;
+    if (chosen.accuracy > ACCEPT_ACCURACY_M) {
+      const ok = confirm(
+        `Précision GPS faible (~${Math.round(chosen.accuracy)} m).\n\n` +
+        `Pour un tracé à ~5 m : restez sur « Suivre ma position » quelques secondes ` +
+        `(idéalement en extérieur) jusqu'à ce que la précision s'améliore.\n\n` +
+        `Ajouter ce point malgré tout ?`
       );
+      if (!ok) return;
+    }
+    onPointsChange([...pointsRef.current, { lat: chosen.lat, lng: chosen.lng }]);
+    mapRef.current?.flyTo([chosen.lat, chosen.lng], Math.max(mapRef.current?.getZoom() ?? 18, 19));
+  };
+
+  const useMyPosition = () => {
+    const cur = bestFixRef.current || posRef.current;
+    if (cur) {
+      addBestPosition(cur);
       return;
     }
-    onPointsChange([...pointsRef.current, { lat: cur.lat, lng: cur.lng }]);
-    mapRef.current?.flyTo([cur.lat, cur.lng], 18);
+    if (!('geolocation' in navigator)) {
+      alert('Géolocalisation non supportée');
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (p) => {
+        const next = { lat: p.coords.latitude, lng: p.coords.longitude, accuracy: p.coords.accuracy };
+        posRef.current = next;
+        bestFixRef.current = next;
+        setBestAccuracy(next.accuracy);
+        setPos(next);
+        addBestPosition(next);
+      },
+      () => alert('Géolocalisation refusée'),
+      { enableHighAccuracy: true, maximumAge: 0, timeout: 20000 }
+    );
   };
+
+  // Nettoyage : coupe le suivi GPS au démontage du composant.
+  useEffect(() => () => {
+    if (watchIdRef.current != null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+  }, []);
 
   const undoLast = () => onPointsChange(pointsRef.current.slice(0, -1));
   const clearAll = () => {
@@ -296,10 +354,10 @@ export const ZoneTracer: React.FC<ZoneTracerProps> = ({
       ).addTo(group);
     }
 
-    // position courante + cercle de précision (~5m)
+    // position courante + cercle de précision (rayon = précision réelle)
     if (curPos) {
       L.circle([curPos.lat, curPos.lng], {
-        radius: Math.max(curPos.accuracy || 5, 5),
+        radius: Math.max(curPos.accuracy || 1, 1),
         color: colors.info,
         weight: 1,
         fillColor: colors.info,
@@ -347,14 +405,29 @@ export const ZoneTracer: React.FC<ZoneTracerProps> = ({
         </span>
         {pos && (
           <span>
-            Précision : <strong>~{Math.round(pos.accuracy)}m</strong>
+            Précision :{' '}
+            <strong style={{ color: accuracyQuality(pos.accuracy).color }}>
+              ~{Math.round(pos.accuracy)} m ({accuracyQuality(pos.accuracy).label})
+            </strong>
+          </span>
+        )}
+        {bestAccuracy != null && (
+          <span>
+            Meilleure : <strong>~{Math.round(bestAccuracy)} m</strong>
           </span>
         )}
       </InfoBar>
+      {watching && pos && pos.accuracy > ACCEPT_ACCURACY_M && (
+        <Hint style={{ color: colors.warning, fontWeight: 600 }}>
+          Précision faible (~{Math.round(pos.accuracy)} m). Patientez : le GPS converge…
+          (activez la localisation précise, placez-vous près d'une fenêtre ou en extérieur).
+        </Hint>
+      )}
       <Hint>
-        Cliquez sur la carte pour placer des points (ou « Ajouter ma position »). Déplacez-vous autour
-        de la zone pour un tracé précis (~5 m). Le premier point relie vos déplacements : les 3 premiers
-        points définissent le polygone.
+        Cliquez sur la carte pour placer des points, ou utilisez « Suivre ma position » puis
+        « Ajouter ma position » pour poser un point au meilleur emplacement capté. Le GPS met
+        quelques secondes à converger : la précision affichée doit descendre vers ~5 m avant de
+        valider. Les 3 premiers points définissent le polygone.
       </Hint>
     </TraceWrap>
   );

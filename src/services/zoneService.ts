@@ -21,6 +21,9 @@ export interface Zone {
   created_at: string;
   updated_at: string;
   polygon: [number, number][];
+  has_automatic_withdrawal?: boolean;
+  automatic_withdrawal_enabled?: boolean;
+  automatic_withdrawal_contact?: string | null;
 }
 
 export interface ZoneRouter {
@@ -69,6 +72,8 @@ export interface ZoneWithdrawal {
   fee_amount: string;
   recipient_number: string;
   provider: string;
+  contact_id: string | null;
+  contact_fee_percentage: string | null;
   payout_reference: string;
   status: string;
   status_display: string;
@@ -77,6 +82,30 @@ export interface ZoneWithdrawal {
   company_approved_at: string | null;
   approved_at: string | null;
   completed_at: string | null;
+  created_at: string;
+}
+
+export interface ZoneWithdrawalContact {
+  id: string;
+  zone_id: string;
+  zone_name: string;
+  company_id: string;
+  manager_id: string | null;
+  manager_email: string | null;
+  label: string;
+  number: string;
+  provider: string;
+  fee_percentage: string;
+  status: string;
+  status_display: string;
+  is_validated: boolean;
+  created_by: string | null;
+  company_approved_by: string | null;
+  company_approved_at: string | null;
+  validated_by: string | null;
+  validated_at: string | null;
+  revoked_at: string | null;
+  rejection_reason: string;
   created_at: string;
 }
 
@@ -91,10 +120,29 @@ export interface ZonePayment {
   completed_at: string | null;
 }
 
+export interface ZoneAutomaticWithdrawal {
+  id: string;
+  zone_id: string;
+  company_id: string;
+  manager_id: string | null;
+  contact_id: string | null;
+  is_enabled: boolean;
+  minimum_amount: string;
+  withdraw_full_balance: boolean;
+  fixed_amount: string | null;
+  last_processed_at: string | null;
+  last_withdrawal_id: string | null;
+  last_error: string;
+  consecutive_failures: number;
+  created_at: string;
+}
+
 export interface ZoneDetail extends Zone {
   routers: ZoneRouter[];
   managers: ZoneManager[];
   withdrawals: ZoneWithdrawal[];
+  withdrawal_contacts: ZoneWithdrawalContact[];
+  automatic_withdrawal: ZoneAutomaticWithdrawal | null;
 }
 
 export interface ZonePaymentsData {
@@ -114,6 +162,8 @@ export interface MyZoneItem extends ZoneManager {
   associate_balance: string;
   company_name: string;
   currency_code: string;
+  automatic_withdrawal_enabled?: boolean;
+  automatic_withdrawal_contact?: string | null;
 }
 
 const handle = <T>(res: { data: T }, fallback: T): T => {
@@ -202,7 +252,7 @@ export const zonesApi = {
   },
 
   // Associés
-  async addManager(zoneId: string, data: { email: string; percentage?: number; initial_password?: string }): Promise<ZoneManager> {
+  async addManager(zoneId: string, data: { email: string; percentage?: number; initial_password?: string; create_account?: boolean }): Promise<ZoneManager> {
     const res = await api.post(`/zones/${zoneId}/managers/`, data);
     return handle(res, {} as any).manager;
   },
@@ -222,6 +272,69 @@ export const zonesApi = {
     return handle(res, {} as any).manager;
   },
 
+  // Contacts de retrait
+  async withdrawalContacts(zoneId: string): Promise<ZoneWithdrawalContact[]> {
+    const res = await api.get(`/zones/${zoneId}/withdrawal-contacts/`);
+    return handle(res, {} as any).contacts || [];
+  },
+
+  async allWithdrawalContacts(status?: string): Promise<ZoneWithdrawalContact[]> {
+    const res = await api.get('/zone-withdrawal-contacts/', { params: status ? { status } : {} });
+    return handle(res, {} as any).contacts || [];
+  },
+
+  async addWithdrawalContact(zoneId: string, data: { number: string; provider?: string; label?: string; manager_id?: string; email?: string }): Promise<ZoneWithdrawalContact> {
+    const res = await api.post(`/zones/${zoneId}/withdrawal-contacts/`, data);
+    return handle(res, {} as any).contact;
+  },
+
+  async companyApproveContact(contactId: string): Promise<ZoneWithdrawalContact> {
+    const res = await api.post(`/zone-withdrawal-contacts/${contactId}/company-approve/`);
+    return handle(res, {} as any).contact;
+  },
+
+  async validateContact(contactId: string, fee_percentage: number): Promise<ZoneWithdrawalContact> {
+    const res = await api.post(`/zone-withdrawal-contacts/${contactId}/validate/`, { fee_percentage });
+    return handle(res, {} as any).contact;
+  },
+
+  async rejectContact(contactId: string, reason?: string): Promise<ZoneWithdrawalContact> {
+    const res = await api.post(`/zone-withdrawal-contacts/${contactId}/reject/`, { reason });
+    return handle(res, {} as any).contact;
+  },
+
+  async revokeContact(contactId: string): Promise<ZoneWithdrawalContact> {
+    const res = await api.post(`/zone-withdrawal-contacts/${contactId}/revoke/`);
+    return handle(res, {} as any).contact;
+  },
+
+  // Retrait automatique
+  async getAutoWithdrawal(zoneId: string): Promise<ZoneAutomaticWithdrawal | null> {
+    const res = await api.get(`/zones/${zoneId}/automatic-withdrawal/`);
+    return handle(res, {} as any).automatic_withdrawal;
+  },
+
+  async saveAutoWithdrawal(zoneId: string, data: {
+    is_enabled?: boolean;
+    minimum_amount?: number;
+    withdraw_full_balance?: boolean;
+    fixed_amount?: number | null;
+    contact_id?: string | null;
+  }): Promise<ZoneAutomaticWithdrawal> {
+    const res = await api.post(`/zones/${zoneId}/automatic-withdrawal/`, data);
+    return handle(res, {} as any).automatic_withdrawal;
+  },
+
+  async runAutoWithdrawal(zoneId: string): Promise<ZoneAutomaticWithdrawal> {
+    const res = await api.post(`/zones/${zoneId}/automatic-withdrawal/run/`);
+    return handle(res, {} as any).automatic_withdrawal;
+  },
+
+  async deleteAutoWithdrawal(zoneId: string): Promise<void> {
+    const res = await api.delete(`/zones/${zoneId}/automatic-withdrawal/`);
+    handle(res, {} as any);
+  },
+
   // Retraits
   async withdrawals(status?: string): Promise<ZoneWithdrawal[]> {
     const res = await api.get('/zone-withdrawals/', { params: status ? { status } : {} });
@@ -232,8 +345,9 @@ export const zonesApi = {
     zone_id: string;
     amount: number;
     currency?: string;
-    recipient_number: string;
+    recipient_number?: string;
     provider?: string;
+    contact_id?: string;
   }): Promise<ZoneWithdrawal> {
     const res = await api.post('/zone-withdrawals/create/', data);
     return handle(res, {} as any).withdrawal;

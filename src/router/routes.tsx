@@ -95,7 +95,7 @@ export const routes: RouteConfig[] = [
 export const dashboardSections = [
     { id: 'overview', label: 'Overview', path: '/dashboard/overview' },
     { id: 'business', label: 'Business', path: '/dashboard/business' },
-    { id: 'offers', label: 'Offers & Products', path: '/dashboard/offers' },
+    { id: 'offers', label: 'Offers & Groups', path: '/dashboard/offers' },
     { id: 'payments', label: 'Payments', path: '/dashboard/payments' },
     { id: 'tickets', label: 'Tickets', path: '/dashboard/tickets' },
     { id: 'transactions', label: 'Transactions', path: '/dashboard/transactions' },

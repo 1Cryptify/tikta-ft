@@ -13,9 +13,8 @@ import { SettingsPage } from './SettingsPage';
 import { NotificationsPage } from './NotificationsPage';
 import { SupportPage } from './SupportPage';
 import { PaymentMethodsCurrencyPage } from './PaymentMethodsCurrencyPage';
-import { ZonesPage } from './ZonesPage';
-import { MyZonesPage } from './MyZonesPage';
-import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiTag, FiSliders, FiBell, FiMessageSquare, FiMapPin, FiMap } from 'react-icons/fi';
+import { ZonesHubPage } from './ZonesHubPage';
+import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiTag, FiSliders, FiBell, FiMessageSquare, FiMapPin } from 'react-icons/fi';
 
 interface DashboardProps {
     user: User;
@@ -69,7 +68,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
         if (path.includes('payments')) return 'payments';
         if (path.includes('payment-config')) return 'payment_config';
         if (path.includes('zones')) return 'zones';
-        if (path.includes('mes-zones')) return 'mes_zones';
         if (path.includes('tickets')) return 'tickets';
         if (path.includes('transactions')) return 'transactions';
         if (path.includes('settings')) return 'settings';
@@ -98,7 +96,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
             },
             {
                 id: 'offers_produits',
-                label: 'Offers & Products',
+                label: 'Offers & Groups',
                 icon: <FiShoppingBag size={20} />,
                 active: activeNav === 'offers_produits',
                 onClick: () => navigate('/dashboard/offers'),
@@ -125,13 +123,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 icon: <FiMapPin size={20} />,
                 active: activeNav === 'zones',
                 onClick: () => navigate('/dashboard/zones'),
-            },
-            {
-                id: 'mes_zones',
-                label: 'Mes Zones',
-                icon: <FiMap size={20} />,
-                active: activeNav === 'mes_zones',
-                onClick: () => navigate('/dashboard/mes-zones'),
             },
             {
                 id: 'tickets',
@@ -198,8 +189,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                         )
                     } 
                 />
-                <Route path="/zones" element={<ZonesPage />} />
-                <Route path="/mes-zones" element={<MyZonesPage />} />
+                <Route path="/zones" element={<ZonesHubPage />} />
+                <Route path="/mes-zones" element={<Navigate to="/dashboard/zones" replace />} />
                 <Route path="/tickets" element={<TicketsPage />} />
                 <Route path="/notifications" element={<NotificationsPage />} />
                 <Route path="/support" element={<SupportPage />} />

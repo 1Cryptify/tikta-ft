@@ -422,4 +422,35 @@ export const paymentService = {
     if (!response.ok) throw new Error('Failed to fetch company logs');
     return response.json();
   },
+
+  // ============ Public ticket recovery ============
+
+  /**
+   * Recover ticket(s) from a Mobile Money transaction ID (public, no auth).
+   * Returns the backend payload, or `{ status: 'rate_limited', retryAfter }`
+   * when the server asks us to wait (HTTP 429).
+   */
+  async recoverTicket(transactionReference: string, fingerprint: string) {
+    const response = await fetch(`${API_BASE}/recover-ticket/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        transaction_reference: transactionReference,
+        fingerprint,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({} as any));
+
+    if (response.status === 429) {
+      const retryAfter = parseInt(response.headers.get('Retry-After') || '60', 10);
+      return {
+        status: 'rate_limited',
+        message: data?.message || 'Too many requests. Please wait.',
+        retryAfter: Number.isFinite(retryAfter) ? retryAfter : 60,
+      };
+    }
+
+    return data;
+  },
 };
