@@ -24,6 +24,7 @@ export interface Zone {
   has_automatic_withdrawal?: boolean;
   automatic_withdrawal_enabled?: boolean;
   automatic_withdrawal_contact?: string | null;
+  automatic_withdrawal_contacts?: string[];
 }
 
 export interface ZoneRouter {
@@ -48,6 +49,7 @@ export interface ZoneManager {
   user_id: string | null;
   has_account: boolean;
   percentage: number;
+  balance?: string;
   status: string;
   status_display: string;
   created_at: string;
@@ -125,7 +127,9 @@ export interface ZoneAutomaticWithdrawal {
   zone_id: string;
   company_id: string;
   manager_id: string | null;
+  manager_email: string | null;
   contact_id: string | null;
+  contact_number: string | null;
   is_enabled: boolean;
   minimum_amount: string;
   withdraw_full_balance: boolean;
@@ -142,7 +146,7 @@ export interface ZoneDetail extends Zone {
   managers: ZoneManager[];
   withdrawals: ZoneWithdrawal[];
   withdrawal_contacts: ZoneWithdrawalContact[];
-  automatic_withdrawal: ZoneAutomaticWithdrawal | null;
+  automatic_withdrawals: ZoneAutomaticWithdrawal[];
 }
 
 export interface ZonePaymentsData {
@@ -308,13 +312,14 @@ export const zonesApi = {
     return handle(res, {} as any).contact;
   },
 
-  // Retrait automatique
-  async getAutoWithdrawal(zoneId: string): Promise<ZoneAutomaticWithdrawal | null> {
+  // Retrait automatique (un par associé)
+  async getAutoWithdrawals(zoneId: string): Promise<ZoneAutomaticWithdrawal[]> {
     const res = await api.get(`/zones/${zoneId}/automatic-withdrawal/`);
-    return handle(res, {} as any).automatic_withdrawal;
+    return handle(res, {} as any).automatic_withdrawals || [];
   },
 
   async saveAutoWithdrawal(zoneId: string, data: {
+    manager_id: string;
     is_enabled?: boolean;
     minimum_amount?: number;
     withdraw_full_balance?: boolean;
@@ -325,13 +330,13 @@ export const zonesApi = {
     return handle(res, {} as any).automatic_withdrawal;
   },
 
-  async runAutoWithdrawal(zoneId: string): Promise<ZoneAutomaticWithdrawal> {
+  async runAutoWithdrawal(zoneId: string): Promise<any> {
     const res = await api.post(`/zones/${zoneId}/automatic-withdrawal/run/`);
-    return handle(res, {} as any).automatic_withdrawal;
+    return handle(res, {} as any);
   },
 
-  async deleteAutoWithdrawal(zoneId: string): Promise<void> {
-    const res = await api.delete(`/zones/${zoneId}/automatic-withdrawal/`);
+  async deleteAutoWithdrawal(configId: string): Promise<void> {
+    const res = await api.delete(`/zone-automatic-withdrawals/${configId}/`);
     handle(res, {} as any);
   },
 

@@ -53,9 +53,12 @@ const FormGroup = styled.div`
 `;
 
 const CheckRow = styled.label`
-  display: flex; align-items: center; gap: ${spacing.sm}; font-size: 0.85rem;
-  color: ${colors.textPrimary}; cursor: pointer; margin-top: ${spacing.xs};
-  input { width: auto; }
+  display: flex; align-items: center; gap: ${spacing.sm}; font-size: 0.88rem;
+  color: ${colors.textPrimary}; cursor: pointer; margin-top: ${spacing.xs}; user-select: none;
+  input[type='checkbox'] {
+    width: 18px; height: 18px; min-width: 18px; padding: 0; margin: 0;
+    accent-color: ${colors.primary}; cursor: pointer; flex: 0 0 auto;
+  }
 `;
 
 const PrimaryButton = styled.button`

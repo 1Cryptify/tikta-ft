@@ -21,6 +21,13 @@ import { OfferModal } from '../components/OfferModal';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 import { getMediaUrl } from '../services/api';
 
+const Container = styled.div`
+  padding: ${spacing.xl};
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+`;
+
 const Header = styled.div`
   margin-bottom: ${spacing.xxl};
 
@@ -1137,6 +1144,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
 
     return (
         <>
+            <Container>
             <Header>
                 <h2>Offers & Groups</h2>
             </Header>
@@ -1533,6 +1541,8 @@ export const OffersList: React.FC<OffersListProps> = () => {
                     )}
                 </>
             )}
+
+            </Container>
 
             <OfferModal
                 isOpen={isModalOpen}

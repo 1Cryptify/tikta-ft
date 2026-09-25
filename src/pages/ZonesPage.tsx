@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
-import { zonesApi, Zone, ZoneDetail, ZoneRouter, ZoneManager, ZoneWithdrawal, ZoneWithdrawalContact, ZonePayment, ZonePaymentsData } from '../services/zoneService';
+import { zonesApi, Zone, ZoneDetail, ZoneRouter, ZoneManager, ZoneWithdrawal, ZoneWithdrawalContact, ZoneAutomaticWithdrawal, ZonePayment, ZonePaymentsData } from '../services/zoneService';
 import { useAuth } from '../hooks/useAuth';
 import { ZoneTracer } from './ZoneTracer';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -691,10 +691,10 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
             )}
             <PrimaryButton type="submit">Ajouter</PrimaryButton>
           </form>
-          <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.lg, cursor: 'pointer', fontSize: '0.82rem', color: colors.textSecondary }}>
+          <CheckLine style={{ marginBottom: spacing.lg }}>
             <input type="checkbox" checked={!managerForm.create_account} onChange={(e) => setManagerForm({ ...managerForm, create_account: !e.target.checked })} />
-            Associé <strong>sans compte</strong> (dividendes payés automatiquement via un contact de retrait)
-          </label>
+            <span>Associé <strong>sans compte</strong> (dividendes payés automatiquement via un contact de retrait)</span>
+          </CheckLine>
           {zone.managers?.length ? (
             <Table>
               <thead><tr><th>Email</th><th>Compte</th><th>% Associé</th><th>Statut</th><th>Confirmé le</th><th></th></tr></thead>

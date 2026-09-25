@@ -146,6 +146,20 @@ const FormGroup = styled.div`
     font-size: 0.9rem; color: ${colors.textPrimary};
     &:focus { outline: none; border-color: ${colors.primary}; box-shadow: 0 0 0 3px ${colors.primary}20; }
   }
+  input[type='checkbox'] {
+    width: 18px; height: 18px; min-width: 18px; padding: 0; margin: 0;
+    accent-color: ${colors.primary}; cursor: pointer; flex: 0 0 auto;
+  }
+`;
+
+const CheckLine = styled.label`
+  display: flex; align-items: center; gap: ${spacing.sm};
+  font-size: 0.88rem; color: ${colors.textPrimary}; cursor: pointer;
+  padding: ${spacing.xs} 0; user-select: none;
+  input[type='checkbox'] {
+    width: 18px; height: 18px; min-width: 18px; padding: 0; margin: 0;
+    accent-color: ${colors.primary}; cursor: pointer; flex: 0 0 auto;
+  }
 `;
 
 const FormRow = styled.div`
@@ -417,7 +431,11 @@ export const MyZonesPage: React.FC = () => {
                       <span>Votre part : <strong>{m.percentage}%</strong></span>
                       <span>Revenus générés : <strong>{fmt(m.total_generated)} {m.currency_code}</strong></span>
                       <span>Solde associé : <strong>{fmt(m.associate_balance)} {m.currency_code}</strong></span>
-                      <span>Retrait auto : <strong style={{ color: m.automatic_withdrawal_enabled ? colors.success : colors.textSecondary }}>{m.automatic_withdrawal_enabled ? 'Activé' : 'Désactivé'}</strong></span>
+                      <span>
+                        Retrait auto : <strong style={{ color: m.automatic_withdrawal_enabled ? colors.success : colors.textSecondary }}>
+                          {m.automatic_withdrawal_enabled ? `Activé → ${m.automatic_withdrawal_contact || 'contact'}` : 'Désactivé'}
+                        </strong>
+                      </span>
                     </CardMeta>
                     <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
                       <GhostButton
@@ -616,19 +634,20 @@ export const MyZonesPage: React.FC = () => {
                       <option key={c.id} value={c.id}>{c.number}{c.label ? ` — ${c.label}` : ''} · frais {c.fee_percentage}%</option>
                     ))}
                   </select>
+                  {(() => {
+                    const cur = contacts.find((c) => c.id === autoForm.contact_id);
+                    return (
+                      <div style={{ marginTop: spacing.xs, fontSize: '0.78rem', color: cur ? colors.success : colors.textSecondary }}>
+                        {cur ? `Contact payé : ${cur.number}${cur.label ? ` — ${cur.label}` : ''} (frais ${cur.fee_percentage}%)` : 'Aucun contact sélectionné'}
+                      </div>
+                    );
+                  })()}
                 </FormGroup>
                 <FormGroup>
                   <label>Seuil de déclenchement ({autoFor.currency_code})</label>
                   <input type="number" min={0} step={50} value={autoForm.minimum_amount}
                     onChange={(e) => setAutoForm({ ...autoForm, minimum_amount: e.target.value })}
                     placeholder="Ex: 5000" />
-                </FormGroup>
-                <FormGroup>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
-                    <input type="checkbox" checked={autoForm.withdraw_full_balance}
-                      onChange={(e) => setAutoForm({ ...autoForm, withdraw_full_balance: e.target.checked })} />
-                    Retirer tout le solde atteint
-                  </label>
                 </FormGroup>
                 {!autoForm.withdraw_full_balance && (
                   <FormGroup>
@@ -638,11 +657,17 @@ export const MyZonesPage: React.FC = () => {
                   </FormGroup>
                 )}
                 <FormGroup>
-                  <label style={{ display: 'flex', alignItems: 'center', gap: spacing.sm }}>
+                  <label>Options</label>
+                  <CheckLine>
+                    <input type="checkbox" checked={autoForm.withdraw_full_balance}
+                      onChange={(e) => setAutoForm({ ...autoForm, withdraw_full_balance: e.target.checked })} />
+                    Retirer tout le solde atteint
+                  </CheckLine>
+                  <CheckLine>
                     <input type="checkbox" checked={autoForm.is_enabled}
                       onChange={(e) => setAutoForm({ ...autoForm, is_enabled: e.target.checked })} />
                     Activer le retrait automatique
-                  </label>
+                  </CheckLine>
                 </FormGroup>
                 <ModalFooter>
                   <div style={{ marginRight: 'auto', display: 'flex', gap: spacing.sm }}>
