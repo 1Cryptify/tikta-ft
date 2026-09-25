@@ -77,8 +77,9 @@ interface UseAuthReturn extends AuthState {
     updateProfile: (data: { first_name?: string; last_name?: string }) => Promise<{ success: boolean; error?: string }>;
     getSessions: () => Promise<{ sessions: any[]; error?: string }>;
     revokeSession: (sessionKeyPrefix: string) => Promise<{ success: boolean; error?: string }>;
-    getNotifications: (unreadOnly?: boolean) => Promise<{ notifications: NotificationItem[]; unread_count: number; error?: string }>;
+    getNotifications: (unreadOnly?: boolean, page?: number) => Promise<{ notifications: NotificationItem[]; unread_count: number; page: number; page_size: number; total_count: number; total_pages: number; has_next: boolean; has_previous: boolean; error?: string }>;
     markNotificationRead: (notificationId?: string, markAll?: boolean) => Promise<{ success: boolean; error?: string }>;
+    deleteNotification: (notificationId?: string, deleteAllRead?: boolean) => Promise<{ success: boolean; deleted?: number; error?: string }>;
     getNotificationPreferences: () => Promise<{ preferences: Record<string, boolean>; types: { key: string; label: string }[]; error?: string }>;
     updateNotificationPreferences: (preferences: Record<string, boolean>) => Promise<{ success: boolean; error?: string }>;
 }
@@ -415,21 +416,40 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         }
     }, [getCurrentUser]);
 
-    // Get notifications
-    const getNotifications = useCallback(async (unreadOnly = false) => {
+    // Get notifications (paginated, 10 per page)
+    const getNotifications = useCallback(async (unreadOnly = false, page = 1) => {
+        const empty = {
+            notifications: [] as NotificationItem[],
+            unread_count: 0,
+            page: 1,
+            page_size: 10,
+            total_count: 0,
+            total_pages: 1,
+            has_next: false,
+            has_previous: false,
+        };
         try {
             const response = await axiosInstance.get('/notifications/', {
-                params: { unread: unreadOnly ? 'true' : 'false' },
+                params: {
+                    unread: unreadOnly ? 'true' : 'false',
+                    page,
+                },
             });
             if (response.data.status === 'success') {
                 return {
                     notifications: response.data.notifications || [],
                     unread_count: response.data.unread_count || 0,
+                    page: response.data.page || 1,
+                    page_size: response.data.page_size || 10,
+                    total_count: response.data.total_count || 0,
+                    total_pages: response.data.total_pages || 1,
+                    has_next: !!response.data.has_next,
+                    has_previous: !!response.data.has_previous,
                 };
             }
-            return { notifications: [], unread_count: 0, error: response.data.message || 'Failed to fetch notifications' };
+            return { ...empty, error: response.data.message || 'Failed to fetch notifications' };
         } catch (error) {
-            return { notifications: [], unread_count: 0, error: extractErrorMessage(error, 'An error occurred') };
+            return { ...empty, error: extractErrorMessage(error, 'An error occurred') };
         }
     }, []);
 
@@ -444,6 +464,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                 return { success: true };
             }
             return { success: false, error: response.data.message || 'Failed to mark notification as read' };
+        } catch (error) {
+            return { success: false, error: extractErrorMessage(error, 'An error occurred') };
+        }
+    }, []);
+
+    // Delete notification(s)
+    const deleteNotification = useCallback(async (notificationId?: string, deleteAllRead = false) => {
+        try {
+            const response = await axiosInstance.post('/notifications/delete/', {
+                notification_id: notificationId,
+                delete_all_read: deleteAllRead,
+            });
+            if (response.data.status === 'success') {
+                return { success: true, deleted: response.data.deleted };
+            }
+            return { success: false, error: response.data.message || 'Failed to delete notification' };
         } catch (error) {
             return { success: false, error: extractErrorMessage(error, 'An error occurred') };
         }
@@ -527,6 +563,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         revokeSession,
         getNotifications,
         markNotificationRead,
+        deleteNotification,
         getNotificationPreferences,
         updateNotificationPreferences,
     };

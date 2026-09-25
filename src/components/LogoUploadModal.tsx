@@ -140,17 +140,17 @@ const PreviewPlaceholder = styled.div`
 `;
 
 const UploadZone = styled.div<{ isDragging?: boolean }>`
-  border: 2px dashed #dee2e6;
+  border: 2px dashed #d7dde3;
   border-radius: 8px;
   padding: 2rem;
   text-align: center;
   cursor: pointer;
   transition: all 0.3s ease;
   background: ${(props) => (props.isDragging ? '#f0f6ff' : '#f8f9fa')};
-  border-color: ${(props) => (props.isDragging ? '#007bff' : '#dee2e6')};
+  border-color: ${(props) => (props.isDragging ? '#1e3a5f' : '#d7dde3')};
 
   &:hover {
-    border-color: #007bff;
+    border-color: #1e3a5f;
     background: #f0f6ff;
   }
 
@@ -161,7 +161,7 @@ const UploadZone = styled.div<{ isDragging?: boolean }>`
 
 const UploadIcon = styled.div`
   font-size: 2.5rem;
-  color: #007bff;
+  color: #1e3a5f;
   margin-bottom: 0.5rem;
 `;
 
@@ -213,13 +213,13 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
     switch (props.variant) {
       case 'primary':
         return `
-          background-color: #007bff;
+          background-color: #1e3a5f;
           color: white;
           border: none;
 
           &:hover:not(:disabled) {
-            background-color: #0056b3;
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            background-color: #152d47;
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
           }
 
           &:disabled {
@@ -231,7 +231,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
         return `
           background-color: white;
           color: #495057;
-          border: 1px solid #dee2e6;
+          border: 1px solid #d7dde3;
 
           &:hover {
             background-color: #f8f9fa;

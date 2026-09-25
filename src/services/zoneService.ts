@@ -46,6 +46,8 @@ export interface ZoneManager {
   zone_name: string;
   company_id: string;
   email: string;
+  phone?: string;
+  display?: string;
   user_id: string | null;
   has_account: boolean;
   percentage: number;
@@ -94,6 +96,8 @@ export interface ZoneWithdrawalContact {
   company_id: string;
   manager_id: string | null;
   manager_email: string | null;
+  manager_phone?: string | null;
+  manager_display?: string | null;
   label: string;
   number: string;
   provider: string;
@@ -158,6 +162,43 @@ export interface ZonePaymentsData {
     area_sqm: string;
     routers_count: number;
   };
+}
+
+export interface StatsPoint {
+  month: string;
+  revenue: string;
+  withdrawn: string;
+}
+
+export interface AssociateStats {
+  currency_code: string;
+  totals: { revenue: string; withdrawn: string; balance: string };
+  months: StatsPoint[];
+  zones: { zone_id: string; zone_name: string; revenue: string; withdrawn: string }[];
+  managers: ZoneManager[];
+}
+
+export interface CompanyStats {
+  currency_code: string;
+  kpi: {
+    total_revenue: string;
+    total_withdrawn: string;
+    available_balance: string;
+    payments_count: number;
+    zones_count: number;
+  };
+  months: StatsPoint[];
+  zones: {
+    zone_id: string;
+    name: string;
+    color: string;
+    total_generated: string;
+    associate_balance: string;
+    area_sqm: string;
+    revenue: string;
+    payments_count: number;
+    is_active: boolean;
+  }[];
 }
 
 export interface MyZoneItem extends ZoneManager {
@@ -256,7 +297,7 @@ export const zonesApi = {
   },
 
   // Associés
-  async addManager(zoneId: string, data: { email: string; percentage?: number; initial_password?: string; create_account?: boolean }): Promise<ZoneManager> {
+  async addManager(zoneId: string, data: { email?: string; phone?: string; percentage?: number; initial_password?: string; create_account?: boolean }): Promise<ZoneManager> {
     const res = await api.post(`/zones/${zoneId}/managers/`, data);
     return handle(res, {} as any).manager;
   },
@@ -371,5 +412,16 @@ export const zonesApi = {
   async rejectWithdrawal(withdrawalId: string): Promise<ZoneWithdrawal> {
     const res = await api.post(`/zone-withdrawals/${withdrawalId}/reject/`);
     return handle(res, {} as any).withdrawal;
+  },
+
+  // Statistiques historiques
+  async associateStats(months = 12): Promise<AssociateStats> {
+    const res = await api.get('/associate-stats/', { params: { months } });
+    return handle(res, {} as any);
+  },
+
+  async companyStats(months = 12): Promise<CompanyStats> {
+    const res = await api.get('/company-stats/', { params: { months } });
+    return handle(res, {} as any);
   },
 };

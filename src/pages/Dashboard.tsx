@@ -14,7 +14,8 @@ import { NotificationsPage } from './NotificationsPage';
 import { SupportPage } from './SupportPage';
 import { PaymentMethodsCurrencyPage } from './PaymentMethodsCurrencyPage';
 import { ZonesHubPage } from './ZonesHubPage';
-import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiTag, FiSliders, FiBell, FiMessageSquare, FiMapPin } from 'react-icons/fi';
+import ContractPage from './ContractPage';
+import { FiBarChart2, FiCreditCard, FiTrendingUp, FiSettings, FiShoppingBag, FiBriefcase, FiTag, FiSliders, FiBell, FiMessageSquare, FiMapPin, FiFileText } from 'react-icons/fi';
 
 interface DashboardProps {
     user: User;
@@ -65,8 +66,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
         // if (path.includes('overview') || path === '/dashboard' || path === '/dashboard/') return 'overview';
         if (path.includes('business')) return 'business';
         if (path.includes('offers')) return 'offers_produits';
-        if (path.includes('payments')) return 'payments';
         if (path.includes('payment-config')) return 'payment_config';
+        if (path.includes('payments')) return 'payments';
+        if (path.includes('contract')) return 'contract';
         if (path.includes('zones')) return 'zones';
         if (path.includes('tickets')) return 'tickets';
         if (path.includes('transactions')) return 'transactions';
@@ -114,6 +116,15 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 icon: <FiSliders size={20} />,
                 active: activeNav === 'payment_config',
                 onClick: () => navigate('/dashboard/payment-config'),
+                restricted: true,
+                allowedRoles: [UserRole.SUPER_ADMIN, UserRole.STAFF],
+            },
+            {
+                id: 'contract',
+                label: 'Contract',
+                icon: <FiFileText size={20} />,
+                active: activeNav === 'contract',
+                onClick: () => navigate('/dashboard/contract'),
                 restricted: true,
                 allowedRoles: [UserRole.SUPER_ADMIN, UserRole.STAFF],
             },
@@ -188,6 +199,16 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                             <Navigate to="/dashboard/overview" replace />
                         )
                     } 
+                />
+                <Route
+                    path="/contract"
+                    element={
+                        [UserRole.SUPER_ADMIN, UserRole.STAFF].includes(userRole) ? (
+                            <ContractPage />
+                        ) : (
+                            <Navigate to="/dashboard/overview" replace />
+                        )
+                    }
                 />
                 <Route path="/zones" element={<ZonesHubPage />} />
                 <Route path="/mes-zones" element={<Navigate to="/dashboard/zones" replace />} />

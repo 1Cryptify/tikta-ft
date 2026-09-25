@@ -30,13 +30,13 @@ const Header = styled.div`
 const IconWrapper = styled.div`
   width: 64px;
   height: 64px;
-  background: rgba(0, 123, 255, 0.1);
+  background: rgba(30, 58, 95, 0.12);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   margin: 0 auto 1rem;
-  color: #007bff;
+  color: #1e3a5f;
 `;
 
 const Title = styled.h1`
@@ -63,15 +63,15 @@ const InputGroup = styled.div`
 const Input = styled.input`
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid #d7dde3;
   border-radius: 8px;
   font-size: 0.95rem;
   transition: border-color 0.3s ease;
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 
   &:disabled {
@@ -92,7 +92,7 @@ const InputIcon = styled.div`
 const SubmitButton = styled.button`
   width: 100%;
   padding: 0.9rem;
-  background-color: #007bff;
+  background-color: #1e3a5f;
   color: white;
   border: none;
   border-radius: 8px;
@@ -106,7 +106,7 @@ const SubmitButton = styled.button`
   gap: 0.5rem;
 
   &:hover:not(:disabled) {
-    background-color: #0056b3;
+    background-color: #152d47;
   }
 
   &:disabled {

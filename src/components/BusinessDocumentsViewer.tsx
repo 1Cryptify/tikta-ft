@@ -45,15 +45,15 @@ const DocumentsList = styled.div`
 
 const DocumentCard = styled.div`
   background: white;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #d7dde3;
   border-radius: 8px;
   padding: 1.25rem;
   transition: all 0.3s ease;
   overflow: hidden;
 
   &:hover {
-    border-color: #007bff;
-    box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+    border-color: #1e3a5f;
+    box-shadow: 0 4px 12px rgba(30, 58, 95, 0.15);
   }
 `;
 
@@ -126,11 +126,11 @@ const ActionButton = styled.button<{ variant?: 'primary' | 'secondary' }>`
   transition: all 0.2s ease;
   flex: 1;
 
-  background-color: ${(props) => (props.variant === 'primary' ? '#007bff' : '#f0f0f0')};
+  background-color: ${(props) => (props.variant === 'primary' ? '#1e3a5f' : '#f0f0f0')};
   color: ${(props) => (props.variant === 'primary' ? 'white' : '#333')};
 
   &:hover {
-    background-color: ${(props) => (props.variant === 'primary' ? '#0056b3' : '#e0e0e0')};
+    background-color: ${(props) => (props.variant === 'primary' ? '#152d47' : '#d7dde3')};
   }
 
   &:active {
@@ -190,7 +190,7 @@ const ViewerHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #d7dde3;
   background: #f8f9fa;
 `;
 

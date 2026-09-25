@@ -47,7 +47,7 @@ const ModalHeader = styled.div`
     align-items: center;
     margin-bottom: ${spacing.lg};
     padding-bottom: ${spacing.md};
-    border-bottom: 1px solid #e0e0e0;
+    border-bottom: 1px solid #d7dde3;
 
     h2 {
         margin: 0;
@@ -96,15 +96,15 @@ const Label = styled.label`
 
 const Input = styled.input`
     padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    border: 1px solid #d7dde3;
+    border-radius: 8px;
     font-size: 0.875rem;
     font-family: inherit;
 
     &:focus {
         outline: none;
         border-color: ${colors.primary};
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
     }
 
     &:disabled {
@@ -115,15 +115,15 @@ const Input = styled.input`
 
 const Select = styled.select`
     padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    border: 1px solid #d7dde3;
+    border-radius: 8px;
     font-size: 0.875rem;
     font-family: inherit;
 
     &:focus {
         outline: none;
         border-color: ${colors.primary};
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
     }
 
     &:disabled {
@@ -134,8 +134,8 @@ const Select = styled.select`
 
 const TextArea = styled.textarea`
     padding: 8px 12px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    border: 1px solid #d7dde3;
+    border-radius: 8px;
     font-size: 0.875rem;
     font-family: inherit;
     resize: vertical;
@@ -144,7 +144,7 @@ const TextArea = styled.textarea`
     &:focus {
         outline: none;
         border-color: ${colors.primary};
-        box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+        box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
     }
 
     &:disabled {
@@ -159,13 +159,13 @@ const FormActions = styled.div`
     justify-content: flex-end;
     margin-top: ${spacing.lg};
     padding-top: ${spacing.md};
-    border-top: 1px solid #e0e0e0;
+    border-top: 1px solid #d7dde3;
 `;
 
 const CancelButton = styled.button`
     padding: 8px 16px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
+    border: 1px solid #d7dde3;
+    border-radius: 8px;
     background: white;
     color: ${colors.textPrimary};
     cursor: pointer;
@@ -188,7 +188,7 @@ const SubmitButton = styled.button`
     padding: 8px 16px;
     border: none;
     border-radius: 4px;
-    background: #007bff;
+    background: #1e3a5f;
     color: white;
     cursor: pointer;
     font-weight: 600;
@@ -200,7 +200,7 @@ const SubmitButton = styled.button`
     transition: all 0.2s ease;
 
     &:hover {
-        background: #0056b3;
+        background: #152d47;
     }
 
     &:disabled {

@@ -33,7 +33,7 @@ const Controls = styled.div`
   justify-content: space-between;
   padding: 0.75rem 1rem;
   background: #fff;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #d7dde3;
   gap: 1rem;
   flex-wrap: wrap;
 `;
@@ -50,7 +50,7 @@ const ControlButton = styled.button`
   justify-content: center;
   width: 36px;
   height: 36px;
-  border: 1px solid #ddd;
+  border: 1px solid #d7dde3;
   background: white;
   border-radius: 4px;
   cursor: pointer;
@@ -143,7 +143,7 @@ const LoadingSpinner = styled.div`
     width: 40px;
     height: 40px;
     border: 4px solid #f3f3f3;
-    border-top: 4px solid #007bff;
+    border-top: 4px solid #1e3a5f;
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
@@ -203,7 +203,7 @@ const WordContainer = styled.div`
     margin-bottom: 1rem;
 
     th, td {
-      border: 1px solid #ddd;
+      border: 1px solid #d7dde3;
       padding: 0.5rem;
       text-align: left;
     }

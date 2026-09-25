@@ -120,7 +120,7 @@ const DocumentsContainer = styled.div`
 `;
 
 const DocumentCard = styled.div`
-  border: 2px dashed #dee2e6;
+  border: 2px dashed #d7dde3;
   border-radius: 8px;
   padding: 1.5rem;
   text-align: center;
@@ -130,7 +130,7 @@ const DocumentCard = styled.div`
   position: relative;
 
   &:hover {
-    border-color: #007bff;
+    border-color: #1e3a5f;
     background: #f0f6ff;
   }
 
@@ -140,11 +140,11 @@ const DocumentCard = styled.div`
 `;
 
 const DocumentCardComplete = styled(DocumentCard) <{ isComplete: boolean }>`
-  border-color: ${(props) => (props.isComplete ? '#28a745' : '#dee2e6')};
+  border-color: ${(props) => (props.isComplete ? '#28a745' : '#d7dde3')};
   background: ${(props) => (props.isComplete ? '#f1f9f5' : '#f8f9fa')};
 
   &:hover {
-    border-color: ${(props) => (props.isComplete ? '#28a745' : '#007bff')};
+    border-color: ${(props) => (props.isComplete ? '#28a745' : '#1e3a5f')};
     background: ${(props) => (props.isComplete ? '#e8f5f0' : '#f0f6ff')};
   }
 `;
@@ -152,7 +152,7 @@ const DocumentCardComplete = styled(DocumentCard) <{ isComplete: boolean }>`
 const DocumentIcon = styled.div<{ isComplete: boolean }>`
   font-size: 2.5rem;
   margin-bottom: 0.5rem;
-  color: ${(props) => (props.isComplete ? '#28a745' : '#007bff')};
+  color: ${(props) => (props.isComplete ? '#28a745' : '#1e3a5f')};
 `;
 
 const DocumentLabel = styled.label`
@@ -207,8 +207,8 @@ const ProgressStep = styled.div<{ completed: boolean; active?: boolean }>`
         props.completed
             ? '#28a745'
             : props.active
-                ? '#007bff'
-                : '#dee2e6'};
+                ? '#1e3a5f'
+                : '#d7dde3'};
   transition: all 0.3s ease;
 `;
 
@@ -258,7 +258,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
                 return `
           background-color: white;
           color: #495057;
-          border: 1px solid #dee2e6;
+          border: 1px solid #d7dde3;
 
           &:hover {
             background-color: #f8f9fa;
@@ -383,11 +383,11 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
         isDocumentComplete(doc.key)
     ).length;
 
-    const isFormComplete = completedCount === DOCUMENT_TYPES.length;
+    const hasAnyFile = Object.values(files).some(Boolean);
 
     const handleSubmit = async () => {
-        if (!isFormComplete) {
-            alert('Veuillez compléter tous les documents');
+        if (!hasAnyFile) {
+            alert('Veuillez sélectionner au moins un document à uploader');
             return;
         }
 
@@ -432,7 +432,10 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                 <WarningMessage>
                     <FiAlertCircle size={20} />
                     <div>
-                        <div>All 4 documents must be uploaded to validate the business verification.</div>
+                        <div>
+                            Ces pièces sont optionnelles. Le <strong>contrat Tikta signé</strong> est le seul
+                            document obligatoire (gérez-le via le bouton « Contract »).
+                        </div>
                         <div style={{ marginTop: '0.5rem', fontSize: '0.85rem' }}>
                             Formats supportés: {SUPPORTED_FORMATS} (Max 10MB par fichier)
                         </div>
@@ -498,7 +501,7 @@ export const DocumentUploadModal: React.FC<DocumentUploadModalProps> = ({
                     <Button
                         variant="primary"
                         onClick={handleSubmit}
-                        disabled={!isFormComplete || isSubmitting}
+                        disabled={!hasAnyFile || isSubmitting}
                     >
                         <FiCheck /> {isSubmitting ? 'Validating...' : 'Validate'}
                     </Button>

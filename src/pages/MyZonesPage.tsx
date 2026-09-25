@@ -1,7 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
-import { zonesApi, MyZoneItem, ZoneWithdrawal, ZoneWithdrawalContact } from '../services/zoneService';
+import { zonesApi, MyZoneItem, ZoneWithdrawal, ZoneWithdrawalContact, AssociateStats } from '../services/zoneService';
+import { BarChart } from '../components/Charts/BarChart';
 import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -101,6 +102,39 @@ const EmptyState = styled.div`
   border-radius: ${borderRadius.md};
 `;
 
+const MenuNav = styled.div`
+  display: flex; gap: ${spacing.md}; margin-bottom: ${spacing.lg};
+  border-bottom: 1px solid ${colors.border};
+`;
+
+const MenuButton = styled.button<{ isActive: boolean }>`
+  background: none; border: none; padding: ${spacing.md} ${spacing.lg};
+  font-size: 0.95rem; cursor: pointer;
+  color: ${(p) => (p.isActive ? colors.primary : colors.textSecondary)};
+  border-bottom: 3px solid ${(p) => (p.isActive ? colors.primary : 'transparent')};
+  font-weight: ${(p) => (p.isActive ? '600' : '400')};
+  &:hover { color: ${colors.textPrimary}; }
+`;
+
+const Table = styled.table`
+  width: 100%; border-collapse: collapse; font-size: 0.82rem;
+  th { text-align: left; color: ${colors.textSecondary}; font-weight: 600; padding: ${spacing.sm}; border-bottom: 2px solid ${colors.border}; }
+  td { padding: ${spacing.sm}; border-bottom: 1px solid ${colors.border}; color: ${colors.textPrimary}; }
+  tr:hover td { background: ${colors.neutral}; }
+`;
+
+const MiniStat = styled.div`
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: ${spacing.md}; margin-bottom: ${spacing.lg};
+`;
+
+const StatBox = styled.div`
+  background: linear-gradient(135deg, ${colors.primary}12, ${colors.primary}04);
+  border: 1px solid ${colors.primary}30; border-radius: ${borderRadius.md}; padding: ${spacing.md};
+  .lbl { font-size: 0.72rem; color: ${colors.textSecondary}; text-transform: uppercase; letter-spacing: .5px; font-weight: 600; }
+  .val { font-size: 1.25rem; font-weight: 700; color: ${colors.primary}; }
+`;
+
 const ErrorMsg = styled.div`
   padding: ${spacing.md}; background: ${colors.error}15; border: 1px solid ${colors.error};
   border-radius: ${borderRadius.md}; color: ${colors.error}; margin-bottom: ${spacing.lg};
@@ -142,7 +176,7 @@ const FormGroup = styled.div`
   label { display: block; margin-bottom: ${spacing.xs}; color: ${colors.textPrimary}; font-weight: 500; font-size: 0.85rem; }
   input, select {
     width: 100%; padding: ${spacing.sm};
-    border: 1px solid ${colors.border}; border-radius: ${borderRadius.sm};
+    border: 1px solid ${colors.border}; border-radius: ${borderRadius.md};
     font-size: 0.9rem; color: ${colors.textPrimary};
     &:focus { outline: none; border-color: ${colors.primary}; box-shadow: 0 0 0 3px ${colors.primary}20; }
   }
@@ -221,6 +255,9 @@ export const MyZonesPage: React.FC = () => {
     contact_id: '',
   });
   const [submitting, setSubmitting] = useState(false);
+  const [view, setView] = useState<'zones' | 'stats'>('zones');
+  const [stats, setStats] = useState<AssociateStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
 
   const load = useCallback(async () => {
     setError('');
@@ -243,6 +280,21 @@ export const MyZonesPage: React.FC = () => {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  const loadStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      setStats(await zonesApi.associateStats(12));
+    } catch (e: any) {
+      setError(e.message || 'Impossible de charger les statistiques');
+    } finally {
+      setStatsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (view === 'stats') loadStats();
+  }, [view, loadStats]);
 
   const confirm = async (m: MyZoneItem) => {
     await zonesApi.confirmManager(m.id);
@@ -397,7 +449,61 @@ export const MyZonesPage: React.FC = () => {
       {error && <ErrorMsg>{error}</ErrorMsg>}
       {success && <SuccessMsg>{success}</SuccessMsg>}
 
-      {loading ? <LoadingSpinner /> : (
+      <MenuNav>
+        <MenuButton isActive={view === 'zones'} onClick={() => setView('zones')}>Mes zones</MenuButton>
+        <MenuButton isActive={view === 'stats'} onClick={() => setView('stats')}>Statistiques</MenuButton>
+      </MenuNav>
+
+      {view === 'stats' && (
+        statsLoading ? <LoadingSpinner /> : !stats ? (
+          <EmptyState>Aucune statistique disponible</EmptyState>
+        ) : (
+          <>
+            <SectionTitle>Vue d'ensemble</SectionTitle>
+            <MiniStat>
+              <StatBox><div className="lbl">Revenus générés</div><div className="val">{fmt(stats.totals.revenue)} {stats.currency_code}</div></StatBox>
+              <StatBox><div className="lbl">Total retiré</div><div className="val">{fmt(stats.totals.withdrawn)} {stats.currency_code}</div></StatBox>
+              <StatBox><div className="lbl">Solde associé</div><div className="val">{fmt(stats.totals.balance)} {stats.currency_code}</div></StatBox>
+            </MiniStat>
+
+            <SectionTitle>Revenus par mois</SectionTitle>
+            <Card>
+              <BarChart
+                labels={stats.months.map((m) => `${m.month.slice(5)}/${m.month.slice(2, 4)}`)}
+                series={[
+                  { label: 'Revenus', color: colors.primary, values: stats.months.map((m) => parseFloat(m.revenue) || 0) },
+                  { label: 'Retraits', color: colors.warning, values: stats.months.map((m) => parseFloat(m.withdrawn) || 0) },
+                ]}
+                formatValue={(n) => `${Math.round(n).toLocaleString('en-US')} ${stats.currency_code}`}
+              />
+            </Card>
+
+            <SectionTitle>Historique mensuel</SectionTitle>
+            <Table>
+              <thead><tr><th>Mois</th><th>Revenus</th><th>Retraits</th></tr></thead>
+              <tbody>
+                {stats.months.map((m) => (
+                  <tr key={m.month}><td>{m.month}</td><td>{fmt(m.revenue)}</td><td>{fmt(m.withdrawn)}</td></tr>
+                ))}
+              </tbody>
+            </Table>
+
+            <SectionTitle>Par zone</SectionTitle>
+            {stats.zones.length === 0 ? <EmptyState>Aucune donnée par zone</EmptyState> : (
+              <Table>
+                <thead><tr><th>Zone</th><th>Revenus</th><th>Retraits</th></tr></thead>
+                <tbody>
+                  {stats.zones.map((z) => (
+                    <tr key={z.zone_id}><td>{z.zone_name || '—'}</td><td>{fmt(z.revenue)}</td><td>{fmt(z.withdrawn)}</td></tr>
+                  ))}
+                </tbody>
+              </Table>
+            )}
+          </>
+        )
+      )}
+
+      {view === 'zones' && (loading ? <LoadingSpinner /> : (
         <>
           {pending.length > 0 && (
             <>
@@ -643,56 +749,4 @@ export const MyZonesPage: React.FC = () => {
                     const cur = contacts.find((c) => c.id === autoForm.contact_id);
                     return (
                       <div style={{ marginTop: spacing.xs, fontSize: '0.78rem', color: cur ? colors.success : colors.textSecondary }}>
-                        {cur ? `Contact payé : ${cur.number}${cur.label ? ` — ${cur.label}` : ''} (frais ${cur.fee_percentage}%)` : 'Aucun contact sélectionné'}
-                      </div>
-                    );
-                  })()}
-                </FormGroup>
-                <FormGroup>
-                  <label>Seuil de déclenchement ({autoFor.currency_code})</label>
-                  <input type="number" min={0} step={50} value={autoForm.minimum_amount}
-                    onChange={(e) => setAutoForm({ ...autoForm, minimum_amount: e.target.value })}
-                    placeholder="Ex: 5000" />
-                </FormGroup>
-                {!autoForm.withdraw_full_balance && (
-                  <FormGroup>
-                    <label>Montant fixe à retirer</label>
-                    <input type="number" min={50} step={50} value={autoForm.fixed_amount}
-                      onChange={(e) => setAutoForm({ ...autoForm, fixed_amount: e.target.value })} />
-                  </FormGroup>
-                )}
-                <FormGroup>
-                  <label>Options</label>
-                  <CheckLine>
-                    <input type="checkbox" checked={autoForm.withdraw_full_balance}
-                      onChange={(e) => setAutoForm({ ...autoForm, withdraw_full_balance: e.target.checked })} />
-                    Retirer tout le solde atteint
-                  </CheckLine>
-                  <CheckLine>
-                    <input type="checkbox" checked={autoForm.is_enabled}
-                      onChange={(e) => setAutoForm({ ...autoForm, is_enabled: e.target.checked })} />
-                    Activer le retrait automatique
-                  </CheckLine>
-                </FormGroup>
-                <ModalFooter>
-                  <div style={{ marginRight: 'auto', display: 'flex', gap: spacing.sm }}>
-                    {autoExists && autoForm.is_enabled && (
-                      <GhostButton type="button" onClick={disableAuto}>Désactiver</GhostButton>
-                    )}
-                    {autoExists && (
-                      <GhostButton type="button" className="danger" onClick={deleteAuto}>Supprimer</GhostButton>
-                    )}
-                  </div>
-                  <GhostButton type="button" onClick={() => setAutoFor(null)}>Annuler</GhostButton>
-                  <PrimaryButton type="submit" disabled={autoSaving}>
-                    {autoSaving ? 'Enregistrement...' : 'Enregistrer'}
-                  </PrimaryButton>
-                </ModalFooter>
-              </form>
-            )}
-          </ModalContent>
-        </ModalOverlay>
-      )}
-    </ContentSection>
-  );
-};
+                        {cur ? `Contact p

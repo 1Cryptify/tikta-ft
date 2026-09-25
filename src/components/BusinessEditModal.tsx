@@ -1,14 +1,26 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FiX, FiSave } from 'react-icons/fi';
-import { Business } from '../hooks/useBusiness';
+import { FiX, FiSave, FiDownload, FiUpload, FiFileText } from 'react-icons/fi';
+import { Business, BusinessFormData } from '../hooks/useBusiness';
+import { ContractTemplate } from '../hooks/useContract';
+import { API_USERS_BASE_URL } from '../services/api';
 
 interface BusinessEditModalProps {
   isOpen: boolean;
   business: Business | null;
+  contractTemplate?: ContractTemplate | null;
+  requireContract?: boolean;
   onClose: () => void;
-  onSubmit: (data: Partial<Business>) => Promise<void>;
+  onSubmit: (data: BusinessFormData) => Promise<void>;
 }
+
+const resolveMediaUrl = (path?: string | null): string => {
+  if (!path) return '';
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (path.startsWith('/media/')) return `${API_USERS_BASE_URL.split('/api/users')[0]}${path}`;
+  const clean = path.startsWith('media/') ? path.substring(6) : path;
+  return `${API_USERS_BASE_URL.split('/api/users')[0]}/media/${clean}`;
+};
 
 const ModalOverlay = styled.div<{ isOpen: boolean }>`
   display: ${(props) => (props.isOpen ? 'flex' : 'none')};
@@ -118,16 +130,16 @@ const Label = styled.label`
 const Input = styled.input`
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid #d7dde3;
+  border-radius: 8px;
   font-size: 0.95rem;
   transition: border-color 0.3s ease;
   font-family: inherit;
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 
   &:disabled {
@@ -139,8 +151,8 @@ const Input = styled.input`
 const TextArea = styled.textarea`
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid #d7dde3;
+  border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
   resize: vertical;
@@ -149,8 +161,8 @@ const TextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 
   &:disabled {
@@ -173,7 +185,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
   flex: 1;
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
@@ -187,13 +199,13 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
     switch (props.variant) {
       case 'primary':
         return `
-          background-color: #007bff;
+          background-color: #1e3a5f;
           color: white;
           border: none;
 
           &:hover:not(:disabled) {
-            background-color: #0056b3;
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            background-color: #152d47;
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
           }
 
           &:disabled {
@@ -205,7 +217,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
         return `
           background-color: white;
           color: #495057;
-          border: 1px solid #dee2e6;
+          border: 1px solid #d7dde3;
 
           &:hover {
             background-color: #f8f9fa;
@@ -231,20 +243,102 @@ const ErrorMessage = styled.div`
   font-size: 0.9rem;
 `;
 
+const ContractBox = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.9rem 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+
+  .info {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #1a1a1a;
+    font-size: 0.88rem;
+
+    svg {
+      color: #1565c0;
+      flex-shrink: 0;
+    }
+
+    small {
+      display: block;
+      color: #6b7280;
+      font-size: 0.78rem;
+    }
+  }
+`;
+
+const DownloadLink = styled.a`
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 6px;
+  background: #1e3a5f;
+  color: white;
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+
+  &:hover {
+    opacity: 0.92;
+  }
+`;
+
+const FileInputBox = styled.label<{ hasFile?: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px dashed ${(props) => (props.hasFile ? '#28a745' : '#dee2e6')};
+  border-radius: 8px;
+  cursor: pointer;
+  color: ${(props) => (props.hasFile ? '#28a745' : '#6b7280')};
+  transition: all 0.2s ease;
+
+  &:hover {
+    border-color: #007bff;
+    background: #f0f6ff;
+    color: #007bff;
+  }
+
+  input {
+    display: none;
+  }
+
+  strong {
+    color: #1a1a1a;
+    font-size: 0.88rem;
+  }
+`;
+
 export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
   isOpen,
   business,
+  contractTemplate,
+  requireContract = false,
   onClose,
   onSubmit,
 }) => {
-  const [formData, setFormData] = useState<Partial<Business>>({});
+  const [formData, setFormData] = useState<BusinessFormData>({});
+  const [contractFile, setContractFile] = useState<File | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isCreating = !business;
 
   useEffect(() => {
     if (business) {
       setFormData({
         name: business.name,
+        description: business.description,
         nui: business.nui,
         commerce_register: business.commerce_register,
         website: business.website,
@@ -252,11 +346,13 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     } else {
       setFormData({
         name: '',
+        description: '',
         nui: '',
         commerce_register: '',
         website: '',
       });
     }
+    setContractFile(null);
     setError(null);
   }, [business, isOpen]);
 
@@ -268,6 +364,27 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
     }));
   };
 
+  const handleContractFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = e.target.files?.[0] || null;
+    if (!selected) {
+      setContractFile(null);
+      return;
+    }
+    const extension = selected.name.split('.').pop()?.toLowerCase() || '';
+    if (!['pdf', 'docx', 'jpg', 'jpeg', 'png'].includes(extension)) {
+      setError('Format de contrat non supporté. Formats autorisés : .pdf, .docx, .jpg, .jpeg, .png');
+      setContractFile(null);
+      return;
+    }
+    if (selected.size > 10 * 1024 * 1024) {
+      setError('Fichier trop volumineux (max 10MB).');
+      setContractFile(null);
+      return;
+    }
+    setError(null);
+    setContractFile(selected);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -276,11 +393,24 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
       return;
     }
 
+    if (!formData.description?.trim()) {
+      setError('Business description is required');
+      return;
+    }
+
+    if (isCreating && requireContract && !contractFile) {
+      setError('Le contrat Tikta signé est obligatoire pour créer un business.');
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
 
     try {
-      await onSubmit(formData);
+      await onSubmit({
+        ...formData,
+        contract_file: contractFile || undefined,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update business');
     } finally {
@@ -314,6 +444,64 @@ export const BusinessEditModal: React.FC<BusinessEditModalProps> = ({
               required
             />
           </FormGroup>
+
+          <FormGroup>
+            <Label htmlFor="description">Description *</Label>
+            <TextArea
+              id="description"
+              name="description"
+              value={formData.description || ''}
+              onChange={handleChange}
+              placeholder="Décrivez votre business (activité, offres, localisation...)"
+              disabled={isSubmitting}
+              required
+            />
+          </FormGroup>
+
+          {isCreating && (
+            <FormGroup>
+              <Label>Contrat Tikta signé{requireContract ? ' *' : ''}</Label>
+              <ContractBox>
+                <div className="info">
+                  <FiFileText />
+                  <div>
+                    {contractTemplate
+                      ? contractTemplate.title || `Souche Tikta v${contractTemplate.version}`
+                      : 'Aucune souche publiée par Tikta'}
+                    <small>
+                      {contractTemplate
+                        ? `Version courante v${contractTemplate.version} — téléchargez, remplissez et signez.`
+                        : 'Contactez un administrateur pour publier le contrat.'}
+                    </small>
+                  </div>
+                </div>
+                {contractTemplate?.file && (
+                  <DownloadLink
+                    href={resolveMediaUrl(contractTemplate.file)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <FiDownload /> Télécharger
+                  </DownloadLink>
+                )}
+              </ContractBox>
+              <FileInputBox hasFile={!!contractFile}>
+                <input
+                  type="file"
+                  accept=".pdf,.docx,.jpg,.jpeg,.png"
+                  onChange={handleContractFile}
+                  disabled={isSubmitting}
+                />
+                <FiUpload size={20} />
+                <div>
+                  <strong>{contractFile ? contractFile.name : 'Uploader le contrat signé'}</strong>
+                  <div style={{ fontSize: '0.78rem' }}>
+                    Formats : .pdf, .docx, .jpg, .jpeg, .png (max 10MB)
+                  </div>
+                </div>
+              </FileInputBox>
+            </FormGroup>
+          )}
 
           <FormGroup>
             <Label htmlFor="nui">NUI</Label>

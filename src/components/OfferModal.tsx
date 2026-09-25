@@ -274,10 +274,10 @@ export const OfferModal: React.FC<OfferModalProps> = ({
   const [formData, setFormData] = useState<Partial<Offer>>({
     name: '',
     description: '',
-    price: 0,
+    price: undefined,
     currency_id: '',
     discount_type: 'percentage',
-    discount_value: 0,
+    discount_value: undefined,
     is_active: true,
     is_deleted: false,
   });
@@ -298,10 +298,10 @@ export const OfferModal: React.FC<OfferModalProps> = ({
         name: '',
         description: '',
         company_id: initialCompanyId,
-        price: 0,
+        price: undefined,
         currency_id: currencies.length > 0 ? currencies[0].id : '',
         discount_type: 'percentage',
-        discount_value: 0,
+        discount_value: undefined,
         callback_url: '',
         is_active: true,
         is_deleted: false,
@@ -354,9 +354,10 @@ export const OfferModal: React.FC<OfferModalProps> = ({
         [name]: (e.target as HTMLInputElement).checked,
       }));
     } else if (type === 'number') {
+      const parsed = parseFloat(value);
       setFormData((prev) => ({
         ...prev,
-        [name]: parseFloat(value) || 0,
+        [name]: value === '' || Number.isNaN(parsed) ? undefined : parsed,
       }));
     } else {
       setFormData((prev) => ({
@@ -481,7 +482,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
               <Input
                 type="number"
                 name="price"
-                value={formData.price || 0}
+                value={formData.price ?? ''}
                 onChange={handleChange}
                 placeholder="0.00"
                 step="0.01"
@@ -538,7 +539,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
               <Input
                 type="number"
                 name="discount_value"
-                value={formData.discount_value || 0}
+                value={formData.discount_value ?? ''}
                 onChange={handleChange}
                 placeholder="0"
                 step="0.01"

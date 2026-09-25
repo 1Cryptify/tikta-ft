@@ -13,7 +13,7 @@ const BellButton = styled.button<{ hasUnread: boolean }>`
   border: none;
   cursor: pointer;
   position: relative;
-  color: ${(props) => (props.hasUnread ? '#007bff' : '#666')};
+  color: ${(props) => (props.hasUnread ? '#1e3a5f' : '#666')};
   padding: 0.5rem;
   display: flex;
   align-items: center;
@@ -21,7 +21,7 @@ const BellButton = styled.button<{ hasUnread: boolean }>`
   transition: color 0.2s ease;
 
   &:hover {
-    color: #007bff;
+    color: #1e3a5f;
   }
 
   svg {
@@ -83,7 +83,7 @@ const Header = styled.div`
 const ActionLink = styled.button`
   background: none;
   border: none;
-  color: #007bff;
+  color: #1e3a5f;
   cursor: pointer;
   font-size: 0.85rem;
 
@@ -284,7 +284,9 @@ export const NotificationBell: React.FC = () => {
                 )}
 
                 <Footer>
-                    {notifications.length} notification{notifications.length !== 1 ? 's' : ''}
+                    {unreadCount > 0
+                        ? `${unreadCount} unread notification${unreadCount !== 1 ? 's' : ''}`
+                        : 'No unread notifications'}
                 </Footer>
             </Dropdown>
         </Container>

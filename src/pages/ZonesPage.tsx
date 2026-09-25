@@ -198,7 +198,7 @@ const FormGroup = styled.div`
   label { display: block; margin-bottom: ${spacing.xs}; color: ${colors.textPrimary}; font-weight: 500; font-size: 0.85rem; }
   input, select, textarea {
     width: 100%; padding: ${spacing.sm};
-    border: 1px solid ${colors.border}; border-radius: ${borderRadius.sm};
+    border: 1px solid ${colors.border}; border-radius: ${borderRadius.md};
     font-size: 0.9rem; color: ${colors.textPrimary};
     &:focus { outline: none; border-color: ${colors.primary}; box-shadow: 0 0 0 3px ${colors.primary}20; }
   }
@@ -529,10 +529,10 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
   const [tab, setTab] = useState<'routers' | 'managers' | 'payments' | 'contacts' | 'auto' | 'withdrawals'>('routers');
   const [payments, setPayments] = useState<ZonePaymentsData | null>(null);
   const [routerForm, setRouterForm] = useState({ name: '', mac_address: '', serial_number: '', model: '', ip_address: '', status: 'active' });
-  const [managerForm, setManagerForm] = useState({ email: '', percentage: 100, initial_password: '', create_account: true });
-  const [wdPercents, setWdPercents] = useState<Record<string, number>>({});
-  const [contactFees, setContactFees] = useState<Record<string, number>>({});
-  const [contactForm, setContactForm] = useState({ number: '', provider: 'MTN', label: '', manager_email: '' });
+  const [managerForm, setManagerForm] = useState<{ mode: 'email' | 'phone'; email: string; phone: string; percentage: number | string; initial_password: string; create_account: boolean }>({ mode: 'email', email: '', phone: '', percentage: 100, initial_password: '', create_account: true });
+  const [wdPercents, setWdPercents] = useState<Record<string, number | string>>({});
+  const [contactFees, setContactFees] = useState<Record<string, number | string>>({});
+  const [contactForm, setContactForm] = useState({ number: '', provider: 'MTN', label: '', manager_id: '' });
 
   const load = useCallback(async () => {
     try {
@@ -609,19 +609,26 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
 
   const submitManager = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!managerForm.email.trim() || !managerForm.email.includes('@')) return;
-    await zonesApi.addManager(zone.id, {
-      email: managerForm.email.trim(),
-      percentage: managerForm.percentage,
-      initial_password: managerForm.create_account ? (managerForm.initial_password || undefined) : undefined,
-      create_account: managerForm.create_account,
-    });
-    setManagerForm({ email: '', percentage: 100, initial_password: '', create_account: true });
+    const pct = parseInt(String(managerForm.percentage)) || 0;
+    if (managerForm.mode === 'phone') {
+      if (managerForm.phone.replace(/\D/g, '').length < 9) { alert('Numéro de téléphone invalide'); return; }
+      await zonesApi.addManager(zone.id, { phone: managerForm.phone.trim(), percentage: pct, create_account: false });
+    } else {
+      if (!managerForm.email.trim() || !managerForm.email.includes('@')) return;
+      await zonesApi.addManager(zone.id, {
+        email: managerForm.email.trim(),
+        percentage: pct,
+        initial_password: managerForm.create_account ? (managerForm.initial_password || undefined) : undefined,
+        create_account: managerForm.create_account,
+      });
+    }
+    setManagerForm({ mode: 'email', email: '', phone: '', percentage: 100, initial_password: '', create_account: true });
     refresh();
   };
 
   const companyApprove = async (wd: ZoneWithdrawal) => {
-    const pct = wdPercents[wd.id] ?? wd.associate_percentage;
+    const raw = wdPercents[wd.id];
+    const pct = raw === undefined || raw === '' ? wd.associate_percentage : Number(raw) || 0;
     await zonesApi.companyApprove(wd.id, pct);
     refresh();
   };
@@ -645,9 +652,9 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
       number: contactForm.number.trim(),
       provider: contactForm.provider,
       label: contactForm.label.trim(),
-      email: contactForm.manager_email.trim() || undefined,
+      manager_id: contactForm.manager_id || undefined,
     });
-    setContactForm({ number: '', provider: 'MTN', label: '', manager_email: '' });
+    setContactForm({ number: '', provider: 'MTN', label: '', manager_id: '' });
     refresh();
   };
 
@@ -657,9 +664,9 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
   };
 
   const validateContact = async (c: ZoneWithdrawalContact) => {
-    const fee = contactFees[c.id] ?? parseFloat(c.fee_percentage || '0') ?? 0;
+    const raw = contactFees[c.id];
+    const fee = raw === undefined || raw === '' ? parseFloat(c.fee_percentage || '0') || 0 : Number(raw) || 0;
     await zonesApi.validateContact(c.id, fee);
-    refresh();
   };
 
   const rejectContact = async (c: ZoneWithdrawalContact) => {
@@ -774,27 +781,45 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
       {/* -------- Associés -------- */}
       {tab === 'managers' && (
         <div>
-          <form onSubmit={submitManager} style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr auto', gap: spacing.md, alignItems: 'end', marginBottom: spacing.sm }}>
-            <FormGroup><label>Email de l'associé *</label><input value={managerForm.email} onChange={(e) => setManagerForm({ ...managerForm, email: e.target.value })} placeholder="associe@exemple.com" /></FormGroup>
-            <FormGroup><label>% associé *</label><input type="number" min={0} max={100} value={managerForm.percentage} onChange={(e) => setManagerForm({ ...managerForm, percentage: parseInt(e.target.value) || 0 })} /></FormGroup>
-            {managerForm.create_account ? (
-              <FormGroup><label>Mot de passe initial (optionnel)</label><input value={managerForm.initial_password} onChange={(e) => setManagerForm({ ...managerForm, initial_password: e.target.value })} /></FormGroup>
+          <form onSubmit={submitManager} style={{ display: 'grid', gridTemplateColumns: '1fr 2fr 1fr 1fr auto', gap: spacing.md, alignItems: 'end', marginBottom: spacing.sm }}>
+            <FormGroup>
+              <label>Type d'associé</label>
+              <select value={managerForm.mode} onChange={(e) => setManagerForm({ ...managerForm, mode: e.target.value as 'email' | 'phone' })}>
+                <option value="email">Avec email (compte)</option>
+                <option value="phone">Par téléphone (sans compte)</option>
+              </select>
+            </FormGroup>
+            {managerForm.mode === 'email' ? (
+              <FormGroup><label>Email *</label><input value={managerForm.email} onChange={(e) => setManagerForm({ ...managerForm, email: e.target.value })} placeholder="associe@exemple.com" /></FormGroup>
+            ) : (
+              <FormGroup><label>Téléphone *</label><input value={managerForm.phone} onChange={(e) => setManagerForm({ ...managerForm, phone: e.target.value })} placeholder="Ex: +237 6XX XXX XXX" /></FormGroup>
+            )}
+            <FormGroup><label>% associé *</label><input type="number" min={0} max={100} value={managerForm.percentage} onChange={(e) => setManagerForm({ ...managerForm, percentage: e.target.value === '' ? '' : parseInt(e.target.value) || 0 })} /></FormGroup>
+            {managerForm.mode === 'email' && managerForm.create_account ? (
+              <FormGroup><label>Mot de passe (optionnel)</label><input value={managerForm.initial_password} onChange={(e) => setManagerForm({ ...managerForm, initial_password: e.target.value })} /></FormGroup>
             ) : (
               <FormGroup><label>&nbsp;</label><div style={{ fontSize: '0.78rem', color: colors.textSecondary }}>Aucun compte créé</div></FormGroup>
             )}
             <PrimaryButton type="submit">Ajouter</PrimaryButton>
           </form>
-          <CheckLine style={{ marginBottom: spacing.lg }}>
-            <input type="checkbox" checked={!managerForm.create_account} onChange={(e) => setManagerForm({ ...managerForm, create_account: !e.target.checked })} />
-            <span>Associé <strong>sans compte</strong> (dividendes payés automatiquement via un contact de retrait)</span>
-          </CheckLine>
+          {managerForm.mode === 'email' ? (
+            <CheckLine style={{ marginBottom: spacing.lg }}>
+              <input type="checkbox" checked={!managerForm.create_account} onChange={(e) => setManagerForm({ ...managerForm, create_account: !e.target.checked })} />
+              <span>Associé <strong>sans compte</strong> (dividendes payés automatiquement via un contact de retrait)</span>
+            </CheckLine>
+          ) : (
+            <div style={{ fontSize: '0.78rem', color: colors.textSecondary, marginBottom: spacing.lg }}>
+              Associé identifié uniquement par son numéro : aucun compte, aucun email. Sa part lui est versée
+              automatiquement via un contact de retrait validé.
+            </div>
+          )}
           {zone.managers?.length ? (
             <Table>
-              <thead><tr><th>Email</th><th>Compte</th><th>% Associé</th><th>Statut</th><th>Confirmé le</th><th></th></tr></thead>
+              <thead><tr><th>Associé</th><th>Compte</th><th>% Associé</th><th>Statut</th><th>Confirmé le</th><th></th></tr></thead>
               <tbody>
                 {zone.managers.map((m: ZoneManager) => (
                   <tr key={m.id}>
-                    <td>{m.email}</td>
+                    <td>{m.phone ? `📞 ${m.phone}` : (m.email || '—')}</td>
                     <td>{m.has_account ? 'Créé' : 'Sans compte'}</td>
                     <td>
                       <input type="number" min={0} max={100} style={{ width: 70, padding: 4 }} defaultValue={m.percentage}
@@ -826,7 +851,15 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
               </select>
             </FormGroup>
             <FormGroup><label>Libellé</label><input value={contactForm.label} onChange={(e) => setContactForm({ ...contactForm, label: e.target.value })} placeholder="Ex: MoMo de Jean" /></FormGroup>
-            <FormGroup><label>Associé (email, optionnel)</label><input value={contactForm.manager_email} onChange={(e) => setContactForm({ ...contactForm, manager_email: e.target.value })} placeholder="associe@exemple.com" /></FormGroup>
+            <FormGroup>
+              <label>Associé</label>
+              <select value={contactForm.manager_id} onChange={(e) => setContactForm({ ...contactForm, manager_id: e.target.value })}>
+                <option value="">— Entreprise —</option>
+                {(zone.managers || []).filter((m) => m.status === 'active').map((m) => (
+                  <option key={m.id} value={m.id}>{m.phone || m.email} ({m.percentage}%)</option>
+                ))}
+              </select>
+            </FormGroup>
             <PrimaryButton type="submit">Enregistrer</PrimaryButton>
           </form>
           <p style={{ fontSize: 12, color: colors.textSecondary, marginTop: 0 }}>
@@ -841,7 +874,7 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
                   <tr key={c.id}>
                     <td><strong>{c.number}</strong></td>
                     <td>{c.label || '—'}</td>
-                    <td>{c.manager_email || 'Entreprise'}</td>
+                    <td>{c.manager_display || c.manager_email || 'Entreprise'}</td>
                     <td>{c.status === 'validated' ? `${c.fee_percentage}%` : '—'}</td>
                     <td><StatusBadge status={c.is_validated ? 'active' : c.status === 'rejected' || c.status === 'revoked' ? 'rejected' : 'pending'}>{c.status_display}</StatusBadge></td>
                     <td>
@@ -855,7 +888,7 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
                         {isStaff && (c.status === 'pending_company' || c.status === 'pending_tikta') && (
                           <>
                             <input type="number" min={0} max={100} style={{ width: 64, padding: 4 }} placeholder="Frais %"
-                              value={contactFees[c.id] ?? ''} onChange={(e) => setContactFees({ ...contactFees, [c.id]: parseFloat(e.target.value) || 0 })} title="Frais Tikta %" />
+                              value={contactFees[c.id] ?? ''} onChange={(e) => setContactFees({ ...contactFees, [c.id]: e.target.value === '' ? '' : parseFloat(e.target.value) || 0 })} title="Frais Tikta %" />
                             <SmallBtn className="primary" onClick={() => validateContact(c)}>Valider Tikta</SmallBtn>
                           </>
                         )}
@@ -952,7 +985,7 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
                         <span style={{ display: 'flex', gap: spacing.xs, alignItems: 'center', flexWrap: 'wrap' }}>
                           <input type="number" min={0} max={100} style={{ width: 64, padding: 4 }}
                             value={wdPercents[wd.id] ?? wd.associate_percentage}
-                            onChange={(e) => setWdPercents({ ...wdPercents, [wd.id]: parseInt(e.target.value) || 0 })} title="% associé" />
+                            onChange={(e) => setWdPercents({ ...wdPercents, [wd.id]: e.target.value === '' ? '' : parseInt(e.target.value) || 0 })} title="% associé" />
                           <SmallBtn className="success" onClick={() => companyApprove(wd)}>Valider (entreprise)</SmallBtn>
                           <SmallBtn className="danger" onClick={() => reject(wd)}>Rejeter</SmallBtn>
                         </span>
@@ -992,7 +1025,7 @@ export const ZonesPage: React.FC = () => {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [pendingContacts, setPendingContacts] = useState<ZoneWithdrawalContact[]>([]);
-  const [contactFees, setContactFees] = useState<Record<string, number>>({});
+  const [contactFees, setContactFees] = useState<Record<string, number | string>>({});
   const isStaff = !!user?.is_superuser || !!user?.is_staff;
 
   const load = useCallback(async () => {
@@ -1027,9 +1060,9 @@ export const ZonesPage: React.FC = () => {
   };
 
   const validateContact = async (c: ZoneWithdrawalContact) => {
-    const fee = contactFees[c.id] ?? (parseFloat(c.fee_percentage || '0') || 0);
+    const raw = contactFees[c.id];
+    const fee = raw === undefined || raw === '' ? parseFloat(c.fee_percentage || '0') || 0 : Number(raw) || 0;
     await zonesApi.validateContact(c.id, fee);
-    loadContacts();
   };
 
   const rejectContact = async (c: ZoneWithdrawalContact) => {
@@ -1088,7 +1121,7 @@ export const ZonesPage: React.FC = () => {
                       {isStaff && (
                         <>
                           <input type="number" min={0} max={100} style={{ width: 64, padding: 4 }} placeholder="Frais %"
-                            value={contactFees[c.id] ?? ''} onChange={(e) => setContactFees({ ...contactFees, [c.id]: parseFloat(e.target.value) || 0 })} />
+                            value={contactFees[c.id] ?? ''} onChange={(e) => setContactFees({ ...contactFees, [c.id]: e.target.value === '' ? '' : parseFloat(e.target.value) || 0 })} />
                           <SmallBtn className="primary" onClick={() => validateContact(c)}>Valider Tikta</SmallBtn>
                         </>
                       )}

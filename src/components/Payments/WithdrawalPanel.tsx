@@ -342,7 +342,7 @@ const FormGroup = styled.div`
     width: 100%;
     padding: ${spacing.sm};
     border: 1px solid ${colors.border};
-    border-radius: 4px;
+    border-radius: 8px;
     font-size: 1rem;
     color: ${colors.textPrimary};
 

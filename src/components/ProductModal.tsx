@@ -275,7 +275,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
     const [formData, setFormData] = useState<Partial<Product>>({
         name: '',
         description: '',
-        price: 0,
+        price: undefined,
         company: '',
         currency_id: '',
         is_active: true,
@@ -289,7 +289,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
             setFormData({
                 name: '',
                 description: '',
-                price: 0,
+                price: undefined,
                 currency_id: '',
                 company: user?.active_company?.id || '',
                 is_active: true,
@@ -339,9 +339,10 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                 [name]: (e.target as HTMLInputElement).checked,
             }));
         } else if (type === 'number') {
+            const parsed = parseFloat(value);
             setFormData((prev) => ({
                 ...prev,
-                [name]: parseFloat(value) || 0,
+                [name]: value === '' || Number.isNaN(parsed) ? undefined : parsed,
             }));
         } else {
             setFormData((prev) => ({
@@ -466,7 +467,7 @@ export const ProductModal: React.FC<ProductModalProps> = ({
                             <Input
                                 type="number"
                                 name="price"
-                                value={formData.price || 0}
+                                value={formData.price ?? ''}
                                 onChange={handleChange}
                                 placeholder="0.00"
                                 step="0.01"

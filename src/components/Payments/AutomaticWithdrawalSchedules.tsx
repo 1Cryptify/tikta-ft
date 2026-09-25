@@ -6,21 +6,6 @@ import { API_PAYMENTS_BASE_URL } from '../../services/api';
 
 const api = axios.create({ baseURL: API_PAYMENTS_BASE_URL, withCredentials: true });
 
-const FREQUENCIES = [
-  { value: 'daily', label: 'Chaque jour' },
-  { value: 'every_24h', label: 'Toutes les 24 h' },
-  { value: 'weekly', label: 'Chaque semaine' },
-  { value: 'every_7days', label: 'Tous les 7 jours' },
-  { value: 'monday', label: 'Chaque lundi' },
-  { value: 'tuesday', label: 'Chaque mardi' },
-  { value: 'wednesday', label: 'Chaque mercredi' },
-  { value: 'thursday', label: 'Chaque jeudi' },
-  { value: 'friday', label: 'Chaque vendredi' },
-  { value: 'saturday', label: 'Chaque samedi' },
-  { value: 'sunday', label: 'Chaque dimanche' },
-  { value: 'monthly', label: 'Chaque mois' },
-];
-
 const Wrap = styled.div`
   display: flex;
   flex-direction: column;
@@ -46,7 +31,7 @@ const FormGroup = styled.div`
   label { display: block; margin-bottom: ${spacing.xs}; color: ${colors.textPrimary}; font-weight: 500; font-size: 0.82rem; }
   input, select {
     width: 100%; padding: ${spacing.sm};
-    border: 1px solid ${colors.border}; border-radius: ${borderRadius.sm};
+    border: 1px solid ${colors.border}; border-radius: ${borderRadius.md};
     font-size: 0.9rem; color: ${colors.textPrimary};
     &:focus { outline: none; border-color: ${colors.primary}; box-shadow: 0 0 0 3px ${colors.primary}20; }
   }
@@ -146,8 +131,6 @@ interface Schedule {
   is_enabled: boolean;
   is_ready?: boolean;
   minimum_balance_threshold: string;
-  frequency: string;
-  frequency_display?: string;
   withdraw_full_balance: boolean;
   fixed_amount: string | null;
   currency_details?: { code?: string } | null;
@@ -175,7 +158,6 @@ const fmtDate = (iso?: string | null) => {
 const emptyForm = {
   withdrawal_account_id: '',
   minimum_balance_threshold: '',
-  frequency: 'daily',
   withdraw_full_balance: true,
   fixed_amount: '',
   currency_code: 'XAF',
@@ -228,7 +210,6 @@ const AutomaticWithdrawalSchedules: React.FC = () => {
     setForm({
       withdrawal_account_id: s.withdrawal_account || '',
       minimum_balance_threshold: s.minimum_balance_threshold || '',
-      frequency: s.frequency || 'daily',
       withdraw_full_balance: s.withdraw_full_balance ?? true,
       fixed_amount: s.fixed_amount || '',
       currency_code: s.currency_details?.code || 'XAF',
@@ -247,7 +228,6 @@ const AutomaticWithdrawalSchedules: React.FC = () => {
     try {
       const payload: any = {
         minimum_balance_threshold: parseFloat(form.minimum_balance_threshold) || 0,
-        frequency: form.frequency,
         withdraw_full_balance: form.withdraw_full_balance,
         fixed_amount: form.withdraw_full_balance ? null : (parseFloat(form.fixed_amount) || null),
         description: form.description || 'Automatic withdrawal',
@@ -336,12 +316,6 @@ const AutomaticWithdrawalSchedules: React.FC = () => {
             <input type="number" min={0} step={50} value={form.minimum_balance_threshold}
               onChange={(e) => setForm({ ...form, minimum_balance_threshold: e.target.value })} placeholder="Ex: 10000" />
           </FormGroup>
-          <FormGroup>
-            <label>Fréquence</label>
-            <select value={form.frequency} onChange={(e) => setForm({ ...form, frequency: e.target.value })}>
-              {FREQUENCIES.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-            </select>
-          </FormGroup>
           {!editingId && (
             <FormGroup>
               <label>Devise</label>
@@ -417,7 +391,6 @@ const AutomaticWithdrawalSchedules: React.FC = () => {
 
                   <Facts>
                     <div><div className="lbl">Seuil</div><div className="val">{fmt(s.minimum_balance_threshold)} {s.currency_details?.code || ''}</div></div>
-                    <div><div className="lbl">Fréquence</div><div className="val">{s.frequency_display || s.frequency}</div></div>
                     <div><div className="lbl">Montant</div><div className="val">{s.withdraw_full_balance ? 'Tout le solde' : fmt(s.fixed_amount)}</div></div>
                     <div><div className="lbl">Dernier retrait</div><div className="val">{fmtDate(s.last_processed_at)}</div></div>
                     <div><div className="lbl">Total retiré</div><div className="val">{fmt(s.total_processed_amount)} ({s.total_processed_count || 0})</div></div>

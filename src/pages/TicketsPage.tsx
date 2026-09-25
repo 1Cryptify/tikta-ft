@@ -53,7 +53,7 @@ const ButtonGroup = styled.div`
 
 const CreateButton = styled.button`
   padding: 10px 16px;
-  background: #007bff;
+  background: #1e3a5f;
   color: white;
   border: none;
   border-radius: 4px;
@@ -68,7 +68,7 @@ const CreateButton = styled.button`
   white-space: nowrap;
 
   &:hover {
-    background: #0056b3;
+    background: #152d47;
   }
 
   &:disabled {
@@ -112,7 +112,7 @@ const TicketsContainer = styled.div`
 
 const TicketCard = styled.div`
   background: white;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #d7dde3;
   border-radius: 8px;
   padding: ${spacing.md};
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
@@ -268,13 +268,13 @@ const TicketActions = styled.div`
   gap: 4px;
   margin-top: ${spacing.sm};
   padding-top: ${spacing.sm};
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid #d7dde3;
 `;
 
 const ActionButton = styled.button`
   flex: 1;
   padding: 6px 10px;
-  border: 1px solid #ddd;
+  border: 1px solid #d7dde3;
   border-radius: 4px;
   background: white;
   color: ${colors.textPrimary};
@@ -305,13 +305,13 @@ const ActionButton = styled.button`
 `;
 
 const PrintButton = styled(ActionButton)`
-  background: #007bff;
+  background: #1e3a5f;
   color: white;
-  border-color: #007bff;
+  border-color: #1e3a5f;
 
   &:hover {
-    background: #0056b3;
-    border-color: #0056b3;
+    background: #152d47;
+    border-color: #152d47;
   }
 `;
 
@@ -348,15 +348,15 @@ const SelectAllBar = styled.div`
 
 const DeletePeriodInput = styled.input`
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid #d7dde3;
+  border-radius: 8px;
   font-size: 0.875rem;
   flex: 1;
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 `;
 
@@ -372,7 +372,7 @@ const DeleteTabBar = styled.div`
   display: flex;
   gap: 0;
   margin-bottom: ${spacing.md};
-  border: 1px solid #ddd;
+  border: 1px solid #d7dde3;
   border-radius: 4px;
   overflow: hidden;
 `;
@@ -443,8 +443,8 @@ const JsonTextarea = styled.textarea`
   width: 100%;
   min-height: 300px;
   padding: ${spacing.md};
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid #d7dde3;
+  border-radius: 8px;
   font-family: 'Courier New', monospace;
   font-size: 0.875rem;
   resize: vertical;
@@ -452,8 +452,8 @@ const JsonTextarea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 `;
 
@@ -477,7 +477,7 @@ const CancelButton = styled.button`
   color: ${colors.textPrimary};
 
   &:hover {
-    background: #dee2e6;
+    background: #d7dde3;
   }
 `;
 
@@ -525,7 +525,7 @@ const InfoMessage = styled.div<{ variant?: 'success' | 'info' }>`
 
 const JsonExample = styled.div`
   background: #f5f5f5;
-  border: 1px solid #ddd;
+  border: 1px solid #d7dde3;
   border-radius: 4px;
   padding: ${spacing.md};
   margin-bottom: ${spacing.md};
@@ -558,13 +558,13 @@ const TabContainer = styled.div`
   display: flex;
   gap: ${spacing.sm};
   margin-bottom: ${spacing.md};
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #d7dde3;
 `;
 
 const TabButton = styled.button<{ isActive: boolean }>`
   padding: 8px 16px;
   border: none;
-  background: ${props => props.isActive ? '#007bff' : 'transparent'};
+  background: ${props => props.isActive ? '#1e3a5f' : 'transparent'};
   color: ${props => props.isActive ? 'white' : colors.textPrimary};
   font-weight: 600;
   font-size: 0.875rem;
@@ -573,7 +573,7 @@ const TabButton = styled.button<{ isActive: boolean }>`
   transition: all 0.2s ease;
 
   &:hover {
-    background: ${props => props.isActive ? '#0056b3' : '#f0f0f0'};
+    background: ${props => props.isActive ? '#152d47' : '#f0f0f0'};
   }
 `;
 
@@ -592,16 +592,16 @@ const SelectLabel = styled.label`
 
 const SelectInput = styled.select`
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid #d7dde3;
+  border-radius: 8px;
   font-size: 0.875rem;
   background: white;
   color: ${colors.textPrimary};
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 `;
 
@@ -609,8 +609,8 @@ const CsvTextarea = styled.textarea`
   width: 100%;
   min-height: 200px;
   padding: ${spacing.md};
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid #d7dde3;
+  border-radius: 8px;
   font-family: 'Courier New', monospace;
   font-size: 0.8rem;
   resize: vertical;
@@ -618,8 +618,8 @@ const CsvTextarea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 `;
 
@@ -634,7 +634,7 @@ const PreviewTable = styled.table`
   font-size: 0.8rem;
 
   th, td {
-    border: 1px solid #ddd;
+    border: 1px solid #d7dde3;
     padding: 6px 8px;
     text-align: left;
   }
@@ -659,7 +659,7 @@ const CounterGroup = styled.div`
 const CounterButton = styled.button`
   width: 32px;
   height: 32px;
-  border: 1px solid #ddd;
+  border: 1px solid #d7dde3;
   background: white;
   border-radius: 4px;
   cursor: pointer;
@@ -707,7 +707,7 @@ const FilterSection = styled.div`
   padding: ${spacing.md};
   background: #f8f9fa;
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #d7dde3;
 `;
 
 const FilterGroup = styled.div`
@@ -734,8 +734,8 @@ const FilterLabel = styled.label`
 
 const FilterSelect = styled.select`
   padding: 8px 12px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  border: 1px solid #d7dde3;
+  border-radius: 8px;
   font-size: 0.875rem;
   background: white;
   color: ${colors.textPrimary};
@@ -748,8 +748,8 @@ const FilterSelect = styled.select`
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 `;
 
@@ -761,18 +761,18 @@ const FilterButtonGroup = styled.div`
 
 const FilterButton = styled.button<{ isActive: boolean }>`
   padding: 8px 16px;
-  border: 1px solid ${props => props.isActive ? '#007bff' : '#ddd'};
+  border: 1px solid ${props => props.isActive ? '#1e3a5f' : '#d7dde3'};
   border-radius: 4px;
   font-size: 0.875rem;
   font-weight: ${props => props.isActive ? '600' : '400'};
-  background: ${props => props.isActive ? '#007bff' : 'white'};
+  background: ${props => props.isActive ? '#1e3a5f' : 'white'};
   color: ${props => props.isActive ? 'white' : colors.textPrimary};
   cursor: pointer;
   transition: all 0.2s ease;
 
   &:hover {
-    border-color: #007bff;
-    background: ${props => props.isActive ? '#0056b3' : '#f0f7ff'};
+    border-color: #1e3a5f;
+    background: ${props => props.isActive ? '#152d47' : '#f0f7ff'};
   }
 `;
 
@@ -823,7 +823,7 @@ const PaginationContainer = styled.div`
   padding: ${spacing.md};
   background: #f8f9fa;
   border-radius: 8px;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #d7dde3;
 `;
 
 const PaginationControls = styled.div`
@@ -834,7 +834,7 @@ const PaginationControls = styled.div`
 
 const PaginationButton = styled.button`
   padding: 6px 12px;
-  border: 1px solid #ddd;
+  border: 1px solid #d7dde3;
   border-radius: 4px;
   background: white;
   color: ${colors.textPrimary};
@@ -870,7 +870,7 @@ const PageSizeSelector = styled.div`
 
   select {
     padding: 6px 10px;
-    border: 1px solid #ddd;
+    border: 1px solid #d7dde3;
     border-radius: 4px;
     background: white;
     color: ${colors.textPrimary};
@@ -879,7 +879,7 @@ const PageSizeSelector = styled.div`
 
     &:focus {
       outline: none;
-      border-color: #007bff;
+      border-color: #1e3a5f;
     }
   }
 `;

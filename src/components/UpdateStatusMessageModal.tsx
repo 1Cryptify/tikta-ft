@@ -125,7 +125,7 @@ const TypeButton = styled.button<{ isSelected: boolean; messageType: 'positive' 
   flex: 1;
   padding: 0.75rem 1rem;
   border: 2px solid;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -163,8 +163,8 @@ const TypeButton = styled.button<{ isSelected: boolean; messageType: 'positive' 
 const TextArea = styled.textarea`
   width: 100%;
   padding: 0.75rem;
-  border: 1px solid #ddd;
-  border-radius: 6px;
+  border: 1px solid #d7dde3;
+  border-radius: 8px;
   font-size: 0.95rem;
   font-family: inherit;
   resize: vertical;
@@ -174,8 +174,8 @@ const TextArea = styled.textarea`
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 
   &:disabled {
@@ -207,7 +207,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
   flex: 1;
   padding: 0.75rem 1.5rem;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
@@ -221,13 +221,13 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
         switch (props.variant) {
             case 'primary':
                 return `
-          background-color: #007bff;
+          background-color: #1e3a5f;
           color: white;
           border: none;
 
           &:hover:not(:disabled) {
-            background-color: #0056b3;
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            background-color: #152d47;
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
           }
 
           &:disabled {
@@ -239,7 +239,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
                 return `
           background-color: white;
           color: #495057;
-          border: 1px solid #dee2e6;
+          border: 1px solid #d7dde3;
 
           &:hover:not(:disabled) {
             background-color: #f8f9fa;

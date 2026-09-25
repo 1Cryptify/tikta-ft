@@ -179,7 +179,7 @@
 }
 
 .failed-actions .btn-primary:hover {
-  background-color: #0056b3;
+  background-color: #152d47;
   box-shadow: var(--shadow-md);
 }
 
@@ -191,7 +191,7 @@
 }
 
 .failed-actions .btn-secondary:hover {
-  background-color: #e0e0e0;
+  background-color: #d7dde3;
 }
 
 .support-contact {

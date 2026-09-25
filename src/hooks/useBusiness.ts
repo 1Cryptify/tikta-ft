@@ -25,6 +25,7 @@ axiosInstance.interceptors.request.use((config) => {
 export interface Business {
     id: string;
     name: string;
+    description?: string;
     nui?: string;
     commerce_register?: string;
     website?: string;
@@ -36,11 +37,22 @@ export interface Business {
     commerce_register_document?: string;
     website_document?: string;
     creation_document?: string;
+    contract_document?: string;
+    contract_template?: string | null;
+    contract_template_version?: number | null;
+    contract_current_version?: number | null;
+    contract_status?: 'missing' | 'outdated' | 'signed';
+    contract_signed_at?: string | null;
     created_at?: string;
     updated_at?: string;
     status_message?: string;
     status_type?: 'positive' | 'negative';
 }
+
+export type BusinessFormData = Partial<Business> & {
+    // Fichier du contrat signé lors de la création (transmis en multipart).
+    contract_file?: File;
+};
 
 export interface BusinessUser {
     user_id: string;
@@ -74,8 +86,9 @@ interface BusinessState {
 interface UseBusinessReturn extends BusinessState {
     getBusinesses: () => Promise<void>;
     getBusinessById: (id: string) => Promise<Business | null>;
-    createBusiness: (data: Partial<Business>) => Promise<Business | null>;
+    createBusiness: (data: BusinessFormData) => Promise<Business | null>;
     updateBusiness: (id: string, data: Partial<Business>) => Promise<Business | null>;
+    uploadContract: (id: string, file: File) => Promise<boolean>;
     deleteBusiness: (id: string) => Promise<boolean>;
     blockBusiness: (id: string, reason?: string) => Promise<boolean>;
     unblockBusiness: (id: string) => Promise<boolean>;
@@ -177,11 +190,27 @@ export const useBusiness = (): UseBusinessReturn => {
     }, []);
 
     // Create new business
-    const createBusiness = useCallback(async (data: Partial<Business>): Promise<Business | null> => {
+    const createBusiness = useCallback(async (data: BusinessFormData): Promise<Business | null> => {
         const startTime = Date.now();
         setState(prev => ({ ...prev, isLoading: true, error: null }));
         try {
-            const response = await axiosInstance.post('/create-company/', data);
+            const { contract_file, ...rest } = data;
+            let response;
+            if (contract_file) {
+                const formData = new FormData();
+                Object.entries(rest).forEach(([key, value]) => {
+                    if (value === undefined || value === null) return;
+                    if (Array.isArray(value)) {
+                        value.forEach((item) => formData.append(key, String(item)));
+                    } else {
+                        formData.append(key, String(value));
+                    }
+                });
+                formData.append('contract_document', contract_file);
+                response = await axiosInstance.post('/create-company/', formData);
+            } else {
+                response = await axiosInstance.post('/create-company/', rest);
+            }
             const elapsed = Date.now() - startTime;
             const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
             
@@ -572,6 +601,63 @@ export const useBusiness = (): UseBusinessReturn => {
         }
     }, []);
 
+    // Upload the signed Tikta contract for a company
+    const uploadContract = useCallback(async (id: string, file: File): Promise<boolean> => {
+        const startTime = Date.now();
+        setState(prev => ({ ...prev, isLoading: true, error: null }));
+        try {
+            const formData = new FormData();
+            formData.append('company_id', id);
+            formData.append('contract_document', file);
+
+            const response = await axiosInstance.post('/upload-documents/', formData);
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            if (response.data.status === 'success') {
+                const updatedBusiness = response.data.company;
+                setState(prev => ({
+                    ...prev,
+                    businesses: prev.businesses.map(b => b.id === id ? updatedBusiness : b),
+                    isLoading: false,
+                }));
+                return true;
+            } else if (response.data.status === 'error') {
+                setState(prev => ({
+                    ...prev,
+                    isLoading: false,
+                    error: response.data.message || 'Failed to upload contract',
+                }));
+                return false;
+            }
+            return false;
+        } catch (error) {
+            const elapsed = Date.now() - startTime;
+            const delayNeeded = Math.max(0, LOADER_DURATION - elapsed);
+
+            if (delayNeeded > 0) {
+                await new Promise(resolve => setTimeout(resolve, delayNeeded));
+            }
+
+            let errorMessage = 'Failed to upload contract';
+            if (error instanceof axios.AxiosError) {
+                errorMessage = error.response?.data?.message || error.response?.data?.error || error.message || errorMessage;
+            } else if (error instanceof Error) {
+                errorMessage = error.message;
+            }
+            setState(prev => ({
+                ...prev,
+                isLoading: false,
+                error: errorMessage,
+            }));
+            return false;
+        }
+    }, []);
+
     // Get all users list
     const getUsers = useCallback(async (): Promise<any[]> => {
         try {
@@ -828,6 +914,7 @@ export const useBusiness = (): UseBusinessReturn => {
         markActiveCompany,
         uploadDocuments,
         uploadLogo,
+        uploadContract,
         getUsers,
         getDocumentPreviewUrl,
         associateUserToBusiness,

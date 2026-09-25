@@ -7,10 +7,12 @@ import {
     MenuName,
     ActionType,
 } from '../config/menuPermissions';
-import { useBusiness, Business as BusinessType } from '../hooks/useBusiness';
+import { useBusiness, Business as BusinessType, BusinessFormData } from '../hooks/useBusiness';
+import { useContract } from '../hooks/useContract';
 import { useAuth, axiosInstance } from '../hooks/useAuth';
 import { getMediaUrl } from '../services/api';
 import DocumentUploadModal from '../components/DocumentUploadModal';
+import ContractModal from '../components/ContractModal';
 import LogoUploadModal from '../components/LogoUploadModal';
 import BusinessEditModal from '../components/BusinessEditModal';
 import BusinessAssociateModal from '../components/BusinessAssociateModal';
@@ -28,6 +30,8 @@ import {
     FiSearch,
     FiX,
     FiUserPlus,
+    FiFileText,
+    FiAlertCircle,
 } from 'react-icons/fi';
 
 interface BusinessPageProps {
@@ -84,7 +88,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' | 'danger' }>`
   background-color: ${(props) => {
         switch (props.variant) {
             case 'primary':
-                return '#007bff';
+                return '#1e3a5f';
             case 'danger':
                 return '#dc3545';
             default:
@@ -124,15 +128,15 @@ const SearchContainer = styled.div`
 const SearchInput = styled.input`
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid #d7dde3;
   border-radius: 6px;
   font-size: 0.95rem;
   transition: border-color 0.3s ease;
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 `;
 
@@ -177,7 +181,7 @@ const ViewerModalHeader = styled.div`
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid #d7dde3;
   background: #f8f9fa;
 `;
 
@@ -236,7 +240,7 @@ const CardsGrid = styled.div`
 
 const BusinessCard = styled.div`
   background: white;
-  border: 1px solid #dee2e6;
+  border: 1px solid #d7dde3;
   border-radius: 12px;
   padding: 1.5rem;
   transition: all 0.3s ease;
@@ -246,7 +250,7 @@ const BusinessCard = styled.div`
 
   &:hover {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-    border-color: #007bff;
+    border-color: #1e3a5f;
   }
 `;
 
@@ -407,7 +411,7 @@ const DocumentIndicator = styled.div<{ completed: boolean }>`
   flex: 1;
   height: 6px;
   border-radius: 3px;
-  background-color: ${(props) => (props.completed ? '#28a745' : '#dee2e6')};
+  background-color: ${(props) => (props.completed ? '#28a745' : '#d7dde3')};
   transition: all 0.3s ease;
 `;
 
@@ -426,7 +430,40 @@ const DocumentItem = styled.div<{ completed: boolean }>`
   color: ${(props) => (props.completed ? '#28a745' : '#999')};
 
   svg {
-    color: ${(props) => (props.completed ? '#28a745' : '#dee2e6')};
+    color: ${(props) => (props.completed ? '#28a745' : '#d7dde3')};
+    flex-shrink: 0;
+  }
+`;
+
+const ContractBox = styled.div<{ status: 'missing' | 'outdated' | 'signed' }>`
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  ${(props) => {
+        switch (props.status) {
+            case 'signed':
+                return 'background-color:#d4edda;color:#155724;border:1px solid #c3e6cb;';
+            case 'outdated':
+                return 'background-color:#fff3cd;color:#856404;border:1px solid #ffeeba;';
+            default:
+                return 'background-color:#f8d7da;color:#721c24;border:1px solid #f5c6cb;';
+        }
+    }}
+
+  &:hover {
+    opacity: 0.88;
+    transform: translateY(-1px);
+  }
+
+  svg {
     flex-shrink: 0;
   }
 `;
@@ -491,10 +528,10 @@ const StatusMessagePlaceholder = styled.div`
   gap: 0.5rem;
   padding: 0.75rem 1rem;
   border-radius: 8px;
-  border: 2px dashed #007bff;
+  border: 2px dashed #1e3a5f;
   font-size: 0.85rem;
   font-weight: 500;
-  color: #007bff;
+  color: #1e3a5f;
   margin-bottom: 1rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -502,8 +539,8 @@ const StatusMessagePlaceholder = styled.div`
 
   &:hover {
     background-color: #e7f3ff;
-    border-color: #0056b3;
-    color: #0056b3;
+    border-color: #152d47;
+    color: #152d47;
   }
 `;
 
@@ -519,7 +556,7 @@ const ActionButton = styled.button<{ variant?: 'default' | 'danger' | 'success' 
   flex: 1;
   min-width: 60px;
   padding: 0.6rem 0.8rem;
-  border: 1px solid #ddd;
+  border: 1px solid #d7dde3;
   border-radius: 6px;
   background: white;
   cursor: pointer;
@@ -623,9 +660,9 @@ const FilterGroup = styled.div`
 
 const FilterButton = styled.button<{ active?: boolean }>`
   padding: 0.5rem 1rem;
-  border: 1px solid #dee2e6;
+  border: 1px solid #d7dde3;
   border-radius: 6px;
-  background: ${(props) => (props.active ? '#007bff' : 'white')};
+  background: ${(props) => (props.active ? '#1e3a5f' : 'white')};
   color: ${(props) => (props.active ? 'white' : '#495057')};
   font-size: 0.85rem;
   font-weight: 500;
@@ -633,8 +670,8 @@ const FilterButton = styled.button<{ active?: boolean }>`
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: #007bff;
-    background: ${(props) => (props.active ? '#0056b3' : '#f8f9fa')};
+    border-color: #1e3a5f;
+    background: ${(props) => (props.active ? '#152d47' : '#f8f9fa')};
   }
 
   @media (max-width: 480px) {
@@ -673,6 +710,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         deleteBusiness,
         uploadDocuments,
         uploadLogo: uploadLogoAPI,
+        uploadContract,
         markActiveCompany,
         getUsers,
         getDocumentPreviewUrl,
@@ -682,6 +720,8 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         updateCompanyStatusMessage,
         updateBusiness,
     } = useBusiness();
+
+    const { current: contractTemplate, getCurrentTemplate } = useContract();
 
     const { user } = useAuth();
 
@@ -706,6 +746,8 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     const [isStatusMessageModalOpen, setIsStatusMessageModalOpen] = useState(false);
     const [selectedBusinessForStatusMessage, setSelectedBusinessForStatusMessage] = useState<BusinessWithDocuments | null>(null);
     const [isUpdatingStatusMessage, setIsUpdatingStatusMessage] = useState(false);
+    const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+    const [selectedBusinessForContract, setSelectedBusinessForContract] = useState<BusinessWithDocuments | null>(null);
 
     // Vérifier l'accès au menu
     const canAccess = canAccessMenu(userRole, MenuName.BUSINESS);
@@ -717,6 +759,11 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
     useEffect(() => {
         filterBusinesses();
     }, [searchTerm, businesses, statusFilter]);
+
+    // Charger la version courante de la souche de contrat (accessible à tous).
+    useEffect(() => {
+        getCurrentTemplate();
+    }, [getCurrentTemplate]);
 
     // Fetch users when associate modal opens
     useEffect(() => {
@@ -784,7 +831,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
         }
     };
 
-    const handleCreateSubmit = async (data: Partial<BusinessType>) => {
+    const handleCreateSubmit = async (data: BusinessFormData) => {
         const success = await createBusiness(data);
         if (success) {
             setError(null);
@@ -841,6 +888,24 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
             setSelectedBusinessForDocs(null);
         } else {
             setError('Failed to upload documents');
+        }
+    };
+
+    const handleContract = (business: BusinessWithDocuments) => {
+        setSelectedBusinessForContract(business);
+        setIsContractModalOpen(true);
+    };
+
+    const handleContractSubmit = async (file: File) => {
+        if (!selectedBusinessForContract) return;
+
+        const success = await uploadContract(selectedBusinessForContract.id, file);
+        if (success) {
+            setError(null);
+            setIsContractModalOpen(false);
+            setSelectedBusinessForContract(null);
+        } else {
+            throw new Error('Failed to upload contract');
         }
     };
 
@@ -1157,6 +1222,29 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                             {hasPermission(
                                 userRole,
                                 MenuName.BUSINESS,
+                                ActionType.BUSINESS_UPLOADER_DOCUMENTS
+                            ) && (
+                                    <ContractBox
+                                        status={business.contract_status || 'missing'}
+                                        onClick={() => handleContract(business)}
+                                        title="Cliquer pour gérer le contrat Tikta"
+                                    >
+                                        {business.contract_status === 'signed' ? (
+                                            <FiCheck />
+                                        ) : (
+                                            <FiAlertCircle />
+                                        )}
+                                        {business.contract_status === 'signed'
+                                            ? `Contrat signé${business.contract_template_version ? ` (v${business.contract_template_version})` : ''}`
+                                            : business.contract_status === 'outdated'
+                                                ? 'Contrat à re-signer (nouvelle version)'
+                                                : 'Contrat Tikta manquant'}
+                                    </ContractBox>
+                                )}
+
+                            {hasPermission(
+                                userRole,
+                                MenuName.BUSINESS,
                                 ActionType.BUSINESS_EDIT
                             ) && (
                                     <>
@@ -1191,6 +1279,12 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                                 )}
 
                             <CardInfo>
+                                {business.description && (
+                                    <InfoItem>
+                                        <label>Description</label>
+                                        <span>{business.description}</span>
+                                    </InfoItem>
+                                )}
                                 {business.nui && (
                                     <InfoItem>
                                         <label>NUI</label>
@@ -1206,7 +1300,7 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                                 {business.website && (
                                     <InfoItem>
                                         <label>Site Web</label>
-                                        <span style={{ color: '#007bff' }}>{business.website}</span>
+                                        <span style={{ color: '#1e3a5f' }}>{business.website}</span>
                                     </InfoItem>
                                 )}
                             </CardInfo>
@@ -1330,6 +1424,20 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                                 {hasPermission(
                                     userRole,
                                     MenuName.BUSINESS,
+                                    ActionType.BUSINESS_UPLOADER_DOCUMENTS
+                                ) && (
+                                        <ActionButton
+                                            title="Gérer le contrat Tikta"
+                                            variant={business.contract_status === 'signed' ? 'success' : 'default'}
+                                            onClick={() => handleContract(business)}
+                                        >
+                                            <FiFileText /> Contract
+                                        </ActionButton>
+                                    )}
+
+                                {hasPermission(
+                                    userRole,
+                                    MenuName.BUSINESS,
                                     ActionType.BUSINESS_ASSOCIER
                                 ) && (
                                         <ActionButton
@@ -1360,6 +1468,20 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
                 onSubmit={handleDocumentsSubmit}
             />
 
+            <ContractModal
+                isOpen={isContractModalOpen}
+                businessName={selectedBusinessForContract?.name || ''}
+                currentTemplate={contractTemplate}
+                contractDocument={selectedBusinessForContract?.contract_document}
+                contractVersion={selectedBusinessForContract?.contract_template_version}
+                contractStatus={selectedBusinessForContract?.contract_status || 'missing'}
+                onClose={() => {
+                    setIsContractModalOpen(false);
+                    setSelectedBusinessForContract(null);
+                }}
+                onSubmit={handleContractSubmit}
+            />
+
             <LogoUploadModal
                 isOpen={isLogoModalOpen}
                 businessName={selectedBusinessForLogo?.name || ''}
@@ -1374,6 +1496,8 @@ export const Business: React.FC<BusinessPageProps> = ({ userRole, onCompanyActiv
             <BusinessEditModal
                 isOpen={isCreateModalOpen}
                 business={null}
+                contractTemplate={contractTemplate}
+                requireContract={!user?.is_superuser}
                 onClose={() => {
                     setIsCreateModalOpen(false);
                 }}

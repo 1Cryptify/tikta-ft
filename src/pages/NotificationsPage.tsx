@@ -194,30 +194,94 @@ const FilterTab = styled.button<{ active: boolean }>`
   }
 `;
 
+const PaginationContainer = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: ${spacing.md};
+  margin-top: ${spacing.lg};
+  padding: ${spacing.md};
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #d7dde3;
+`;
+
+const PaginationControls = styled.div`
+  display: flex;
+  align-items: center;
+  gap: ${spacing.sm};
+`;
+
+const PaginationButton = styled.button`
+  padding: 6px 12px;
+  border: 1px solid #d7dde3;
+  border-radius: 4px;
+  background: white;
+  color: ${colors.textPrimary};
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background: #f0f0f0;
+    border-color: #999;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+`;
+
+const PaginationInfo = styled.span`
+  font-size: 0.875rem;
+  color: ${colors.textSecondary};
+  min-width: 120px;
+  text-align: center;
+`;
+
 export const NotificationsPage: React.FC = () => {
-    const { getNotifications, markNotificationRead } = useAuth();
+    const { getNotifications, markNotificationRead, deleteNotification } = useAuth();
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [isLoading, setIsLoading] = useState(false);
     const [filter, setFilter] = useState<'all' | 'unread'>('all');
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const fetchNotifications = async (unreadOnly?: boolean) => {
+    const fetchNotifications = async (unreadOnly?: boolean, targetPage = 1) => {
         setIsLoading(true);
-        const result = await getNotifications(unreadOnly);
+        const result = await getNotifications(unreadOnly, targetPage);
         if (result.notifications) {
             setNotifications(result.notifications);
         }
         setUnreadCount(result.unread_count || 0);
+        setPage(result.page || 1);
+        setTotalPages(result.total_pages || 1);
+        setTotalCount(result.total_count || 0);
         setIsLoading(false);
     };
 
     useEffect(() => {
-        fetchNotifications(filter === 'unread' ? true : undefined);
-    }, [filter]);
+        fetchNotifications(filter === 'unread' ? true : undefined, page);
+    }, [filter, page]);
+
+    const handleFilterChange = (next: 'all' | 'unread') => {
+        setFilter(next);
+        setPage(1);
+    };
 
     const handleMarkRead = async (id: string) => {
         const result = await markNotificationRead(id);
         if (result.success) {
+            if (filter === 'unread') {
+                fetchNotifications(true, page);
+                return;
+            }
             setNotifications(prev =>
                 prev.map(n => (n.id === id ? { ...n, is_read: true } : n))
             );
@@ -230,6 +294,36 @@ export const NotificationsPage: React.FC = () => {
         if (result.success) {
             setNotifications(prev => prev.map(n => ({ ...n, is_read: true })));
             setUnreadCount(0);
+            if (filter === 'unread') {
+                fetchNotifications(true, page);
+            }
+        }
+    };
+
+    const handleDelete = async (id: string) => {
+        setDeletingId(id);
+        const result = await deleteNotification(id);
+        setDeletingId(null);
+        if (result.success) {
+            const remaining = totalCount - 1;
+            const lastPage = Math.max(1, Math.ceil(remaining / 10));
+            const targetPage = Math.min(page, lastPage);
+            if (targetPage !== page) {
+                setPage(targetPage);
+            } else {
+                fetchNotifications(filter === 'unread' ? true : undefined, targetPage);
+            }
+        }
+    };
+
+    const handleDeleteRead = async () => {
+        const result = await deleteNotification(undefined, true);
+        if (result.success) {
+            if (page !== 1) {
+                setPage(1);
+            } else {
+                fetchNotifications(filter === 'unread' ? true : undefined, 1);
+            }
         }
     };
 
@@ -251,7 +345,7 @@ export const NotificationsPage: React.FC = () => {
                     <p>You have {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''}.</p>
                 </div>
                 <HeaderActions>
-                    <Button variant="secondary" onClick={() => fetchNotifications(filter === 'unread' ? true : undefined)} disabled={isLoading}>
+                    <Button variant="secondary" onClick={() => fetchNotifications(filter === 'unread' ? true : undefined, page)} disabled={isLoading}>
                         <FiRefreshCw /> Refresh
                     </Button>
                     {unreadCount > 0 && (
@@ -259,12 +353,15 @@ export const NotificationsPage: React.FC = () => {
                             <FiCheckCircle /> Mark all read
                         </Button>
                     )}
+                    <Button variant="danger" onClick={handleDeleteRead} disabled={isLoading}>
+                        <FiTrash2 /> Delete read
+                    </Button>
                 </HeaderActions>
             </PageHeader>
 
             <FilterTabs>
-                <FilterTab active={filter === 'all'} onClick={() => setFilter('all')}>All</FilterTab>
-                <FilterTab active={filter === 'unread'} onClick={() => setFilter('unread')}>Unread ({unreadCount})</FilterTab>
+                <FilterTab active={filter === 'all'} onClick={() => handleFilterChange('all')}>All</FilterTab>
+                <FilterTab active={filter === 'unread'} onClick={() => handleFilterChange('unread')}>Unread ({unreadCount})</FilterTab>
             </FilterTabs>
 
             {isLoading && notifications.length === 0 ? (
@@ -279,27 +376,60 @@ export const NotificationsPage: React.FC = () => {
                     <p>You will see your notifications here.</p>
                 </EmptyState>
             ) : (
-                <NotificationList>
-                    {notifications.map(notification => (
-                        <NotificationCard key={notification.id} isRead={notification.is_read}>
-                            <NotificationIcon isRead={notification.is_read}>
-                                <FiBell size={20} />
-                            </NotificationIcon>
-                            <NotificationContent>
-                                <h3>{notification.title}</h3>
-                                <p>{notification.message}</p>
-                                <div className="meta">{formatDate(notification.created_at)}</div>
-                            </NotificationContent>
-                            <NotificationActions>
-                                {!notification.is_read && (
-                                    <IconButton variant="primary" onClick={() => handleMarkRead(notification.id)} title="Mark as read">
-                                        <FiCheck size={18} />
+                <>
+                    <NotificationList>
+                        {notifications.map(notification => (
+                            <NotificationCard key={notification.id} isRead={notification.is_read}>
+                                <NotificationIcon isRead={notification.is_read}>
+                                    <FiBell size={20} />
+                                </NotificationIcon>
+                                <NotificationContent>
+                                    <h3>{notification.title}</h3>
+                                    <p>{notification.message}</p>
+                                    <div className="meta">{formatDate(notification.created_at)}</div>
+                                </NotificationContent>
+                                <NotificationActions>
+                                    {!notification.is_read && (
+                                        <IconButton variant="primary" onClick={() => handleMarkRead(notification.id)} title="Mark as read">
+                                            <FiCheck size={18} />
+                                        </IconButton>
+                                    )}
+                                    <IconButton
+                                        variant="danger"
+                                        onClick={() => handleDelete(notification.id)}
+                                        disabled={deletingId === notification.id}
+                                        title="Delete"
+                                    >
+                                        <FiTrash2 size={18} />
                                     </IconButton>
-                                )}
-                            </NotificationActions>
-                        </NotificationCard>
-                    ))}
-                </NotificationList>
+                                </NotificationActions>
+                            </NotificationCard>
+                        ))}
+                    </NotificationList>
+
+                    <PaginationContainer>
+                        <PaginationControls>
+                            <PaginationButton
+                                onClick={() => setPage(prev => Math.max(1, prev - 1))}
+                                disabled={page <= 1 || isLoading}
+                            >
+                                Previous
+                            </PaginationButton>
+                            <PaginationInfo>
+                                Page {page} of {totalPages}
+                            </PaginationInfo>
+                            <PaginationButton
+                                onClick={() => setPage(prev => Math.min(totalPages, prev + 1))}
+                                disabled={page >= totalPages || isLoading}
+                            >
+                                Next
+                            </PaginationButton>
+                        </PaginationControls>
+                        <PaginationInfo>
+                            {totalCount} notification{totalCount !== 1 ? 's' : ''}
+                        </PaginationInfo>
+                    </PaginationContainer>
+                </>
             )}
         </ContentSection>
     );

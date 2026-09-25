@@ -129,15 +129,15 @@ const SearchContainer = styled.div`
 const SearchInput = styled.input`
   width: 100%;
   padding: 0.75rem 1rem 0.75rem 2.5rem;
-  border: 1px solid #ddd;
+  border: 1px solid #d7dde3;
   border-radius: 6px;
   font-size: 0.95rem;
   transition: border-color 0.3s ease;
 
   &:focus {
     outline: none;
-    border-color: #007bff;
-    box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
   }
 `;
 
@@ -159,15 +159,15 @@ const ClientsList = styled.div`
 
 const ClientCard = styled.div<{ selected?: boolean }>`
   padding: 1rem;
-  border: 2px solid ${(props) => (props.selected ? '#007bff' : '#ddd')};
+  border: 2px solid ${(props) => (props.selected ? '#1e3a5f' : '#d7dde3')};
   border-radius: 8px;
   cursor: pointer;
   transition: all 0.3s ease;
   background: ${(props) => (props.selected ? '#f0f6ff' : 'white')};
 
   &:hover {
-    border-color: #007bff;
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+    border-color: #1e3a5f;
+    box-shadow: 0 2px 8px rgba(30, 58, 95, 0.12);
   }
 `;
 
@@ -238,13 +238,13 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
     switch (props.variant) {
       case 'primary':
         return `
-          background-color: #007bff;
+          background-color: #1e3a5f;
           color: white;
           border: none;
 
           &:hover:not(:disabled) {
-            background-color: #0056b3;
-            box-shadow: 0 4px 12px rgba(0, 123, 255, 0.3);
+            background-color: #152d47;
+            box-shadow: 0 4px 12px rgba(30, 58, 95, 0.3);
           }
 
           &:disabled {
@@ -256,7 +256,7 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
         return `
           background-color: white;
           color: #495057;
-          border: 1px solid #dee2e6;
+          border: 1px solid #d7dde3;
 
           &:hover {
             background-color: #f8f9fa;
@@ -303,7 +303,7 @@ const Tab = styled.button<{ active?: boolean }>`
   flex: 1;
   padding: 1rem;
   border: none;
-  background: ${(props) => (props.active ? '#007bff' : 'transparent')};
+  background: ${(props) => (props.active ? '#1e3a5f' : 'transparent')};
   color: ${(props) => (props.active ? 'white' : '#666')};
   cursor: pointer;
   border-radius: 6px 6px 0 0;
@@ -315,13 +315,13 @@ const Tab = styled.button<{ active?: boolean }>`
   gap: 0.5rem;
 
   &:hover {
-    background: ${(props) => (props.active ? '#0056b3' : '#f0f0f0')};
+    background: ${(props) => (props.active ? '#152d47' : '#f0f0f0')};
   }
 `;
 
 const UserCard = styled.div<{ isAssociated?: boolean }>`
   padding: 1rem;
-  border: 2px solid ${(props) => (props.isAssociated ? '#28a745' : '#ddd')};
+  border: 2px solid ${(props) => (props.isAssociated ? '#28a745' : '#d7dde3')};
   border-radius: 8px;
   background: ${(props) => (props.isAssociated ? '#f1f9f5' : 'white')};
   display: flex;
@@ -330,8 +330,8 @@ const UserCard = styled.div<{ isAssociated?: boolean }>`
   transition: all 0.3s ease;
 
   &:hover {
-    border-color: ${(props) => (props.isAssociated ? '#28a745' : '#007bff')};
-    box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+    border-color: ${(props) => (props.isAssociated ? '#28a745' : '#1e3a5f')};
+    box-shadow: 0 2px 8px rgba(30, 58, 95, 0.12);
   }
 `;
 
