@@ -14,6 +14,7 @@ import {
     FiCopy,
     FiImage,
     FiBarChart2,
+    FiClock,
 } from 'react-icons/fi';
 import { useOffer, Offer, OfferGroup } from '../hooks/useOffer';
 import { useAuth } from '../hooks/useAuth';
@@ -21,6 +22,7 @@ import { useBusiness } from '../hooks/useBusiness';
 import { OfferModal } from '../components/OfferModal';
 import { OfferVisual } from '../components/OfferVisual';
 import OfferStatsPanel from '../components/OfferStatsPanel';
+import ActivatedTicketsPanel from '../components/ActivatedTicketsPanel';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 import { getMediaUrl } from '../services/api';
 
@@ -1034,7 +1036,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
     // Groups tab state
-    const [activeTab, setActiveTab] = useState<'offers' | 'groups' | 'stats'>('offers');
+    const [activeTab, setActiveTab] = useState<'offers' | 'groups' | 'stats' | 'tickets'>('offers');
     const [groupModalOpen, setGroupModalOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState<OfferGroup | null>(null);
     const [groupFormData, setGroupFormData] = useState({
@@ -1392,6 +1394,9 @@ export const OffersList: React.FC<OffersListProps> = () => {
                 </Tab>
                 <Tab isActive={activeTab === 'stats'} onClick={() => setActiveTab('stats')}>
                     <FiBarChart2 /> Stats
+                </Tab>
+                <Tab isActive={activeTab === 'tickets'} onClick={() => setActiveTab('tickets')}>
+                    <FiClock /> Tickets activés
                 </Tab>
             </TabContainer>
 
@@ -1776,8 +1781,10 @@ export const OffersList: React.FC<OffersListProps> = () => {
                         </div>
                     )}
                 </>
-            ) : (
+            ) : activeTab === 'stats' ? (
                 <OfferStatsPanel />
+            ) : (
+                <ActivatedTicketsPanel />
             )}
 
             </Container>

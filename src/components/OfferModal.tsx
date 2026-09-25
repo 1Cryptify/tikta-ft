@@ -549,6 +549,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
 
   const selectedCompany = businesses.find(b => b.id === formData.company_id);
   const isSelectedCompanyVerified = !!selectedCompany?.is_verified;
+  const selectedBackground = getOfferBackground(formData.icon_background);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -780,39 +781,32 @@ export const OfferModal: React.FC<OfferModalProps> = ({
             {visualMode === 'illustration' ? (
               <>
                 <FieldHint>
-                  À défaut d'image, choisissez une icône (vitesse, connectivité, vol en l'air ou
-                  économie) et un fond cohérent. La galerie compte {OFFER_ILLUSTRATIONS.length} illustrations.
+                  À défaut d'image, choisissez une icône et un fond cohérent. La galerie compte{' '}
+                  {OFFER_ILLUSTRATIONS.length} illustrations.
                 </FieldHint>
 
-                {OFFER_ILLUSTRATION_THEMES.map((theme) => {
-                  const bg = getOfferBackground(formData.icon_background);
-                  return (
-                    <ThemeBlock key={theme.id} style={{ marginTop: spacing.md }}>
-                      <ThemeTitle>{theme.label}</ThemeTitle>
-                      <IconGrid>
-                        {OFFER_ILLUSTRATIONS.filter((item) => item.category === theme.id).map(
-                          (illustration) => {
-                            const Icon = illustration.Icon;
-                            return (
-                              <IconButton
-                                key={illustration.id}
-                                type="button"
-                                title={illustration.label}
-                                aria-label={illustration.label}
-                                isSelected={formData.icon === illustration.id}
-                                style={{ background: bg.gradient, color: bg.iconColor }}
-                                onClick={() => handleSelectIllustration(illustration.id)}
-                                disabled={isLoading}
-                              >
-                                <Icon size={22} aria-hidden="true" />
-                              </IconButton>
-                            );
-                          }
-                        )}
-                      </IconGrid>
-                    </ThemeBlock>
-                  );
-                })}
+                <IconGrid style={{ marginTop: spacing.md }}>
+                  {OFFER_ILLUSTRATIONS.map((illustration) => {
+                    const Icon = illustration.Icon;
+                    return (
+                      <IconButton
+                        key={illustration.id}
+                        type="button"
+                        title={illustration.label}
+                        aria-label={illustration.label}
+                        isSelected={formData.icon === illustration.id}
+                        style={{
+                          background: selectedBackground.gradient,
+                          color: selectedBackground.iconColor,
+                        }}
+                        onClick={() => handleSelectIllustration(illustration.id)}
+                        disabled={isLoading}
+                      >
+                        <Icon size="56%" aria-hidden="true" />
+                      </IconButton>
+                    );
+                  })}
+                </IconGrid>
 
                 <ThemeBlock style={{ marginTop: spacing.md }}>
                   <ThemeTitle>Fond</ThemeTitle>

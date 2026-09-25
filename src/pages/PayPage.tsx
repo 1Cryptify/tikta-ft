@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { FiChevronRight, FiClock, FiPackage, FiTag } from 'react-icons/fi';
 import LoadingSpinner from '../components/LoadingSpinner';
+import { OfferVisual } from '../components/OfferVisual';
 import { paymentService } from '../services/paymentService';
 import { getMediaUrl } from '../services/api';
 import { OfferGroup, Product, Offer } from '../types/payment.types';
@@ -58,6 +59,8 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
                 discount: offer.discount_type === 'percentage' ? Number(offer.discount_value) : undefined,
                 validUntil: offer.validUntil || offer.valid_until ? new Date(offer.validUntil || offer.valid_until) : undefined,
                 image: offer.image,
+                icon: offer.icon,
+                icon_background: offer.icon_background,
               };
             }),
             is_package: response.is_package || false,
@@ -185,7 +188,6 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
           <div className="of-offers">
             {items.map((item) => {
               const isOffer = 'originalPrice' in item && !('items' in item);
-              const img = item.image ? getMediaUrl(item.image) : '';
               const price = formatPrice(item.price, item.currency);
               const onClick = () =>
                 isOffer
@@ -194,7 +196,16 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
 
               return (
                 <div key={item.id} className="of-offer">
-                  <div className="of-offer__thumb">{img ? <img src={img} alt={item.name} /> : <FiTag />}</div>
+                  <div className="of-offer__thumb">
+                    <OfferVisual
+                      image={item.image}
+                      icon={(item as Offer).icon}
+                      background={(item as Offer).icon_background}
+                      alt={item.name}
+                      iconSize={30}
+                      placeholder={<FiTag />}
+                    />
+                  </div>
                   <div className="of-offer__body">
                     <h3 className="of-offer__name">{item.name}</h3>
                     {item.description && <p className="of-offer__desc">{item.description}</p>}

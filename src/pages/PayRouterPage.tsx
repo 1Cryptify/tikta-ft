@@ -122,6 +122,8 @@ export const PayRouterPage: React.FC<PayRouterPageProps> = ({ type }) => {
                     discount: offer.discount_type === 'percentage' ? Number(offer.discount_value) : undefined,
                     validUntil: offer.validUntil || offer.valid_until ? new Date(offer.validUntil || offer.valid_until) : undefined,
                     image: offer.image,
+                    icon: offer.icon,
+                    icon_background: offer.icon_background,
                   };
                 }),
                 is_package: false,
