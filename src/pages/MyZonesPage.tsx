@@ -749,4 +749,56 @@ export const MyZonesPage: React.FC = () => {
                     const cur = contacts.find((c) => c.id === autoForm.contact_id);
                     return (
                       <div style={{ marginTop: spacing.xs, fontSize: '0.78rem', color: cur ? colors.success : colors.textSecondary }}>
-                        {cur ? `Contact p
+                        {cur ? `Contact payé : ${cur.number}${cur.label ? ` — ${cur.label}` : ''} (frais ${cur.fee_percentage}%)` : 'Aucun contact sélectionné'}
+                      </div>
+                    );
+                  })()}
+                </FormGroup>
+                <FormGroup>
+                  <label>Seuil de déclenchement ({autoFor.currency_code})</label>
+                  <input type="number" min={0} step={50} value={autoForm.minimum_amount}
+                    onChange={(e) => setAutoForm({ ...autoForm, minimum_amount: e.target.value })}
+                    placeholder="Ex: 5000" />
+                </FormGroup>
+                {!autoForm.withdraw_full_balance && (
+                  <FormGroup>
+                    <label>Montant fixe à retirer</label>
+                    <input type="number" min={50} step={50} value={autoForm.fixed_amount}
+                      onChange={(e) => setAutoForm({ ...autoForm, fixed_amount: e.target.value })} />
+                  </FormGroup>
+                )}
+                <FormGroup>
+                  <label>Options</label>
+                  <CheckLine>
+                    <input type="checkbox" checked={autoForm.withdraw_full_balance}
+                      onChange={(e) => setAutoForm({ ...autoForm, withdraw_full_balance: e.target.checked })} />
+                    Retirer tout le solde atteint
+                  </CheckLine>
+                  <CheckLine>
+                    <input type="checkbox" checked={autoForm.is_enabled}
+                      onChange={(e) => setAutoForm({ ...autoForm, is_enabled: e.target.checked })} />
+                    Activer le retrait automatique
+                  </CheckLine>
+                </FormGroup>
+                <ModalFooter>
+                  <div style={{ marginRight: 'auto', display: 'flex', gap: spacing.sm }}>
+                    {autoExists && autoForm.is_enabled && (
+                      <GhostButton type="button" onClick={disableAuto}>Désactiver</GhostButton>
+                    )}
+                    {autoExists && (
+                      <GhostButton type="button" className="danger" onClick={deleteAuto}>Supprimer</GhostButton>
+                    )}
+                  </div>
+                  <GhostButton type="button" onClick={() => setAutoFor(null)}>Annuler</GhostButton>
+                  <PrimaryButton type="submit" disabled={autoSaving}>
+                    {autoSaving ? 'Enregistrement...' : 'Enregistrer'}
+                  </PrimaryButton>
+                </ModalFooter>
+              </form>
+            )}
+          </ModalContent>
+        </ModalOverlay>
+      )}
+    </ContentSection>
+  );
+};
