@@ -14,6 +14,7 @@ import {
 } from 'react-icons/fi';
 import { MobileOperator, PaymentMethod, formatLocalPhone } from '../../types/payment.types';
 import { getMediaUrl } from '../../services/api';
+import { OfferVisual } from '../OfferVisual';
 import { InlineSpinner } from './PaymentOverlay';
 import './checkout.css';
 
@@ -22,9 +23,13 @@ export type LocationState = 'idle' | 'locating' | 'granted' | 'denied' | 'error'
 export interface CheckoutViewProps {
   itemName: string;
   itemImage?: string;
+  itemIcon?: string | null;
+  itemIconBackground?: string | null;
   priceLabel: string;
   formError?: string | null;
 
+  /** Location is only required when the offer's company has active zones. */
+  requiresLocation: boolean;
   locationStatus: LocationState;
   locationError?: string;
   zoneName?: string | null;
@@ -51,6 +56,7 @@ export interface CheckoutViewProps {
   acceptTerms: boolean;
   termsError?: string;
   onTermsChange: (checked: boolean) => void;
+  onOpenTerms?: () => void;
 
   submitting: boolean;
   disabled: boolean;
@@ -62,14 +68,24 @@ export interface CheckoutViewProps {
 /*  Order summary                                                      */
 /* ------------------------------------------------------------------ */
 
-export const OrderSummary: React.FC<{ name: string; image?: string; priceLabel: string }> = ({
-  name,
-  image,
-  priceLabel,
-}) => (
+export const OrderSummary: React.FC<{
+  name: string;
+  image?: string;
+  icon?: string | null;
+  iconBackground?: string | null;
+  priceLabel: string;
+}> = ({ name, image, icon, iconBackground, priceLabel }) => (
   <div className="ck-order">
     <div className="ck-order__thumb">
-      {image ? <img src={image} alt={name} /> : <FiTag />}
+      <OfferVisual
+        image={image}
+        icon={icon}
+        background={iconBackground}
+        alt={name}
+        iconSize={24}
+        style={{ borderRadius: 'inherit' }}
+        placeholder={<FiTag />}
+      />
     </div>
     <div className="ck-order__info">
       <span className="ck-order__name">{name}</span>
@@ -327,8 +343,10 @@ export const TermsRow: React.FC<{
   checked: boolean;
   error?: string;
   onChange: (checked: boolean) => void;
+  onOpenTerms?: () => void;
+  requireLocation?: boolean;
   disabled?: boolean;
-}> = ({ checked, error, onChange, disabled }) => (
+}> = ({ checked, error, onChange, onOpenTerms, requireLocation = true, disabled }) => (
   <div className={`ck-terms ${error ? 'is-error' : ''}`}>
     <label className="ck-terms__label">
       <input
@@ -338,8 +356,19 @@ export const TermsRow: React.FC<{
         disabled={disabled}
       />
       <span>
-        J'accepte le partage de ma localisation et les{' '}
-        <span className="ck-terms__link">conditions d'utilisation</span>.
+        J'accepte{requireLocation ? ' le partage de ma localisation et' : ''} les{' '}
+        <button
+          type="button"
+          className="ck-terms__link"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onOpenTerms?.();
+          }}
+        >
+          conditions d'utilisation
+        </button>
+        .
       </span>
     </label>
     {error && <span className="ck-field-error">{error}</span>}

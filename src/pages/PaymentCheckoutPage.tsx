@@ -3,6 +3,8 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { FiAlertTriangle, FiArrowLeft } from 'react-icons/fi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import PaymentOverlay from '../components/Payment/PaymentOverlay';
+import TermsModal from '../components/Payment/TermsModal';
+import LocationModal from '../components/Payment/LocationModal';
 import CheckoutMobile from '../components/Payment/CheckoutMobile';
 import CheckoutDesktop from '../components/Payment/CheckoutDesktop';
 import { CheckoutViewProps, LocationState } from '../components/Payment/CheckoutParts';
@@ -21,6 +23,8 @@ import {
 import { usePaymentVerification } from '../hooks/usePaymentVerification';
 import { useMediaQuery } from '../hooks/useMediaQuery';
 import '../styles/payment.css';
+
+type GeoPermissionState = 'unknown' | 'prompt' | 'granted' | 'denied';
 
 export const PaymentCheckoutPage: React.FC = () => {
   const { groupId, productId, offerId } = useParams();
@@ -44,11 +48,15 @@ export const PaymentCheckoutPage: React.FC = () => {
   const [email, setEmail] = useState('');
   const [emailEnabled, setEmailEnabled] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
 
   const [geoPos, setGeoPos] = useState<{ lat: number; lng: number } | null>(null);
   const [locationStatus, setLocationStatus] = useState<LocationState>('idle');
   const [searchingZone, setSearchingZone] = useState(false);
   const [zone, setZone] = useState<{ name: string; company_name?: string } | null>(null);
+  const [requiresLocation, setRequiresLocation] = useState(true);
+  const [permissionState, setPermissionState] = useState<GeoPermissionState>('unknown');
+  const [locationModalOpen, setLocationModalOpen] = useState(false);
 
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const locationRequested = useRef(false);
@@ -96,48 +104,97 @@ export const PaymentCheckoutPage: React.FC = () => {
 
   /* ---------------- Localisation automatique ---------------- */
 
-  const requestLocation = useCallback(() => {
-    if (!('geolocation' in navigator)) {
-      setLocationStatus('unsupported');
-      addToast('Votre navigateur ne supporte pas la géolocalisation.', 'error');
-      return;
+  const handleLocationSuccess = useCallback(async (position: GeolocationPosition) => {
+    const { latitude, longitude } = position.coords;
+    setGeoPos({ lat: latitude, lng: longitude });
+    setLocationStatus('granted');
+    setPermissionState('granted');
+    setLocationModalOpen(false);
+    setSearchingZone(true);
+    try {
+      const res = await zoneService.nearestZone(latitude, longitude);
+      if (res.mode !== 'none' && res.zone) {
+        setZone({ name: res.zone.name, company_name: res.zone.company_name });
+      } else {
+        setZone(null);
+      }
+    } finally {
+      setSearchingZone(false);
     }
-    setLocationStatus('locating');
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setGeoPos({ lat: latitude, lng: longitude });
-        setLocationStatus('granted');
-        setSearchingZone(true);
-        try {
-          const res = await zoneService.nearestZone(latitude, longitude);
-          if (res.mode !== 'none' && res.zone) {
-            setZone({ name: res.zone.name, company_name: res.zone.company_name });
-          } else {
-            setZone(null);
-          }
-        } finally {
-          setSearchingZone(false);
-        }
-      },
-      (err) => {
-        setLocationStatus(err.code === err.PERMISSION_DENIED ? 'denied' : 'error');
-        addToast(
-          err.code === err.PERMISSION_DENIED
-            ? 'Localisation refusée. Autorisez-la pour continuer.'
-            : 'Impossible de récupérer votre position.',
-          'error'
-        );
-      },
-      { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 }
-    );
+  }, []);
+
+  const handleLocationError = useCallback((err: GeolocationPositionError) => {
+    if (err.code === err.PERMISSION_DENIED) {
+      setLocationStatus('denied');
+      setPermissionState('denied');
+      // Ouvre directement notre popup d'activation (le navigateur, lui, ne
+      // réaffichera plus son prompt une fois le refus mémorisé).
+      setLocationModalOpen(true);
+      addToast('Localisation bloquée. Autorisez-la pour continuer.', 'error');
+    } else {
+      setLocationStatus('error');
+      addToast('Impossible de récupérer votre position.', 'error');
+    }
   }, [addToast]);
 
+  const attemptLocation = useCallback(() => {
+    if (!('geolocation' in navigator)) {
+      setLocationStatus('unsupported');
+      setLocationModalOpen(true);
+      return;
+    }
+
+    // Reflète l'état réel de la permission pour adapter le message du popup.
+    if (navigator.permissions?.query) {
+      navigator.permissions
+        .query({ name: 'geolocation' as PermissionName })
+        .then((status) => setPermissionState(status.state))
+        .catch(() => {});
+    }
+
+    setLocationStatus('locating');
+    // Si l'état est encore « prompt », l'appel ci-dessous affiche le popup natif.
+    navigator.geolocation.getCurrentPosition(handleLocationSuccess, handleLocationError, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 60000,
+    });
+  }, [handleLocationSuccess, handleLocationError]);
+
+  // Surveille les changements d'autorisation : dès que l'utilisateur l'active
+  // dans le navigateur, on relance automatiquement (sans qu'il revienne).
   useEffect(() => {
+    if (!requiresLocation) return;
+    if (!navigator.permissions?.query) return;
+    let status: PermissionStatus | null = null;
+    let cancelled = false;
+
+    navigator.permissions
+      .query({ name: 'geolocation' as PermissionName })
+      .then((result) => {
+        if (cancelled) return;
+        status = result;
+        setPermissionState(result.state);
+        result.onchange = () => {
+          setPermissionState(result.state);
+          if (result.state === 'granted') attemptLocation();
+        };
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+      if (status) status.onchange = null;
+    };
+  }, [requiresLocation, attemptLocation]);
+
+  // Demande la localisation automatiquement, uniquement si l'entreprise a des zones.
+  useEffect(() => {
+    if (loading || !requiresLocation) return;
     if (locationRequested.current) return;
     locationRequested.current = true;
-    requestLocation();
-  }, [requestLocation]);
+    attemptLocation();
+  }, [loading, requiresLocation, attemptLocation]);
 
   /* ---------------- Données ---------------- */
 
@@ -162,6 +219,7 @@ export const PaymentCheckoutPage: React.FC = () => {
         if (isBuyingGroup && groupId) {
           const g = await paymentService.getOfferGroup(groupId);
           if (g.status === 'success' && g?.is_package) {
+            setRequiresLocation(g.company_has_zones !== false);
             setItem({
               id: g.id, name: g.name, description: g.description,
               price: parseFloat(g.price) || 0,
@@ -175,11 +233,14 @@ export const PaymentCheckoutPage: React.FC = () => {
           const d = await paymentService.getOffer(offerId);
           if (d.status === 'success' && d.offer) {
             const o = d.offer;
+            setRequiresLocation(o.company_has_zones !== false);
             setItem({
               id: o.id, name: o.name, description: o.description,
-              price: parseFloat(o.price) || 0,
+              // Prix effectif (réduction appliquée), sinon prix de base.
+              price: parseFloat(o.final_price ?? o.price) || 0,
               currency: o.currency?.code || o.currency || 'XAF',
               image: o.image, type: 'offer',
+              icon: o.icon, icon_background: o.icon_background,
             });
           } else {
             setFatalError("Offre introuvable ou indisponible.");
@@ -188,6 +249,7 @@ export const PaymentCheckoutPage: React.FC = () => {
           const d = await paymentService.getProduct(productId);
           if (d.status === 'success' && d.product) {
             const p = d.product;
+            setRequiresLocation(p.company_has_zones !== false);
             setItem({
               id: p.id, name: p.name, description: p.description,
               price: parseFloat(p.price) || 0,
@@ -262,15 +324,19 @@ export const PaymentCheckoutPage: React.FC = () => {
 
   const validate = (): boolean => {
     const next: Record<string, string> = {};
-    if (locationStatus !== 'granted' || !geoPos) next.location = 'Activez la localisation pour payer.';
-    if (!acceptTerms) next.terms = "Veuillez accepter les conditions.";
+    if (requiresLocation && (locationStatus !== 'granted' || !geoPos)) {
+      next.location = 'Activez la localisation pour payer.';
+    }
+    if (!acceptTerms) next.terms = 'Veuillez accepter les conditions.';
     if (!selectedMethodId) next.paymentMethod = 'Choisissez un moyen de paiement.';
     if (isMobileMoney) {
       if (!isValidMobileNumber(phone)) {
         next.phone = 'Numéro mobile invalide (9 chiffres, ex. 6 70 00 00 00).';
       } else {
         const detected = detectOperator(phone);
-        const methodOp = getMethodOperator(selectedMethod);
+        const methodOp = selectedMethod
+          ? operatorFromChannel(selectedMethod.channel, selectedMethod.name)
+          : 'unknown';
         if (detected !== 'unknown' && methodOp !== 'unknown' && detected !== methodOp) {
           next.phone = "Ce numéro ne correspond pas à l'opérateur sélectionné.";
         }
@@ -299,9 +365,10 @@ export const PaymentCheckoutPage: React.FC = () => {
         send_sms: isMobileMoney,
         send_email: emailEnabled,
         sms_phone: isMobileMoney ? normalizeLocalPhone(phone) : '',
-        latitude: geoPos?.lat,
-        longitude: geoPos?.lng,
-        location_shared: true,
+        // Localisation envoyée uniquement si l'entreprise a des zones définies.
+        latitude: requiresLocation ? geoPos?.lat : undefined,
+        longitude: requiresLocation ? geoPos?.lng : undefined,
+        location_shared: requiresLocation && locationStatus === 'granted',
         terms_accepted: true,
       };
 
@@ -389,12 +456,20 @@ export const PaymentCheckoutPage: React.FC = () => {
     itemImage: item.image ? getMediaUrl(item.image) : undefined,
     priceLabel,
     formError,
+    requiresLocation,
     locationStatus,
     locationError: errors.location,
     zoneName: zone?.name,
     zoneCompany: zone?.company_name,
     searchingZone,
-    onRetryLocation: requestLocation,
+    onRetryLocation: () => {
+      // Refus mémorisé ou navigateur incompatible : on présente le popup guidé.
+      if (permissionState === 'denied' || locationStatus === 'unsupported') {
+        setLocationModalOpen(true);
+      } else {
+        attemptLocation();
+      }
+    },
     methods: paymentMethods,
     selectedMethodId,
     onSelectMethod: (m) => {
@@ -437,6 +512,7 @@ export const PaymentCheckoutPage: React.FC = () => {
       setAcceptTerms(checked);
       clearError('terms');
     },
+    onOpenTerms: () => setTermsOpen(true),
     submitting,
     disabled: isFormDisabled,
     onSubmit: handleSubmit,
@@ -468,16 +544,26 @@ export const PaymentCheckoutPage: React.FC = () => {
       {isMobile
         ? <CheckoutMobile {...viewProps} />
         : <CheckoutDesktop {...viewProps} />}
+
+      <TermsModal
+        open={termsOpen}
+        onClose={() => setTermsOpen(false)}
+        onAccept={() => {
+          setAcceptTerms(true);
+          clearError('terms');
+          setTermsOpen(false);
+        }}
+      />
+
+      <LocationModal
+        open={locationModalOpen}
+        permissionState={permissionState}
+        locating={locationStatus === 'locating'}
+        onRetry={attemptLocation}
+        onClose={() => setLocationModalOpen(false)}
+      />
     </>
   );
 };
-
-function getMethodOperator(method?: PaymentMethod): MobileOperator {
-  if (!method) return 'unknown';
-  const haystack = `${method.channel || ''} ${method.name || ''}`.toLowerCase();
-  if (haystack.includes('mtn') || haystack.includes('momo')) return 'mtn';
-  if (haystack.includes('orange')) return 'orange';
-  return 'unknown';
-}
 
 export default PaymentCheckoutPage;

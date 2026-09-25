@@ -15,9 +15,6 @@ import PaymentRoutes from './config/payment-routes';
 import { UserRole } from './config/menuPermissions';
 import './styles/global.css';
 import './styles/payment.css';
-import './styles/pay-page.css';
-import './styles/payment-success.css';
-import './styles/payment-failed.css';
 import './styles/payment-config.css';
 
 // Helper function to map user to UserRole

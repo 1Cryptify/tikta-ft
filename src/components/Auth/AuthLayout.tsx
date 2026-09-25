@@ -168,9 +168,23 @@ interface AuthLayoutProps {
   subtitle: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  brandHeadline?: string;
+  brandLede?: string;
+  brandFeatures?: React.ReactNode[];
+  brandFooter?: React.ReactNode;
 }
 
-export const AuthLayout: React.FC<AuthLayoutProps> = ({ title, subtitle, children, footer }) => {
+const DEFAULT_FEATURES = [
+  <><FiZap size={18} /> Tickets WiFi avec codes QR dynamiques</>,
+  <><FiShield size={18} /> Paiements sécurisés &amp; multi-devises</>,
+  <><FiCheckCircle size={18} /> Statistiques et revenus en temps réel</>,
+];
+
+export const AuthLayout: React.FC<AuthLayoutProps> = ({
+  title, subtitle, children, footer,
+  brandHeadline, brandLede, brandFeatures, brandFooter,
+}) => {
+  const features = brandFeatures ?? DEFAULT_FEATURES;
   return (
     <Shell>
       <Brand>
@@ -185,19 +199,16 @@ export const AuthLayout: React.FC<AuthLayoutProps> = ({ title, subtitle, childre
         </BrandTop>
 
         <BrandBody>
-          <Headline>Vendez vos tickets WiFi en toute simplicité.</Headline>
+          <Headline>{brandHeadline || 'Vendez vos tickets WiFi en toute simplicité.'}</Headline>
           <Lede>
-            La plateforme tout-en-un pour gérer vos zones d'accès, vendre vos passes WiFi
-            et encaisser vos paiements en ligne, en toute sécurité.
+            {brandLede || "La plateforme tout-en-un pour gérer vos zones d'accès, vendre vos passes WiFi et encaisser vos paiements en ligne, en toute sécurité."}
           </Lede>
           <FeatureList>
-            <FeatureItem><FiZap size={18} /> Tickets WiFi avec codes QR dynamiques</FeatureItem>
-            <FeatureItem><FiShield size={18} /> Paiements sécurisés &amp; multi-devises</FeatureItem>
-            <FeatureItem><FiCheckCircle size={18} /> Statistiques et revenus en temps réel</FeatureItem>
+            {features.map((f, i) => <FeatureItem key={i}>{f}</FeatureItem>)}
           </FeatureList>
         </BrandBody>
 
-        <BrandFooter>© {new Date().getFullYear()} Tikta. Tous droits réservés.</BrandFooter>
+        <BrandFooter>{brandFooter || `© ${new Date().getFullYear()} Tikta. Tous droits réservés.`}</BrandFooter>
       </Brand>
 
       <FormSide>

@@ -1,0 +1,203 @@
+/* ==========================================================================
+   Location activation modal
+   ========================================================================== */
+
+.loc-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  animation: locFade 0.2s ease-out;
+}
+
+.loc-modal__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.loc-modal__panel {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 400px;
+  background: #fff;
+  border-radius: 18px;
+  padding: 20px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+  outline: none;
+  animation: locPop 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+}
+
+.loc-modal__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.loc-modal__badge {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 58, 95, 0.08);
+  color: var(--color-primary);
+  font-size: 22px;
+}
+
+.loc-modal__close {
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 10px;
+  background: #f3f4f6;
+  color: var(--color-text-primary);
+  font-size: 17px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.loc-modal__close:hover { background: #e5e7eb; }
+
+.loc-modal__body h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-text-primary);
+  margin: 4px 0 6px;
+}
+
+.loc-modal__lead {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-text-secondary);
+  margin: 0 0 16px;
+}
+
+/* Steps */
+.loc-modal__steps {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding: 14px;
+  background: #f8fafc;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+}
+
+.loc-modal__step {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.loc-modal__step-icon {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  color: var(--color-primary);
+  font-size: 13px;
+}
+
+.loc-modal__step strong {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.loc-modal__step p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-secondary);
+}
+
+/* Buttons */
+.loc-modal__primary {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, var(--color-primary), var(--color-primary-light));
+  color: #fff;
+  font-weight: 800;
+  font-size: 14.5px;
+  font-family: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.2s, opacity 0.2s;
+}
+
+.loc-modal__primary:hover:not(:disabled) {
+  box-shadow: 0 10px 22px rgba(30, 58, 95, 0.28);
+}
+
+.loc-modal__primary:disabled { opacity: 0.7; cursor: default; }
+
+.loc-modal__ghost {
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px;
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  background: #fff;
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  font-size: 13.5px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.loc-modal__ghost:hover { background: #f3f4f6; color: var(--color-text-primary); }
+
+.loc-modal__spinner {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  animation: locSpin 0.7s linear infinite;
+}
+
+@keyframes locSpin { to { transform: rotate(360deg); } }
+@keyframes locFade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes locPop {
+  from { opacity: 0; transform: translateY(14px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 600px) {
+  .loc-modal { padding: 0 12px; align-items: flex-end; }
+  .loc-modal__panel {
+    max-width: 100%;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: max(20px, env(safe-area-inset-bottom));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loc-modal,
+  .loc-modal__panel,
+  .loc-modal__spinner { animation: none; }
+}

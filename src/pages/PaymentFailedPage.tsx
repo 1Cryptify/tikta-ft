@@ -1,8 +1,8 @@
 import React from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { FiX } from 'react-icons/fi';
+import { FiArrowLeft, FiMail, FiRefreshCw, FiX } from 'react-icons/fi';
 import '../styles/payment.css';
-import '../styles/payment-failed.css';
+import '../styles/order-flow.css';
 
 export const PaymentFailedPage: React.FC = () => {
   const { groupId } = useParams();
@@ -13,88 +13,58 @@ export const PaymentFailedPage: React.FC = () => {
   const returnTo: string | undefined = location.state?.returnTo;
 
   const handleTryAgain = () => {
-    if (returnTo) {
-      navigate(returnTo);
-    } else if (groupId) {
-      navigate(`/pay/g/${groupId}`);
-    } else {
-      navigate('/');
-    }
+    if (returnTo) navigate(returnTo);
+    else if (groupId) navigate(`/pay/g/${groupId}`);
+    else navigate('/');
   };
 
   const handleBackToPayment = () => {
-    if (groupId) {
-      navigate(`/pay/g/${groupId}`);
-    } else {
-      navigate('/');
-    }
+    if (groupId) navigate(`/pay/g/${groupId}`);
+    else navigate('/');
   };
 
   return (
-    <div className="payment-failed">
-      <div className="failed-container">
-        <div className="failed-icon"><FiX aria-hidden="true" /></div>
-        <h1 className="failed-title">Paiement échoué</h1>
-        <p className="failed-message">
+    <div className="of-center">
+      <div className="of-card of-card--center">
+        <div className="of-status-icon of-status-icon--error">
+          <FiX aria-hidden="true" />
+        </div>
+        <h1 className="of-title">Paiement échoué</h1>
+        <p className="of-subtitle">
           {errorMessage ||
-            "Votre paiement n'a pas pu être traité. Aucun montant ne vous a été débité tant que la confirmation n'est pas reçue."}
+            "Votre paiement n'a pas pu être traité. Aucun montant ne vous sera débité tant que la confirmation n'est pas reçue."}
         </p>
 
-        <div className="failure-reasons">
-          <div className="failure-reasons-title">Causes possibles</div>
+        <div className="of-reasons">
+          <p className="of-reasons__title">Causes possibles</p>
           <ul>
             <li>Le paiement a été annulé ou refusé sur le téléphone.</li>
             <li>Solde Mobile Money insuffisant.</li>
-            <li>Le code PIN saisi est incorrect ou la demande a expiré.</li>
+            <li>Code PIN incorrect ou demande expirée.</li>
             <li>Numéro de téléphone ou opérateur incorrect.</li>
           </ul>
         </div>
 
-        <div className="recovery-guide">
-          <div className="recovery-title">Comment réessayer</div>
-          <div className="recovery-steps">
-            <div className="recovery-step">
-              <span className="step-number">1</span>
-              <div className="step-content">
-                <div className="step-title">Vérifiez votre numéro</div>
-                <p className="step-desc">Assurez-vous que le numéro et l'opérateur (MTN / Orange) correspondent à votre Mobile Money.</p>
-              </div>
-            </div>
-            <div className="recovery-step">
-              <span className="step-number">2</span>
-              <div className="step-content">
-                <div className="step-title">Vérifiez votre solde</div>
-                <p className="step-desc">Le compte Mobile Money doit disposer du montant total à régler.</p>
-              </div>
-            </div>
-            <div className="recovery-step">
-              <span className="step-number">3</span>
-              <div className="step-content">
-                <div className="step-title">Relancez le paiement</div>
-                <p className="step-desc">Appuyez sur « Réessayer » et validez la demande avec votre code PIN dès sa réception.</p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="failed-actions">
-          <button className="btn-primary" onClick={handleTryAgain}>
+        <div className="of-actions">
+          <button type="button" className="of-btn of-btn--primary of-btn--block" onClick={handleTryAgain}>
+            <FiRefreshCw aria-hidden="true" />
             Réessayer le paiement
           </button>
-          <button className="btn-secondary" onClick={handleBackToPayment}>
+          <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={handleBackToPayment}>
+            <FiArrowLeft aria-hidden="true" />
             Retour aux offres
           </button>
         </div>
 
-        <div className="support-contact">
-          <div className="support-title">Besoin d'aide ?</div>
-          <p className="support-text">
-            Si le problème persiste, contactez notre équipe de support en précisant la référence
-            de votre transaction.
-          </p>
-          <a href="mailto:contact@tikta.xyz" className="support-link">
-            Contacter le support
-          </a>
+        <div className="of-notice of-notice--info">
+          <FiMail aria-hidden="true" />
+          <span>
+            Besoin d'aide ? Écrivez-nous à{' '}
+            <a href="mailto:contact@tikta.xyz" className="of-link" style={{ display: 'inline' }}>
+              contact@tikta.xyz
+            </a>{' '}
+            en précisant la référence de la transaction.
+          </span>
         </div>
       </div>
     </div>

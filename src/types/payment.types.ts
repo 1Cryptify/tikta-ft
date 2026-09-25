@@ -8,6 +8,8 @@ export interface Product {
   currency: string;
   image?: string;
   featured?: boolean;
+  /** true when the owning company has at least one active zone (location required). */
+  company_has_zones?: boolean;
 }
 
 export interface Offer {
@@ -20,7 +22,11 @@ export interface Offer {
   discount?: number;
   validUntil?: Date;
   image?: string;
+  icon?: string | null;
+  icon_background?: string | null;
   callback_url?: string;
+  /** true when the owning company has at least one active zone (location required). */
+  company_has_zones?: boolean;
 }
 
 export interface OfferGroup {
@@ -41,6 +47,8 @@ export interface OfferGroup {
   is_featured: boolean;
   purchasable?: boolean; // legacy field, use is_package instead
   company_id?: string;
+  /** true when the owning company has at least one active zone (location required). */
+  company_has_zones?: boolean;
   created_at?: string;
   updated_at?: string;
 }
@@ -166,6 +174,8 @@ export interface PaymentItem {
   price: number;
   currency: string;
   image?: string;
+  icon?: string | null;
+  icon_background?: string | null;
   type?: string;
 }
 

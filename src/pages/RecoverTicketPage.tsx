@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { FiSearch, FiArrowLeft, FiCopy, FiCheckCircle, FiAlertCircle } from 'react-icons/fi';
+import { FiSearch, FiArrowLeft, FiCopy, FiCheckCircle, FiAlertCircle, FiShield, FiClock } from 'react-icons/fi';
 import { AuthLayout } from '../components/Auth/AuthLayout';
 import { Button } from '../components/Form/Button';
 import { colors, spacing, borderRadius } from '../config/theme';
@@ -34,30 +34,39 @@ const Label = styled.label`
   color: ${colors.textPrimary};
 `;
 
-const InputWrap = styled.div`
-  position: relative;
+const InputWrap = styled.div<{ $hasError?: boolean; $disabled?: boolean }>`
   display: flex;
   align-items: center;
+  gap: 0.6rem;
+  padding: 0 1rem;
+  border: 1px solid ${p => (p.$hasError ? colors.error : colors.border)};
+  border-radius: ${borderRadius.md};
+  background: ${p => (p.$disabled ? '#f5f6f8' : colors.surface)};
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+
+  &:focus-within {
+    border-color: ${colors.primary};
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
+  }
 `;
 
 const FieldIcon = styled.span`
-  position: absolute;
-  left: 0.9rem;
   color: ${colors.textSecondary};
   display: flex;
+  flex: 0 0 auto;
   pointer-events: none;
 `;
 
-const TextInput = styled.input<{ $hasError?: boolean }>`
-  width: 100%;
-  padding: 0.8rem 1rem 0.8rem 2.6rem;
-  border: 1px solid ${p => (p.$hasError ? colors.error : colors.border)};
-  border-radius: ${borderRadius.md};
+const TextInput = styled.input`
+  flex: 1;
+  min-width: 0;
+  padding: 0.8rem 0;
+  border: none;
+  outline: none;
+  background: transparent;
   font-size: 0.95rem;
   color: ${colors.textPrimary};
-  background: ${colors.surface};
   text-transform: uppercase;
-  transition: border-color 150ms ease, box-shadow 150ms ease;
 
   &::placeholder {
     color: ${colors.textSecondary};
@@ -65,14 +74,7 @@ const TextInput = styled.input<{ $hasError?: boolean }>`
     text-transform: none;
   }
 
-  &:focus {
-    outline: none;
-    border-color: ${colors.primary};
-    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
-  }
-
   &:disabled {
-    background: #f5f6f8;
     cursor: not-allowed;
   }
 `;
@@ -217,6 +219,14 @@ export const RecoverTicketPage: React.FC = () => {
         <AuthLayout
           title="Récupérer mon ticket"
           subtitle="Saisissez l'identifiant de transaction reçu par SMS (opérateur Mobile Money) pour retrouver votre ticket WiFi."
+          brandHeadline="Un ticket égaré ? Retrouvez-le en quelques secondes."
+          brandLede="Saisissez l'identifiant de transaction reçu par SMS Mobile Money pour réafficher vos identifiants WiFi, même si vous avez fermé la page après le paiement."
+          brandFeatures={[
+            <><FiSearch size={18} /> Recherche par identifiant de transaction</>,
+            <><FiCheckCircle size={18} /> Identifiant et mot de passe réaffichés aussitôt</>,
+            <><FiClock size={18} /> Fonctionne même après un paiement interrompu</>,
+            <><FiShield size={18} /> Accès sécurisé, protégé contre les abus</>,
+          ]}
           footer={
             <BackLink onClick={() => navigate('/login')} type="button">
               <FiArrowLeft /> Retour à la connexion
@@ -242,7 +252,7 @@ export const RecoverTicketPage: React.FC = () => {
 
             <Field>
               <Label htmlFor="reference">Identifiant de transaction</Label>
-              <InputWrap>
+              <InputWrap $hasError={!!error} $disabled={isLoading || retryIn > 0}>
                 <FieldIcon><FiSearch size={18} /></FieldIcon>
                 <TextInput
                   id="reference"
@@ -251,7 +261,6 @@ export const RecoverTicketPage: React.FC = () => {
                   value={reference}
                   onChange={e => setReference(e.target.value)}
                   disabled={isLoading || retryIn > 0}
-                  $hasError={!!error}
                   autoFocus
                 />
               </InputWrap>

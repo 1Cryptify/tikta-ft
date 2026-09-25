@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FiChevronRight, FiClock, FiPackage, FiTag } from 'react-icons/fi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { paymentService } from '../services/paymentService';
+import { getMediaUrl } from '../services/api';
 import { OfferGroup, Product, Offer } from '../types/payment.types';
 import '../styles/payment.css';
-import '../styles/pay-page.css';
-import { API_BASE_URL } from '../services/api';
+import '../styles/order-flow.css';
 
 interface PayPageProps {
   groupData?: OfferGroup;
@@ -19,27 +20,23 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
   const [loading, setLoading] = useState(!groupData);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch group data from API (only if groupData prop is not provided)
   useEffect(() => {
     const fetchGroup = async () => {
-      // Skip fetching if groupData was provided via props
       if (groupData) {
         setGroup(groupData);
         setLoading(false);
         return;
       }
-
       if (!groupId) return;
 
       try {
         setLoading(true);
         const response = await paymentService.getOfferGroup(groupId);
 
-        if (response.data.status === 'success' && response) {
-          // Map the API response to OfferGroup format
-          const groupData: OfferGroup = {
+        if (response.status === 'success' && response) {
+          const mapped: OfferGroup = {
             id: response.id || groupId,
-            name: response.name || 'Unnamed Group',
+            name: response.name || 'Pack',
             description: response.description || '',
             price: response.price ? parseFloat(response.price) : undefined,
             originalPrice: response.originalPrice ? parseFloat(response.originalPrice) : undefined,
@@ -47,32 +44,34 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
             discount: response.discount,
             image: response.image,
             coverImage: response.coverImage || response.image,
-            // Map offers to items
-            items: response.offers?.map((offer: any) => ({
-              id: offer.id,
-              name: offer.name,
-              description: offer.description,
-              price: parseFloat(offer.price) || 0,
-              originalPrice: offer.originalPrice ? parseFloat(offer.originalPrice) : undefined,
-              currency: offer.currency?.code || offer.currency || 'XAF',
-              discount: offer.discount,
-              validUntil: offer.validUntil ? new Date(offer.validUntil) : undefined,
-              image: offer.image,
-            })) || [],
-            // is_package from backend indicates if group is payable as package
+            items: (response.offers || []).map((offer: any) => {
+              const basePrice = parseFloat(offer.price) || 0;
+              const finalPrice = offer.final_price != null ? parseFloat(offer.final_price) : basePrice;
+              const hasDiscount = offer.final_price != null && finalPrice < basePrice;
+              return {
+                id: offer.id,
+                name: offer.name,
+                description: offer.description,
+                price: finalPrice,
+                originalPrice: hasDiscount ? basePrice : (offer.original_price ? parseFloat(offer.original_price) : undefined),
+                currency: offer.currency?.code || offer.currency || 'XAF',
+                discount: offer.discount_type === 'percentage' ? Number(offer.discount_value) : undefined,
+                validUntil: offer.validUntil || offer.valid_until ? new Date(offer.validUntil || offer.valid_until) : undefined,
+                image: offer.image,
+              };
+            }),
             is_package: response.is_package || false,
             is_active: response.is_active ?? true,
             is_featured: response.is_featured || false,
-            // Legacy field for backward compatibility
             purchasable: response.is_package || false,
           };
-          setGroup(groupData);
+          setGroup(mapped);
         } else {
-          setError('Group not found or unavailable');
+          setError('Ce pack est introuvable ou indisponible.');
         }
       } catch (err) {
         console.error('Error fetching group:', err);
-        setError('Failed to load group data');
+        setError('Impossible de charger ce pack. Veuillez réessayer.');
       } finally {
         setLoading(false);
       }
@@ -81,208 +80,150 @@ export const PayPage: React.FC<PayPageProps> = ({ groupData }) => {
     fetchGroup();
   }, [groupId, groupData]);
 
-  const handleProductClick = (productId: string) => {
-    navigate(`/checkout/product/${productId}`);
-  };
-
-  const handleOfferClick = (offerId: string) => {
-    navigate(`/pay/offer/${offerId}`);
-  };
-
+  const handleProductClick = (productId: string) => navigate(`/checkout/product/${productId}`);
+  const handleOfferClick = (offerId: string) => navigate(`/pay/offer/${offerId}`);
   const handleBuyGroup = () => {
-    if (group?.is_package && groupId) {
-      navigate(`/checkout/group/${groupId}/buy`);
-    }
+    if (group?.is_package && groupId) navigate(`/checkout/group/${groupId}/buy`);
   };
 
   const formatPrice = (amount?: number, currency: string = 'XAF'): string => {
     if (amount === undefined || amount === null) return '';
-    return new Intl.NumberFormat('fr-FR', {
-      style: 'currency',
-      currency: currency,
-    }).format(amount);
-  };
-
-  const renderGroupBuyCard = (group: OfferGroup) => {
-    // Only show if group is a payable package
-    if (!group.is_package) return null;
-
-    return (
-      <div className="group-card">
-        <div className="group-cover">
-          <img src={group.coverImage || group.image} alt={group.name} />
-        </div>
-        <div className="group-content">
-          <h3 className="group-name">{group.name}</h3>
-          <p className="group-desc">{group.description}</p>
-
-          <div className="group-price-section">
-            <div className="group-price">
-              {formatPrice(group.price, group.currency)}
-              {group.discount && (
-                <span className="group-discount-badge">
-                  {group.discount}% OFF
-                </span>
-              )}
-            </div>
-            {group.originalPrice && (
-              <div className="group-original-price">
-                {formatPrice(group.originalPrice, group.currency)}
-              </div>
-            )}
-          </div>
-
-          <p className="group-items-count">
-            {group.items.length} item{group.items.length !== 1 ? 's' : ''} included
-          </p>
-
-          <div className="group-action-buttons">
-            <button
-              className="btn-primary"
-              onClick={handleBuyGroup}
-            >
-              Buy Bundle
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const renderProductCard = (product: Product) => {
-    return (
-      <div key={product.id} className="product-card">
-        <div className="product-image">
-          <img src={API_BASE_URL+product.image} alt={product.name} />
-        </div>
-        <div className="product-content">
-          <h4 className="product-name">{product.name}</h4>
-          <p className="product-desc">{product.description}</p>
-          <div className="product-price">{formatPrice(product.price, product.currency)}</div>
-          <button
-            className="btn-primary"
-            onClick={() => handleProductClick(product.id)}
-          >
-            Purchase
-          </button>
-        </div>
-      </div>
-    );
-  };
-
-  const renderOfferCard = (offer: Offer) => {
-    return (
-      <div key={offer.id} className="offer-card" onClick={() => handleOfferClick(offer.id)} style={{ cursor: 'pointer' }}>
-        {offer.discount && (
-          <div className="offer-badge">
-            <div className="offer-badge-value">{offer.discount}%</div>
-            <div>OFF</div>
-          </div>
-        )}
-        <div className="offer-image" onClick={() => handleOfferClick(offer.id)}>
-          <img src={API_BASE_URL+offer.image} alt={offer.name} />
-        </div>
-        <div className="offer-content">
-          <h4 className="offer-name">{offer.name}</h4>
-          <p className="offer-desc">{offer.description}</p>
-          <div className="offer-price-group">
-            <div className="offer-price">{formatPrice(offer.price, offer.currency)}</div>
-            {offer.originalPrice && (
-              <div className="offer-original-price">
-                {formatPrice(offer.originalPrice, offer.currency)}
-              </div>
-            )}
-          </div>
-          {offer.validUntil && (
-            <p className="offer-validity">
-              Valid until {offer.validUntil.toLocaleDateString()}
-            </p>
-          )}
-          <button
-            className="btn-primary"
-            onClick={() => handleOfferClick(offer.id)}
-          >
-            Get Offer
-          </button>
-        </div>
-      </div>
-    );
+    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency }).format(amount);
   };
 
   if (loading) {
     return (
-      <div className="pay-page">
-        <div className="container">
-          <LoadingSpinner />
-        </div>
+      <div className="of-loading">
+        <LoadingSpinner />
       </div>
     );
   }
 
   if (error || !group) {
     return (
-      <div className="pay-page">
-        <div className="container">
-          <div className="pay-header">
-            <h1>{error || 'Group not found'}</h1>
-            <button className="btn-secondary" onClick={() => navigate('/')}>Back</button>
+      <div className="of-center">
+        <div className="of-card of-card--center">
+          <div className="of-status-icon of-status-icon--error">!</div>
+          <h1 className="of-title">Indisponible</h1>
+          <p className="of-subtitle">{error || 'Pack introuvable.'}</p>
+          <div className="of-actions">
+            <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={() => navigate('/')}>
+              Retour à l'accueil
+            </button>
           </div>
         </div>
       </div>
     );
   }
 
+  const cover = getMediaUrl(group.coverImage || group.image);
+  const items = group.items || [];
+
   return (
-    <div className="pay-page">
-      {/* Cover Image Header */}
-      {(group.coverImage || group.image) && (
-        <div className="pay-cover-header">
-          <img src={API_BASE_URL + (group.coverImage || group.image)} alt={group.name} />
-          <div className="pay-cover-overlay"></div>
-          <div className="pay-cover-content">
-            <h1>{group.name}</h1>
-            <p>{group.description}</p>
-          </div>
-        </div>
-      )}
-      
-      <div className="container">
-        {!group.coverImage && !group.image && (
-          <div className="pay-header">
-            <h1>{group.name}</h1>
-            <p>{group.description}</p>
-          </div>
-        )}
-
-        {/* Buy Group Bundle Section - Only if is_package is true */}
-        {group.is_package && (
-          <div className="pay-section">
-            <h2 className="pay-section-title">Complete Bundle</h2>
-            <div className="pay-groups-grid">
-              {renderGroupBuyCard(group)}
+    <div className="of-page">
+      <div className="of-container">
+        {/* Group header */}
+        <div className={`of-card ${cover ? 'of-card--flush' : ''}`}>
+          {cover ? (
+            <div className="of-cover">
+              <img src={cover} alt={group.name} />
+              <div className="of-cover__overlay" />
+              <div className="of-cover__content">
+                <h1 className="of-cover__title">{group.name}</h1>
+                {group.description && <p className="of-cover__desc">{group.description}</p>}
+              </div>
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="of-group-head">
+              <div className="of-group-thumb">
+                <FiTag />
+              </div>
+              <div className="of-group-meta">
+                <h1 className="of-group-name">{group.name}</h1>
+                <p className="of-group-desc">{group.description}</p>
+              </div>
+            </div>
+          )}
 
-        {/* Group Products/Offers Section
-            NOTE: Backend automatically filters out ticket offers without available tickets,
-            so all items here are guaranteed to be purchasable */}
-        <div className="pay-section">
-          <h2 className="pay-section-title">
-            {group.is_package ? 'Or Choose Individual Products' : 'Available Products'}
-          </h2>
-          <div className="pay-products-grid">
-            {group.items.map((item) => {
-              if ('originalPrice' in item && !('items' in item)) {
-                // It's an offer
-                return renderOfferCard(item as Offer);
-              } else {
-                // It's a product
-                return renderProductCard(item as Product);
-              }
+          {/* Package highlight */}
+          {group.is_package && (
+            <div className="of-package">
+              <div className="of-package__top">
+                <span className="of-package__label">
+                  <FiPackage aria-hidden="true" /> Offre complète
+                </span>
+                {group.discount ? <span className="of-badge">-{group.discount}%</span> : null}
+              </div>
+              <h2 className="of-package__name">{group.name}</h2>
+              <p className="of-package__desc">
+                Achetez le pack complet en un seul paiement et recevez tous les identifiants d'un coup.
+              </p>
+              <div className="of-price-row" style={{ marginBottom: 14 }}>
+                <span className="of-price">{formatPrice(group.price, group.currency)}</span>
+                {group.originalPrice && (
+                  <span className="of-price--old">{formatPrice(group.originalPrice, group.currency)}</span>
+                )}
+              </div>
+              <button type="button" className="of-btn of-btn--primary of-btn--block" onClick={handleBuyGroup}>
+                Acheter le pack
+                <FiChevronRight aria-hidden="true" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Offers / products */}
+        <div className="of-section-title">
+          {group.is_package ? 'Ou choisissez une offre' : 'Offres disponibles'}
+        </div>
+
+        {items.length === 0 ? (
+          <div className="of-card">
+            <p className="of-subtitle">Aucune offre disponible pour le moment.</p>
+          </div>
+        ) : (
+          <div className="of-offers">
+            {items.map((item) => {
+              const isOffer = 'originalPrice' in item && !('items' in item);
+              const img = item.image ? getMediaUrl(item.image) : '';
+              const price = formatPrice(item.price, item.currency);
+              const onClick = () =>
+                isOffer
+                  ? handleOfferClick((item as Offer).id)
+                  : handleProductClick((item as Product).id);
+
+              return (
+                <div key={item.id} className="of-offer">
+                  <div className="of-offer__thumb">{img ? <img src={img} alt={item.name} /> : <FiTag />}</div>
+                  <div className="of-offer__body">
+                    <h3 className="of-offer__name">{item.name}</h3>
+                    {item.description && <p className="of-offer__desc">{item.description}</p>}
+                    {isOffer && (item as Offer).validUntil && (
+                      <p className="of-offer__validity">
+                        <FiClock aria-hidden="true" style={{ verticalAlign: '-2px', marginRight: 4 }} />
+                        Valable jusqu'au {(item as Offer).validUntil!.toLocaleDateString('fr-FR')}
+                      </p>
+                    )}
+                    <div className="of-offer__foot">
+                      <div className="of-offer__prices">
+                        <span className="of-offer__price">{price}</span>
+                        {isOffer && (item as Offer).originalPrice ? (
+                          <span className="of-offer__old">
+                            {formatPrice((item as Offer).originalPrice, item.currency)}
+                          </span>
+                        ) : null}
+                      </div>
+                      <button type="button" className="of-btn of-btn--primary" onClick={onClick}>
+                        Choisir
+                        <FiChevronRight aria-hidden="true" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
             })}
           </div>
-        </div>
+        )}
       </div>
     </div>
   );

@@ -62,7 +62,15 @@ export interface Offer {
     category?: string;
     tags?: string[];
     image?: string; // Image URL path
+    /** Illustration (icône) utilisée à défaut d'image. */
+    icon?: string | null;
+    /** Fond de l'illustration. */
+    icon_background?: string | null;
     callback_url?: string; // URL for auto-login redirect after ticket payment
+    // Durée de validité d'un ticket après activation (ex: 2 jours et 1h30)
+    duration_days?: number;
+    duration_hours?: number;
+    duration_minutes?: number;
     created_at?: string;
     updated_at?: string;
 }
@@ -407,7 +415,7 @@ export const useOffer = (): UseOfferReturn => {
                 setState(prev => ({
                     ...prev,
                     offers: prev.offers.map(o =>
-                        o.id === id ? { ...o, image: imageUrl } : o
+                        o.id === id ? { ...o, image: imageUrl, icon: null, icon_background: null } : o
                     ),
                     isLoading: false,
                 }));

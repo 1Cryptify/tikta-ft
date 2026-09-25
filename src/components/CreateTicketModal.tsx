@@ -3,15 +3,16 @@ import styled from 'styled-components';
 import { FiX, FiPlus } from 'react-icons/fi';
 import { colors, spacing } from '../config/theme';
 import { Ticket } from '../hooks/useTicket';
-import { useOffer, Offer } from '../hooks/useOffer';
+import { Offer } from '../hooks/useOffer';
 import { useAuth } from '../hooks/useAuth';
-import { useBusiness, Business } from '../hooks/useBusiness';
+import { useBusiness } from '../hooks/useBusiness';
 
 interface CreateTicketModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSubmit: (data: Partial<Ticket> & { valid_until?: string; offer_id?: string; payment_id?: string; company_id?: string }) => Promise<void>;
     isLoading: boolean;
+    offers?: Offer[];
 }
 
 const Overlay = styled.div<{ isOpen: boolean }>`
@@ -230,8 +231,7 @@ const SuccessMessage = styled.div`
     font-size: 0.875rem;
 `;
 
-const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, onSubmit, isLoading }) => {
-    const { offers } = useOffer();
+const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, onSubmit, isLoading, offers = [] }) => {
     const { user } = useAuth();
     const { businesses, getBusinesses } = useBusiness();
     const [formData, setFormData] = useState({
@@ -408,7 +408,7 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                         </FormGroup>
 
                         <FormGroup>
-                            <Label htmlFor="offer_select">Select Offer (Auto-fill ID)</Label>
+                            <Label htmlFor="offer_select">Select Offer</Label>
                             <Select
                                 id="offer_select"
                                 value={formData.offer_id}
@@ -416,25 +416,16 @@ const CreateTicketModal: React.FC<CreateTicketModalProps> = ({ isOpen, onClose, 
                                 disabled={isLoading}
                             >
                                 <option value="">-- Choose an offer --</option>
-                                {offers.map(offer => (
-                                    <option key={offer.id} value={offer.id}>
-                                        {offer.name} {offer.price ? `($${offer.price})` : ''}
-                                    </option>
-                                ))}
+                                {offers.map(offer => {
+                                    const amount = offer.final_price ?? offer.price;
+                                    const currency = offer.currency?.symbol || offer.currency?.code || '';
+                                    return (
+                                        <option key={offer.id} value={offer.id}>
+                                            {offer.name}{amount != null ? ` (${amount.toLocaleString('en-US')} ${currency})` : ''}
+                                        </option>
+                                    );
+                                })}
                             </Select>
-                        </FormGroup>
-
-                        <FormGroup>
-                            <Label htmlFor="offer_id">Offer ID (Manual Entry)</Label>
-                            <Input
-                                id="offer_id"
-                                type="text"
-                                name="offer_id"
-                                value={formData.offer_id}
-                                onChange={handleChange}
-                                placeholder="Or enter Offer ID manually"
-                                disabled={isLoading}
-                            />
                         </FormGroup>
 
                         <FormActions>

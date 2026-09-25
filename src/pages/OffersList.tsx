@@ -19,6 +19,7 @@ import { useOffer, Offer, OfferGroup } from '../hooks/useOffer';
 import { useAuth } from '../hooks/useAuth';
 import { useBusiness } from '../hooks/useBusiness';
 import { OfferModal } from '../components/OfferModal';
+import { OfferVisual } from '../components/OfferVisual';
 import OfferStatsPanel from '../components/OfferStatsPanel';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 import { getMediaUrl } from '../services/api';
@@ -1083,13 +1084,18 @@ export const OffersList: React.FC<OffersListProps> = () => {
         setEditingOffer(null);
     };
 
-    const handleSubmit = async (data: Partial<Offer>) => {
+    const handleSubmit = async (data: Partial<Offer>, imageFile?: File | null) => {
         setIsSaving(true);
         try {
+            let targetId = editingOffer?.id;
             if (editingOffer) {
                 await updateOffer(editingOffer.id, data);
             } else {
-                await createOffer(data);
+                const created = await createOffer(data);
+                targetId = created?.id;
+            }
+            if (imageFile && targetId) {
+                await uploadOfferImage(targetId, imageFile);
             }
             handleCloseModal();
         } finally {
@@ -1475,20 +1481,19 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                     </CardHeader>
 
                                     <OfferImageContainer>
-                                        {offer.image ? (
-                                            <OfferImage
-                                                src={getMediaUrl(offer.image)}
-                                                alt={offer.name}
-                                                onError={(e) => {
-                                                    (e.target as HTMLImageElement).style.display = 'none';
-                                                }}
-                                            />
-                                        ) : (
-                                            <OfferImagePlaceholder>
-                                                <FiImage />
-                                                <span>No image</span>
-                                            </OfferImagePlaceholder>
-                                        )}
+                                        <OfferVisual
+                                            image={offer.image}
+                                            icon={offer.icon}
+                                            background={offer.icon_background}
+                                            alt={offer.name}
+                                            iconSize={64}
+                                            placeholder={
+                                                <OfferImagePlaceholder>
+                                                    <FiImage />
+                                                    <span>No image</span>
+                                                </OfferImagePlaceholder>
+                                            }
+                                        />
                                         <ImageUploadButton
                                             onClick={() => handleImageUploadClick(offer.id)}
                                             disabled={isLoading}
@@ -1510,9 +1515,21 @@ export const OffersList: React.FC<OffersListProps> = () => {
 
                                     <PriceSection>
                                         <div>
-                                            <label>Price</label>
+                                            <label>
+                                                {offer.final_price != null && offer.final_price < parseFloat(String(offer.price || 0))
+                                                    ? 'Final price'
+                                                    : 'Price'}
+                                            </label>
                                             <span>
-                                                {offer.currency?.symbol || '$'}{parseFloat(String(offer.price || 0)).toFixed(offer.currency?.decimal_places || 2)}
+                                                {offer.currency?.symbol || '$'}
+                                                {parseFloat(String(offer.final_price != null ? offer.final_price : offer.price || 0))
+                                                    .toFixed(offer.currency?.decimal_places || 2)}
+                                                {offer.final_price != null && offer.final_price < parseFloat(String(offer.price || 0)) && (
+                                                    <small style={{ marginLeft: 6, textDecoration: 'line-through', color: '#6b7280', fontWeight: 500 }}>
+                                                        {offer.currency?.symbol || '$'}
+                                                        {parseFloat(String(offer.price || 0)).toFixed(offer.currency?.decimal_places || 2)}
+                                                    </small>
+                                                )}
                                             </span>
                                         </div>
                                         <div>

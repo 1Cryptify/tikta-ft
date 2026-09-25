@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { FiAlertTriangle } from 'react-icons/fi';
 import LoadingSpinner from '../components/LoadingSpinner';
 import { paymentService } from '../services/paymentService';
 import { OfferGroup } from '../types/payment.types';
 import { PayPage } from './PayPage';
+import '../styles/payment.css';
+import '../styles/order-flow.css';
 
 interface PayRouterPageProps {
   type: 'offer' | 'group';
@@ -105,17 +108,22 @@ export const PayRouterPage: React.FC<PayRouterPageProps> = ({ type }) => {
                 discount: groupResponse.discount,
                 image: groupResponse.image,
                 coverImage: groupResponse.coverImage || groupResponse.image,
-                items: groupResponse.offers?.map((offer: any) => ({
-                  id: offer.id,
-                  name: offer.name,
-                  description: offer.description,
-                  price: parseFloat(offer.price) || 0,
-                  originalPrice: offer.originalPrice ? parseFloat(offer.originalPrice) : undefined,
-                  currency: offer.currency?.code || offer.currency || 'XAF',
-                  discount: offer.discount,
-                  validUntil: offer.validUntil ? new Date(offer.validUntil) : undefined,
-                  image: offer.image,
-                })) || [],
+                items: (groupResponse.offers || []).map((offer: any) => {
+                  const basePrice = parseFloat(offer.price) || 0;
+                  const finalPrice = offer.final_price != null ? parseFloat(offer.final_price) : basePrice;
+                  const hasDiscount = offer.final_price != null && finalPrice < basePrice;
+                  return {
+                    id: offer.id,
+                    name: offer.name,
+                    description: offer.description,
+                    price: finalPrice,
+                    originalPrice: hasDiscount ? basePrice : undefined,
+                    currency: offer.currency?.code || offer.currency || 'XAF',
+                    discount: offer.discount_type === 'percentage' ? Number(offer.discount_value) : undefined,
+                    validUntil: offer.validUntil || offer.valid_until ? new Date(offer.validUntil || offer.valid_until) : undefined,
+                    image: offer.image,
+                  };
+                }),
                 is_package: false,
                 is_active: groupResponse.is_active ?? true,
                 is_featured: groupResponse.is_featured || false,
@@ -149,23 +157,24 @@ export const PayRouterPage: React.FC<PayRouterPageProps> = ({ type }) => {
 
   if (loading) {
     return (
-      <div className="pay-page">
-        <div className="container">
-          <LoadingSpinner />
-        </div>
+      <div className="of-loading">
+        <LoadingSpinner />
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="pay-page">
-        <div className="container">
-          <div className="pay-header">
-            <h1>Error</h1>
-            <p style={{ color: 'var(--color-error)' }}>{error}</p>
-            <button className="btn-secondary" onClick={() => navigate('/')} style={{ marginTop: '20px' }}>
-              Back to Home
+      <div className="of-center">
+        <div className="of-card of-card--center">
+          <div className="of-status-icon of-status-icon--error">
+            <FiAlertTriangle aria-hidden="true" />
+          </div>
+          <h1 className="of-title">Indisponible</h1>
+          <p className="of-subtitle">{error}</p>
+          <div className="of-actions">
+            <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={() => navigate('/')}>
+              Retour à l'accueil
             </button>
           </div>
         </div>
@@ -180,13 +189,16 @@ export const PayRouterPage: React.FC<PayRouterPageProps> = ({ type }) => {
 
   // Fallback - should not reach here
   return (
-    <div className="pay-page">
-      <div className="container">
-        <div className="pay-header">
-          <h1>Something went wrong</h1>
-          <p>Unable to determine the payment type. Please try again.</p>
-          <button className="btn-secondary" onClick={() => navigate('/')} style={{ marginTop: '20px' }}>
-            Back to Home
+    <div className="of-center">
+      <div className="of-card of-card--center">
+        <div className="of-status-icon of-status-icon--error">
+          <FiAlertTriangle aria-hidden="true" />
+        </div>
+        <h1 className="of-title">Une erreur est survenue</h1>
+        <p className="of-subtitle">Impossible de déterminer le type de paiement. Veuillez réessayer.</p>
+        <div className="of-actions">
+          <button type="button" className="of-btn of-btn--outline of-btn--block" onClick={() => navigate('/')}>
+            Retour à l'accueil
           </button>
         </div>
       </div>

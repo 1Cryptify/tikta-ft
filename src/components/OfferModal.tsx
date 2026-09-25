@@ -1,16 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { FiX, FiSave, FiAlertCircle } from 'react-icons/fi';
+import { FiX, FiSave, FiAlertCircle, FiUpload, FiEdit3, FiImage } from 'react-icons/fi';
 import { Offer, Currency } from '../hooks/useOffer';
 import { useAuth } from '../hooks/useAuth';
 import { useBusiness } from '../hooks/useBusiness';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
+import { getMediaUrl } from '../services/api';
+import { OfferVisual } from './OfferVisual';
+import {
+  OFFER_ILLUSTRATIONS,
+  OFFER_ILLUSTRATION_THEMES,
+  OFFER_BACKGROUNDS,
+  DEFAULT_OFFER_BACKGROUND_ID,
+  getOfferBackground,
+} from '../config/offerIllustrations';
 
 interface OfferModalProps {
   isOpen: boolean;
   offer: Offer | null;
   onClose: () => void;
-  onSubmit: (data: Partial<Offer>) => Promise<void>;
+  onSubmit: (data: Partial<Offer>, imageFile?: File | null) => Promise<void>;
   isLoading?: boolean;
   currencies?: Currency[];
 }
@@ -211,6 +220,16 @@ const RowGrid = styled.div`
   }
 `;
 
+const TripleGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+
+  @media (max-width: 480px) {
+    grid-template-columns: 1fr 1fr;
+  }
+`;
+
 const CheckboxGroup = styled.div`
   display: flex;
   gap: ${spacing.md};
@@ -260,6 +279,163 @@ const Button = styled.button<{ variant?: 'primary' | 'secondary' }>`
   }
 `;
 
+const VisualModeTabs = styled.div`
+  display: inline-flex;
+  padding: 4px;
+  gap: 4px;
+  background-color: ${colors.neutral};
+  border: 1px solid ${colors.border};
+  border-radius: ${borderRadius.md};
+  margin-bottom: ${spacing.md};
+`;
+
+const VisualModeTab = styled.button<{ isActive: boolean }>`
+  display: flex;
+  align-items: center;
+  gap: ${spacing.xs};
+  padding: ${spacing.sm} ${spacing.md};
+  border: none;
+  border-radius: ${borderRadius.sm};
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background-color: ${(props) => (props.isActive ? colors.surface : 'transparent')};
+  color: ${(props) => (props.isActive ? colors.primary : colors.textSecondary)};
+  box-shadow: ${(props) => (props.isActive ? shadows.sm : 'none')};
+
+  &:hover {
+    color: ${colors.primary};
+  }
+`;
+
+const VisualPreview = styled.div`
+  width: 100%;
+  height: 140px;
+  border-radius: ${borderRadius.md};
+  overflow: hidden;
+  border: 1px solid ${colors.border};
+  background-color: ${colors.neutral};
+  margin-bottom: ${spacing.md};
+`;
+
+const ThemeBlock = styled.div`
+  margin-bottom: ${spacing.md};
+
+  &:last-child {
+    margin-bottom: 0;
+  }
+`;
+
+const ThemeTitle = styled.p`
+  margin: 0 0 ${spacing.sm} 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: ${colors.textSecondary};
+`;
+
+const IconGrid = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: ${spacing.sm};
+
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(4, 1fr);
+  }
+`;
+
+const IconButton = styled.button<{ isSelected: boolean }>`
+  position: relative;
+  aspect-ratio: 1 / 1;
+  border-radius: ${borderRadius.md};
+  border: 2px solid ${(props) => (props.isSelected ? colors.primary : 'transparent')};
+  box-shadow: ${(props) => (props.isSelected ? shadows.md : 'none')};
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: ${shadows.md};
+  }
+`;
+
+const BackgroundGrid = styled.div`
+  display: flex;
+  flex-wrap: wrap;
+  gap: ${spacing.sm};
+`;
+
+const BackgroundSwatch = styled.button<{ isSelected: boolean }>`
+  width: 40px;
+  height: 40px;
+  border-radius: ${borderRadius.full};
+  border: 2px solid ${(props) => (props.isSelected ? colors.primary : 'transparent')};
+  outline: 1px solid ${colors.border};
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+  &:hover {
+    transform: scale(1.08);
+    box-shadow: ${shadows.sm};
+  }
+`;
+
+const ImageUploadArea = styled.label`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: ${spacing.sm};
+  width: 100%;
+  padding: ${spacing.xl};
+  border: 2px dashed ${colors.border};
+  border-radius: ${borderRadius.md};
+  color: ${colors.textSecondary};
+  font-size: 0.8rem;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+
+  &:hover {
+    border-color: ${colors.primary};
+    background-color: rgba(30, 58, 95, 0.03);
+  }
+
+  input {
+    display: none;
+  }
+`;
+
+const FieldHint = styled.p`
+  color: ${colors.textSecondary};
+  font-size: 0.75rem;
+  margin: ${spacing.sm} 0 0 0;
+`;
+
+const ClearVisualLink = styled.button`
+  margin-top: ${spacing.sm};
+  border: none;
+  background: none;
+  padding: 0;
+  color: ${colors.error};
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 export const OfferModal: React.FC<OfferModalProps> = ({
   isOpen,
   offer,
@@ -278,15 +454,27 @@ export const OfferModal: React.FC<OfferModalProps> = ({
     currency_id: '',
     discount_type: 'percentage',
     discount_value: undefined,
+    duration_days: 0,
+    duration_hours: 0,
+    duration_minutes: 0,
     is_active: true,
     is_deleted: false,
+    icon: null,
+    icon_background: DEFAULT_OFFER_BACKGROUND_ID,
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [visualMode, setVisualMode] = useState<'image' | 'illustration'>('illustration');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (offer) {
-      setFormData(offer);
+      setFormData({
+        ...offer,
+        icon_background: offer.icon_background || DEFAULT_OFFER_BACKGROUND_ID,
+      });
+      setVisualMode(offer.image ? 'image' : 'illustration');
     } else {
       // For new offers, auto-select active company if user is not superuser
       const initialCompanyId = 
@@ -302,13 +490,62 @@ export const OfferModal: React.FC<OfferModalProps> = ({
         currency_id: currencies.length > 0 ? currencies[0].id : '',
         discount_type: 'percentage',
         discount_value: undefined,
+        duration_days: 0,
+        duration_hours: 0,
+        duration_minutes: 0,
         callback_url: '',
         is_active: true,
         is_deleted: false,
+        icon: null,
+        icon_background: DEFAULT_OFFER_BACKGROUND_ID,
       });
+      setVisualMode('illustration');
     }
+    setImageFile(null);
+    setImagePreview(null);
     setErrors({});
   }, [offer, isOpen, user, currencies]);
+
+  const handleVisualImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      alert('Please select a valid image file (JPEG, PNG, GIF, or WebP)');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert('Image size should be less than 5MB');
+      return;
+    }
+
+    setImageFile(file);
+    setImagePreview(URL.createObjectURL(file));
+    // Une image téléversée remplace l'illustration.
+    setFormData((prev) => ({ ...prev, icon: null }));
+  };
+
+  const handleSelectIllustration = (iconId: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      icon: prev.icon === iconId ? null : iconId,
+      icon_background: prev.icon_background || DEFAULT_OFFER_BACKGROUND_ID,
+    }));
+    setImageFile(null);
+    setImagePreview(null);
+  };
+
+  const handleSelectBackground = (backgroundId: string) => {
+    setFormData((prev) => ({ ...prev, icon_background: backgroundId }));
+  };
+
+  const handleClearVisual = () => {
+    setImageFile(null);
+    setImagePreview(null);
+    setFormData((prev) => ({ ...prev, icon: null, icon_background: DEFAULT_OFFER_BACKGROUND_ID }));
+  };
+
 
   const selectedCompany = businesses.find(b => b.id === formData.company_id);
   const isSelectedCompanyVerified = !!selectedCompany?.is_verified;
@@ -330,10 +567,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
     if (!formData.currency_id?.trim()) {
       newErrors.currency_id = 'Currency is required';
     }
-    if (
-      formData.discount_value === undefined ||
-      formData.discount_value < 0
-    ) {
+    if (formData.discount_value != null && formData.discount_value < 0) {
       newErrors.discount_value = 'Discount value cannot be negative';
     }
 
@@ -384,7 +618,7 @@ export const OfferModal: React.FC<OfferModalProps> = ({
     }
 
     try {
-      await onSubmit(formData);
+      await onSubmit(formData, imageFile);
       onClose();
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -475,6 +709,156 @@ export const OfferModal: React.FC<OfferModalProps> = ({
             />
           </FormGroup>
 
+          {/* Visuel : image ou illustration */}
+          <FormGroup>
+            <Label>Visuel de l'offre</Label>
+
+            <VisualModeTabs>
+              <VisualModeTab
+                type="button"
+                isActive={visualMode === 'illustration'}
+                onClick={() => setVisualMode('illustration')}
+              >
+                <FiEdit3 size={14} /> Illustration
+              </VisualModeTab>
+              <VisualModeTab
+                type="button"
+                isActive={visualMode === 'image'}
+                onClick={() => setVisualMode('image')}
+              >
+                <FiImage size={14} /> Image
+              </VisualModeTab>
+            </VisualModeTabs>
+
+            <VisualPreview>
+              {visualMode === 'image' ? (
+                imagePreview || offer?.image ? (
+                  <img
+                    src={imagePreview || getMediaUrl(offer?.image)}
+                    alt="Aperçu"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                  />
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      width: '100%',
+                      height: '100%',
+                      color: colors.textSecondary,
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    Aucune image
+                  </div>
+                )
+              ) : (
+                <OfferVisual
+                  icon={formData.icon}
+                  background={formData.icon_background}
+                  iconSize={56}
+                  placeholder={
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        width: '100%',
+                        height: '100%',
+                        color: colors.textSecondary,
+                        fontSize: '0.8rem',
+                      }}
+                    >
+                      Choisissez une illustration
+                    </div>
+                  }
+                />
+              )}
+            </VisualPreview>
+
+            {visualMode === 'illustration' ? (
+              <>
+                <FieldHint>
+                  À défaut d'image, choisissez une icône (vitesse, connectivité, vol en l'air ou
+                  économie) et un fond cohérent. La galerie compte {OFFER_ILLUSTRATIONS.length} illustrations.
+                </FieldHint>
+
+                {OFFER_ILLUSTRATION_THEMES.map((theme) => {
+                  const bg = getOfferBackground(formData.icon_background);
+                  return (
+                    <ThemeBlock key={theme.id} style={{ marginTop: spacing.md }}>
+                      <ThemeTitle>{theme.label}</ThemeTitle>
+                      <IconGrid>
+                        {OFFER_ILLUSTRATIONS.filter((item) => item.category === theme.id).map(
+                          (illustration) => {
+                            const Icon = illustration.Icon;
+                            return (
+                              <IconButton
+                                key={illustration.id}
+                                type="button"
+                                title={illustration.label}
+                                aria-label={illustration.label}
+                                isSelected={formData.icon === illustration.id}
+                                style={{ background: bg.gradient, color: bg.iconColor }}
+                                onClick={() => handleSelectIllustration(illustration.id)}
+                                disabled={isLoading}
+                              >
+                                <Icon size={22} aria-hidden="true" />
+                              </IconButton>
+                            );
+                          }
+                        )}
+                      </IconGrid>
+                    </ThemeBlock>
+                  );
+                })}
+
+                <ThemeBlock style={{ marginTop: spacing.md }}>
+                  <ThemeTitle>Fond</ThemeTitle>
+                  <BackgroundGrid>
+                    {OFFER_BACKGROUNDS.map((bg) => (
+                      <BackgroundSwatch
+                        key={bg.id}
+                        type="button"
+                        title={bg.label}
+                        aria-label={bg.label}
+                        isSelected={formData.icon_background === bg.id}
+                        style={{ background: bg.gradient }}
+                        onClick={() => handleSelectBackground(bg.id)}
+                        disabled={isLoading}
+                      />
+                    ))}
+                  </BackgroundGrid>
+                </ThemeBlock>
+
+                {(formData.icon || imageFile || offer?.image) && (
+                  <ClearVisualLink type="button" onClick={handleClearVisual} disabled={isLoading}>
+                    Retirer le visuel
+                  </ClearVisualLink>
+                )}
+              </>
+            ) : (
+              <>
+                <ImageUploadArea>
+                  <FiUpload size={20} />
+                  <span>{imagePreview || offer?.image ? "Changer l'image" : 'Téléverser une image'}</span>
+                  <span style={{ fontSize: '0.72rem' }}>JPEG, PNG, GIF ou WebP — max 5 Mo</span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/gif,image/webp"
+                    onChange={handleVisualImageChange}
+                    disabled={isLoading}
+                  />
+                </ImageUploadArea>
+                <FieldHint>
+                  Une image téléversée remplace l'illustration. Vous pouvez aussi changer l'image
+                  depuis la carte de l'offre.
+                </FieldHint>
+              </>
+            )}
+          </FormGroup>
+
           {/* Pricing */}
           <RowGrid>
             <FormGroup>
@@ -554,6 +938,55 @@ export const OfferModal: React.FC<OfferModalProps> = ({
             </FormGroup>
           </RowGrid>
 
+          {/* Validité / durée du ticket */}
+          <FormGroup>
+            <Label>Durée de validité du ticket</Label>
+            <TripleGrid>
+              <div>
+                <Input
+                  type="number"
+                  name="duration_days"
+                  value={formData.duration_days ?? 0}
+                  onChange={handleChange}
+                  placeholder="Jours"
+                  step="1"
+                  min="0"
+                  disabled={isLoading}
+                />
+                <p style={{ color: colors.textSecondary, fontSize: '0.7rem', marginTop: 4 }}>Jours</p>
+              </div>
+              <div>
+                <Input
+                  type="number"
+                  name="duration_hours"
+                  value={formData.duration_hours ?? 0}
+                  onChange={handleChange}
+                  placeholder="Heures"
+                  step="1"
+                  min="0"
+                  disabled={isLoading}
+                />
+                <p style={{ color: colors.textSecondary, fontSize: '0.7rem', marginTop: 4 }}>Heures</p>
+              </div>
+              <div>
+                <Input
+                  type="number"
+                  name="duration_minutes"
+                  value={formData.duration_minutes ?? 0}
+                  onChange={handleChange}
+                  placeholder="Minutes"
+                  step="1"
+                  min="0"
+                  disabled={isLoading}
+                />
+                <p style={{ color: colors.textSecondary, fontSize: '0.7rem', marginTop: 4 }}>Minutes</p>
+              </div>
+            </TripleGrid>
+            <p style={{ color: colors.textSecondary, fontSize: '0.75rem', marginTop: spacing.sm }}>
+              Durée accordée au ticket à partir de sa première activation (ex. 2 jours, 1 heure et 30 minutes).
+            </p>
+          </FormGroup>
+
           {/* Callback URL */}
           <FormGroup>
             <Label>Callback URL</Label>
@@ -562,11 +995,14 @@ export const OfferModal: React.FC<OfferModalProps> = ({
               name="callback_url"
               value={formData.callback_url || ''}
               onChange={handleChange}
-              placeholder="https://example.com/login"
+              placeholder="http://192.168.1.1/login"
               disabled={isLoading}
             />
             <p style={{ color: colors.textSecondary, fontSize: '0.75rem', marginTop: spacing.sm }}>
-              URL de redirection pour connexion automatique après le paiement d'un ticket. L'utilisateur sera redirigé vers cette URL avec ses identifiants de connexion.
+              URL du portail de connexion vers lequel le client est redirigé automatiquement après paiement.
+              Exemple avec une IP locale : <code>http://192.168.1.1/login</code> — ou un nom de domaine local :{' '}
+              <code>http://portail.local/login</code>. Les identifiants (<code>login</code> et <code>password</code>)
+              sont ajoutés automatiquement à l'URL.
             </p>
           </FormGroup>
 

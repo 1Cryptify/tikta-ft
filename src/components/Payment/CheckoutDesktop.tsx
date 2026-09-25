@@ -32,19 +32,27 @@ export const CheckoutDesktop: React.FC<CheckoutViewProps> = (p) => (
         )}
       </div>
 
-      <OrderSummary name={p.itemName} image={p.itemImage} priceLabel={p.priceLabel} />
+      <OrderSummary
+        name={p.itemName}
+        image={p.itemImage}
+        icon={p.itemIcon}
+        iconBackground={p.itemIconBackground}
+        priceLabel={p.priceLabel}
+      />
 
       <ErrorBanner message={p.formError} />
 
-      <LocationRow
-        status={p.locationStatus}
-        error={p.locationError}
-        zoneName={p.zoneName}
-        zoneCompany={p.zoneCompany}
-        searchingZone={p.searchingZone}
-        onRetry={p.onRetryLocation}
-        disabled={p.disabled}
-      />
+      {p.requiresLocation && (
+        <LocationRow
+          status={p.locationStatus}
+          error={p.locationError}
+          zoneName={p.zoneName}
+          zoneCompany={p.zoneCompany}
+          searchingZone={p.searchingZone}
+          onRetry={p.onRetryLocation}
+          disabled={p.disabled}
+        />
+      )}
 
       <div className="ck-field">
         <h2 className="ck-label">Moyen de paiement</h2>
@@ -78,6 +86,8 @@ export const CheckoutDesktop: React.FC<CheckoutViewProps> = (p) => (
         checked={p.acceptTerms}
         error={p.termsError}
         onChange={p.onTermsChange}
+        onOpenTerms={p.onOpenTerms}
+        requireLocation={p.requiresLocation}
         disabled={p.disabled}
       />
 

@@ -376,7 +376,22 @@
   color: var(--color-text-secondary);
 }
 
-.ck-terms__link { color: var(--color-primary); text-decoration: underline; font-weight: 600; }
+.ck-terms__link {
+  display: inline;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: var(--color-primary);
+  text-decoration: underline;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.ck-terms__link:hover {
+  color: var(--color-primary-light);
+}
 
 /* ---------- Pay button ---------- */
 .ck-pay {

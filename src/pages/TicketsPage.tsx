@@ -1996,6 +1996,7 @@ export const TicketsPage: React.FC = () => {
                 onClose={() => setIsCreateModalOpen(false)}
                 onSubmit={handleCreateTicket}
                 isLoading={isLoading}
+                offers={offerData.offers}
             />
 
             {/* Bulk Delete Modal */}

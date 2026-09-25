@@ -32,21 +32,29 @@ export const CheckoutMobile: React.FC<CheckoutViewProps> = (p) => (
     </div>
 
     <div className="ck-body">
-      <OrderSummary name={p.itemName} image={p.itemImage} priceLabel={p.priceLabel} />
+      <OrderSummary
+        name={p.itemName}
+        image={p.itemImage}
+        icon={p.itemIcon}
+        iconBackground={p.itemIconBackground}
+        priceLabel={p.priceLabel}
+      />
 
       <ErrorBanner message={p.formError} />
 
-      <section className="ck-block">
-        <LocationRow
-          status={p.locationStatus}
-          error={p.locationError}
-          zoneName={p.zoneName}
-          zoneCompany={p.zoneCompany}
-          searchingZone={p.searchingZone}
-          onRetry={p.onRetryLocation}
-          disabled={p.disabled}
-        />
-      </section>
+      {p.requiresLocation && (
+        <section className="ck-block">
+          <LocationRow
+            status={p.locationStatus}
+            error={p.locationError}
+            zoneName={p.zoneName}
+            zoneCompany={p.zoneCompany}
+            searchingZone={p.searchingZone}
+            onRetry={p.onRetryLocation}
+            disabled={p.disabled}
+          />
+        </section>
+      )}
 
       <section className="ck-block">
         <h2 className="ck-label">Moyen de paiement</h2>
@@ -80,6 +88,8 @@ export const CheckoutMobile: React.FC<CheckoutViewProps> = (p) => (
         checked={p.acceptTerms}
         error={p.termsError}
         onChange={p.onTermsChange}
+        onOpenTerms={p.onOpenTerms}
+        requireLocation={p.requiresLocation}
         disabled={p.disabled}
       />
     </div>
