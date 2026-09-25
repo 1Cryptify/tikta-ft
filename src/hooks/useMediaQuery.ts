@@ -1,0 +1,25 @@
+import { useEffect, useState } from 'react';
+
+/**
+ * Reactively tracks a CSS media query.
+ * Used to render genuinely different layouts for mobile and desktop.
+ */
+export const useMediaQuery = (query: string): boolean => {
+  const [matches, setMatches] = useState<boolean>(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return false;
+    return window.matchMedia(query).matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return;
+    const mql = window.matchMedia(query);
+    const handler = (event: MediaQueryListEvent) => setMatches(event.matches);
+    setMatches(mql.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [query]);
+
+  return matches;
+};
+
+export default useMediaQuery;

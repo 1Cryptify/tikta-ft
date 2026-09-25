@@ -16,7 +16,6 @@ import { UserRole } from './config/menuPermissions';
 import './styles/global.css';
 import './styles/payment.css';
 import './styles/pay-page.css';
-import './styles/payment-checkout.css';
 import './styles/payment-success.css';
 import './styles/payment-failed.css';
 import './styles/payment-config.css';

@@ -97,13 +97,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 onClick: () => navigate('/dashboard/business'),
             },
             {
-                id: 'offers_produits',
-                label: 'Offers & Groups',
-                icon: <FiShoppingBag size={20} />,
-                active: activeNav === 'offers_produits',
-                onClick: () => navigate('/dashboard/offers'),
-            },
-            {
                 id: 'payments',
                 label: 'Payments',
                 icon: <FiCreditCard size={20} />,
@@ -134,6 +127,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ user, onLogout, userRole =
                 icon: <FiMapPin size={20} />,
                 active: activeNav === 'zones',
                 onClick: () => navigate('/dashboard/zones'),
+            },
+            {
+                id: 'offers_produits',
+                label: 'Offers & Groups',
+                icon: <FiShoppingBag size={20} />,
+                active: activeNav === 'offers_produits',
+                onClick: () => navigate('/dashboard/offers'),
             },
             {
                 id: 'tickets',

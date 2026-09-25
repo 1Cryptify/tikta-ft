@@ -290,7 +290,7 @@ export const PaymentSuccessPage: React.FC = () => {
   const location = useLocation();
   const [paymentData, setPaymentData] = useState<StoredPaymentData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [emailSent, setEmailSent] = useState(false);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   useEffect(() => {
     // First try to get payment data from navigation state (most reliable)
@@ -363,9 +363,10 @@ export const PaymentSuccessPage: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const copyToClipboard = (text: string) => {
+  const copyToClipboard = (text: string, key: string) => {
     navigator.clipboard.writeText(text).then(() => {
-      alert('Copié dans le presse-papiers !');
+      setCopiedKey(key);
+      window.setTimeout(() => setCopiedKey((current) => (current === key ? null : current)), 2000);
     }).catch(err => {
       console.error('Erreur lors de la copie:', err);
     });
@@ -384,7 +385,6 @@ export const PaymentSuccessPage: React.FC = () => {
   const hasTickets = paymentData?.tickets && paymentData.tickets.length > 0;
   const hasAdminContactMessage = paymentData?.adminContactMessage;
   const isTicketUnavailable = paymentData?.ticketAvailable === false || paymentData?.allTicketsAvailable === false;
-  console.log(paymentData)
   
   // Show admin contact message ONLY if there are NO tickets
   const shouldShowAdminMessage = hasAdminContactMessage && !hasTickets;
@@ -392,7 +392,7 @@ export const PaymentSuccessPage: React.FC = () => {
   return (
     <div className="payment-success">
       <div className="success-container">
-        <div className="success-icon" />
+        <div className="success-icon"><FiCheck aria-hidden="true" /></div>
         <h1 className="success-title">Paiement Réussi !</h1>
         <p className="success-message">
           Merci ! Votre paiement a été traité avec succès.
@@ -440,10 +440,10 @@ export const PaymentSuccessPage: React.FC = () => {
                         <code className="credential-code">{ticket.ticket_id}</code>
                         <button
                           className="btn-copy"
-                          onClick={() => copyToClipboard(ticket.ticket_id)}
-                          title="Copier"
+                          onClick={() => copyToClipboard(ticket.ticket_id, `${ticket.ticket_id}-id`)}
+                          title="Copier l'identifiant"
                         >
-                          <FiCopy />
+                          {copiedKey === `${ticket.ticket_id}-id` ? <FiCheck /> : <FiCopy />}
                         </button>
                       </div>
                     </div>
@@ -454,10 +454,10 @@ export const PaymentSuccessPage: React.FC = () => {
                         <code className="credential-code">{ticket.password}</code>
                         <button
                           className="btn-copy"
-                          onClick={() => copyToClipboard(ticket.password)}
-                          title="Copier"
+                          onClick={() => copyToClipboard(ticket.password, `${ticket.ticket_id}-pwd`)}
+                          title="Copier le mot de passe"
                         >
-                          <FiCopy />
+                          {copiedKey === `${ticket.ticket_id}-pwd` ? <FiCheck /> : <FiCopy />}
                         </button>
                       </div>
                     </div>
@@ -480,8 +480,8 @@ export const PaymentSuccessPage: React.FC = () => {
               </div>
               
               <div className="notice-box info">
-                <strong> Email envoyé</strong>
-                <p>Les identifiants de vos tickets ont également été envoyés à votre adresse email pour plus de sécurité.</p>
+                <strong> Identifiants transmis</strong>
+                <p>Vos identifiants ont également été envoyés par SMS et/ou email selon les options choisies lors du paiement.</p>
               </div>
             </div>
           </div>

@@ -1,5 +1,15 @@
 import { API_PAYMENTS_BASE_URL, API_ZONES_BASE_URL } from "./api";
-import { getUserFriendlyErrorMessage } from "../utils/errorMessages";
+import {
+  GENERIC_FALLBACK_MESSAGE,
+  GATEWAY_CONFIG_ERROR_MESSAGE,
+  NETWORK_ERROR_MESSAGE,
+  getUserFriendlyErrorMessage,
+} from "../utils/errorMessages";
+import {
+  InitiatePaymentApiResponse,
+  PaymentMethodApiResponse,
+  VerifyPaymentApiResponse,
+} from "../types/payment.types";
 
 const API_BASE = API_PAYMENTS_BASE_URL;
 
@@ -7,6 +17,89 @@ const getAuthHeaders = () => ({
   'Content-Type': 'application/json',
   Authorization: `Bearer ${localStorage.getItem('token')}`,
 });
+
+export type PaymentErrorKind = 'network' | 'server' | 'client' | 'json';
+
+/** Error thrown by the payment API layer, already carrying a user-friendly message. */
+export class PaymentApiError extends Error {
+  status: number;
+  kind: PaymentErrorKind;
+  code?: string;
+
+  constructor(message: string, status = 0, kind: PaymentErrorKind = 'server', code?: string) {
+    super(message);
+    this.name = 'PaymentApiError';
+    this.status = status;
+    this.kind = kind;
+    this.code = code;
+  }
+}
+
+interface RequestOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  body?: unknown;
+  baseUrl?: string;
+  /**
+   * When false, a payload with `status: 'error'` is returned instead of thrown
+   * (used by verify endpoints where an error is a legitimate status).
+   */
+  throwOnAppError?: boolean;
+  /** Fallback message used when the backend does not provide one. */
+  fallbackMessage?: string;
+}
+
+/**
+ * Single entry point for payment HTTP calls.
+ * - Never crashes on HTML/empty bodies (Django 404/500 pages).
+ * - Turns network failures and malformed responses into friendly `PaymentApiError`.
+ */
+const request = async <T = any>(path: string, opts: RequestOptions = {}): Promise<T> => {
+  const {
+    method = 'GET',
+    body,
+    baseUrl = API_BASE,
+    throwOnAppError = true,
+    fallbackMessage = GENERIC_FALLBACK_MESSAGE,
+  } = opts;
+
+  let response: Response;
+  try {
+    response = await fetch(`${baseUrl}${path}`, {
+      method,
+      headers: getAuthHeaders(),
+      body: body !== undefined ? JSON.stringify(body) : undefined,
+    });
+  } catch {
+    throw new PaymentApiError(NETWORK_ERROR_MESSAGE, 0, 'network');
+  }
+
+  const raw = await response.text().catch(() => '');
+  let data: any = {};
+  if (raw) {
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      // HTML error page or truncated body (e.g. non-existing endpoint)
+      throw new PaymentApiError(
+        GATEWAY_CONFIG_ERROR_MESSAGE,
+        response.status || 500,
+        'json'
+      );
+    }
+  }
+
+  const appError = data && data.status === 'error';
+  if ((!response.ok || appError) && throwOnAppError) {
+    throw new PaymentApiError(
+      getUserFriendlyErrorMessage(data?.message, fallbackMessage),
+      response.status,
+      response.status >= 500 ? 'server' : response.status > 0 ? 'client' : 'network',
+      data?.payment_status
+    );
+  }
+
+  return data as T;
+};
 
 // ============ Zones (géolocalisation du paiement) ============
 
@@ -22,20 +115,20 @@ export interface PaymentLocation {
 export const zoneService = {
   /** Trouve la zone qui contient / est la plus proche d'une position GPS (public). */
   async nearestZone(latitude: number, longitude: number) {
-    const response = await fetch(`${API_ZONES_BASE_URL}/zones/nearest/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ latitude, longitude }),
-    });
-    const data = await response.json().catch(() => ({}));
-    if (data.status === 'success') return data;
-    return { status: 'success', mode: 'none', zone: null, distance_m: null };
+    try {
+      const data = await request<any>('/zones/nearest/', {
+        method: 'POST',
+        baseUrl: API_ZONES_BASE_URL,
+        body: { latitude, longitude },
+        fallbackMessage: GENERIC_FALLBACK_MESSAGE,
+      });
+      if (data?.status === 'success') return data;
+      return { status: 'success', mode: 'none', zone: null, distance_m: null };
+    } catch {
+      // La géolocalisation n'est pas bloquante : on retourne "aucune zone".
+      return { status: 'success', mode: 'none', zone: null, distance_m: null };
+    }
   },
-};
-
-const throwPaymentError = (data: any, fallback: string) => {
-  const rawMessage = data?.message || fallback;
-  throw new Error(getUserFriendlyErrorMessage(rawMessage, rawMessage));
 };
 
 // ============ Offer Group Operations ============
@@ -43,63 +136,43 @@ const throwPaymentError = (data: any, fallback: string) => {
 export const paymentService = {
   // Offer Groups
   async getOfferGroup(groupId: string) {
-    console.log('getOfferGroup called with groupId:', groupId);
-    const response = await fetch(
-      `${API_BASE}/offer-groups/${groupId}/`,
-      { headers: getAuthHeaders() }
-    );
-    if (!response.ok) throw new Error('Failed to fetch offer group');
-    const data = await response.json();
-    console.log('getOfferGroup response:', data);
-    // Merge status with offer_group data so code can access both response.status and response.id, etc.
+    const data = await request<any>(`/offer-groups/${groupId}/`, {
+      fallbackMessage: "Impossible de charger ce pack. Veuillez réessayer.",
+    });
+    // Merge status with offer_group data so callers can access both.
     return { status: data.status, ...data.offer_group };
   },
 
   async listOfferGroups() {
-    console.log('listOfferGroups called');
-    const response = await fetch(`${API_BASE}/offer-groups/`, {
-      headers: getAuthHeaders(),
+    return request<any>('/offer-groups/', {
+      fallbackMessage: "Impossible de charger les packs.",
     });
-    if (!response.ok) throw new Error('Failed to fetch offer groups');
-    const data = await response.json();
-    console.log('listOfferGroups response:', data);
-    return data;
   },
 
   // Offers
   async getOffer(offerId: string) {
-    const response = await fetch(
-      `${API_BASE}/offers/${offerId}/`,
-      { headers: getAuthHeaders() }
-    );
-    if (!response.ok) throw new Error('Failed to fetch offer');
-    return response.json();
+    return request<any>(`/offers/${offerId}/`, {
+      fallbackMessage: "Impossible de charger cette offre.",
+    });
   },
 
   async listOffers() {
-    const response = await fetch(`${API_BASE}/offers/`, {
-      headers: getAuthHeaders(),
+    return request<any>('/offers/', {
+      fallbackMessage: "Impossible de charger les offres.",
     });
-    if (!response.ok) throw new Error('Failed to fetch offers');
-    return response.json();
   },
 
   // Products
   async getProduct(productId: string) {
-    const response = await fetch(
-      `${API_BASE}/products/${productId}/`,
-      { headers: getAuthHeaders() }
-    );
-    if (!response.ok) throw new Error('Failed to fetch product');
-    return response.json();
+    return request<any>(`/products/${productId}/`, {
+      fallbackMessage: "Impossible de charger ce produit.",
+    });
   },
 
   async listProducts() {
-    const response = await fetch(`${API_BASE}/products/`, {
-      headers: getAuthHeaders(),
+    return request<any>('/products/', {
+      fallbackMessage: "Impossible de charger les produits.",
     });
-    if (!response.ok) throw new Error('Failed to fetch products');
-    return response.json();
   },
 
   // ============ Payment Operations ============
@@ -121,23 +194,12 @@ export const paymentService = {
     location_shared?: boolean;
     terms_accepted?: boolean;
     zone_id?: string;
-  }) {
-    const response = await fetch(
-      `${API_BASE}/offers-payment/initiate/`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok || data.status === 'error') {
-      throwPaymentError(data, `Failed to initiate offer payment: HTTP ${response.status}`);
-    }
-
-    return data;
+  }): Promise<InitiatePaymentApiResponse> {
+    return request<InitiatePaymentApiResponse>('/offers-payment/initiate/', {
+      method: 'POST',
+      body: payload,
+      fallbackMessage: "Le paiement de l'offre n'a pas pu être lancé.",
+    });
   },
 
   async initiateProductPayment(payload: {
@@ -157,68 +219,44 @@ export const paymentService = {
     location_shared?: boolean;
     terms_accepted?: boolean;
     zone_id?: string;
-  }) {
-    const response = await fetch(
-      `${API_BASE}/product-payment/initiate/`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
-      }
-    );
-
-    const data = await response.json();
-    
-
-    if (!response.ok || data.status === 'error') {
-      throwPaymentError(data, `Failed to initiate product payment: HTTP ${response.status}`);
-    }
-
-    return data;
+  }): Promise<InitiatePaymentApiResponse> {
+    return request<InitiatePaymentApiResponse>('/product-payment/initiate/', {
+      method: 'POST',
+      body: payload,
+      fallbackMessage: "Le paiement du produit n'a pas pu être lancé.",
+    });
   },
 
   async verifyOfferPayment(payload: {
     gateway_reference?: string;
     payment_id?: string;
     offer_id: string;
-  }) {
-    const response = await fetch(
-      `${API_BASE}/offers-payment/verify/`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          reference: payload.gateway_reference,
-          payment_id: payload.payment_id,
-          offer_id: payload.offer_id,
-        }),
-      }
-    );
-
-    const data = await response.json();
-    return data;
+  }): Promise<VerifyPaymentApiResponse> {
+    return request<VerifyPaymentApiResponse>('/offers-payment/verify/', {
+      method: 'POST',
+      body: {
+        reference: payload.gateway_reference,
+        payment_id: payload.payment_id,
+        offer_id: payload.offer_id,
+      },
+      throwOnAppError: false,
+    });
   },
 
   async verifyProductPayment(payload: {
     gateway_reference?: string;
     payment_id?: string;
     product_id: string;
-  }) {
-    const response = await fetch(
-      `${API_BASE}/product-payment/verify/`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          reference: payload.gateway_reference,
-          payment_id: payload.payment_id,
-          product_id: payload.product_id,
-        }),
-      }
-    );
-
-    const data = await response.json();
-    return data;
+  }): Promise<VerifyPaymentApiResponse> {
+    return request<VerifyPaymentApiResponse>('/product-payment/verify/', {
+      method: 'POST',
+      body: {
+        reference: payload.gateway_reference,
+        payment_id: payload.payment_id,
+        product_id: payload.product_id,
+      },
+      throwOnAppError: false,
+    });
   },
 
   async initiateGroupPayment(payload: {
@@ -238,189 +276,110 @@ export const paymentService = {
     location_shared?: boolean;
     terms_accepted?: boolean;
     zone_id?: string;
-  }) {
-    console.log('initiateGroupPayment called with payload:', payload);
-    const response = await fetch(
-      `${API_BASE}/offer-groups-payment/initiate/`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify(payload),
-      }
-    );
-
-    const data = await response.json();
-    console.log('initiateGroupPayment response:', data);
-
-    if (!response.ok || data.status === 'error') {
-      throwPaymentError(data, `Failed to initiate group payment: HTTP ${response.status}`);
-    }
-
-    return data;
+  }): Promise<InitiatePaymentApiResponse> {
+    return request<InitiatePaymentApiResponse>('/offer-groups-payment/initiate/', {
+      method: 'POST',
+      body: payload,
+      fallbackMessage: "Le paiement du pack n'a pas pu être lancé.",
+    });
   },
 
   async verifyGroupPayment(payload: {
     gateway_reference?: string;
     payment_id?: string;
     group_id: string;
-  }) {
-    console.log('verifyGroupPayment called with payload:', payload);
-    const response = await fetch(
-      `${API_BASE}/offer-groups-payment/verify/`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          reference: payload.gateway_reference,
-          payment_id: payload.payment_id,
-          group_id: payload.group_id,
-        }),
-      }
-    );
-
-    const data = await response.json();
-    console.log('verifyGroupPayment response:', data);
-    return data;
+  }): Promise<VerifyPaymentApiResponse> {
+    return request<VerifyPaymentApiResponse>('/offer-groups-payment/verify/', {
+      method: 'POST',
+      body: {
+        reference: payload.gateway_reference,
+        payment_id: payload.payment_id,
+        group_id: payload.group_id,
+      },
+      throwOnAppError: false,
+    });
   },
 
   // ============ Payment List Operations ============
 
   async listPayments() {
-    const response = await fetch(`${API_BASE}/payments/`, {
-      headers: getAuthHeaders(),
-    });
-    if (!response.ok) throw new Error('Failed to fetch payments');
-    return response.json();
+    return request<any>('/payments/', { fallbackMessage: 'Impossible de charger les paiements.' });
   },
 
   async getPayment(paymentId: string) {
-    const response = await fetch(
-      `${API_BASE}/payments/${paymentId}/`,
-      { headers: getAuthHeaders() }
-    );
-    if (!response.ok) throw new Error('Failed to fetch payment');
-    return response.json();
+    return request<any>(`/payments/${paymentId}/`, { fallbackMessage: 'Impossible de charger le paiement.' });
   },
 
   async completePayment(paymentId: string) {
-    const response = await fetch(
-      `${API_BASE}/payments/${paymentId}/complete/`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      }
-    );
-    if (!response.ok) throw new Error('Failed to complete payment');
-    return response.json();
+    return request<any>(`/payments/${paymentId}/complete/`, {
+      method: 'POST',
+      fallbackMessage: 'Impossible de finaliser le paiement.',
+    });
   },
 
   async cancelPayment(paymentId: string) {
-    const response = await fetch(
-      `${API_BASE}/payments/${paymentId}/cancel/`,
-      {
-        method: 'POST',
-        headers: getAuthHeaders(),
-      }
-    );
-    if (!response.ok) throw new Error('Failed to cancel payment');
-    return response.json();
+    return request<any>(`/payments/${paymentId}/cancel/`, {
+      method: 'POST',
+      fallbackMessage: "Impossible d'annuler le paiement.",
+    });
   },
 
   // ============ Transactions ============
 
   async listTransactions() {
-    const response = await fetch(`${API_BASE}/transactions/`, {
-      headers: getAuthHeaders(),
-    });
-    if (!response.ok) throw new Error('Failed to fetch transactions');
-    return response.json();
+    return request<any>('/transactions/', { fallbackMessage: 'Impossible de charger les transactions.' });
   },
 
   async getTransaction(transactionId: string) {
-    const response = await fetch(
-      `${API_BASE}/transactions/${transactionId}/`,
-      { headers: getAuthHeaders() }
-    );
-    if (!response.ok) throw new Error('Failed to fetch transaction');
-    return response.json();
+    return request<any>(`/transactions/${transactionId}/`, {
+      fallbackMessage: 'Impossible de charger la transaction.',
+    });
   },
 
   // ============ Currencies ============
 
   async listCurrencies() {
-    const response = await fetch(`${API_BASE}/currencies/`, {
-      headers: getAuthHeaders(),
-    });
-    if (!response.ok) throw new Error('Failed to fetch currencies');
-    return response.json();
+    return request<any>('/currencies/', { fallbackMessage: 'Impossible de charger les devises.' });
   },
 
   async getCurrency(currencyId: string) {
-    const response = await fetch(
-      `${API_BASE}/currencies/${currencyId}/`,
-      { headers: getAuthHeaders() }
-    );
-    if (!response.ok) throw new Error('Failed to fetch currency');
-    return response.json();
+    return request<any>(`/currencies/${currencyId}/`, { fallbackMessage: 'Impossible de charger la devise.' });
   },
 
   // ============ Payment Methods ============
 
-  async listPaymentMethods() {
-    const response = await fetch(`${API_BASE}/payment-methods/`, {
-      headers: getAuthHeaders(),
+  async listPaymentMethods(): Promise<PaymentMethodApiResponse> {
+    const data = await request<PaymentMethodApiResponse>('/payment-methods/', {
+      fallbackMessage: 'Impossible de charger les moyens de paiement.',
     });
-    if (!response.ok) throw new Error('Failed to fetch payment methods');
-    return response.json();
+    return data;
   },
 
   async getPaymentMethod(methodId: string) {
-    const response = await fetch(
-      `${API_BASE}/payment-methods/${methodId}/`,
-      { headers: getAuthHeaders() }
-    );
-    if (!response.ok) throw new Error('Failed to fetch payment method');
-    return response.json();
+    return request<any>(`/payment-methods/${methodId}/`, {
+      fallbackMessage: 'Impossible de charger le moyen de paiement.',
+    });
   },
 
   // ============ Balance ============
 
   async getBalance(companyId?: string) {
-    const url = companyId
-      ? `${API_BASE}/balances/${companyId}/`
-      : `${API_BASE}/balances/`;
-
-    const response = await fetch(url, { headers: getAuthHeaders() });
-    if (!response.ok) throw new Error('Failed to fetch balance');
-    return response.json();
+    const url = companyId ? `/balances/${companyId}/` : '/balances/';
+    return request<any>(url, { fallbackMessage: 'Impossible de charger le solde.' });
   },
 
   // ============ Logs ============
 
   async listPaymentLogs() {
-    const response = await fetch(`${API_BASE}/logs/`, {
-      headers: getAuthHeaders(),
-    });
-    if (!response.ok) throw new Error('Failed to fetch logs');
-    return response.json();
+    return request<any>('/logs/', { fallbackMessage: 'Impossible de charger les journaux.' });
   },
 
   async getUserPaymentLogs(userId: string) {
-    const response = await fetch(
-      `${API_BASE}/logs/user/${userId}/`,
-      { headers: getAuthHeaders() }
-    );
-    if (!response.ok) throw new Error('Failed to fetch user logs');
-    return response.json();
+    return request<any>(`/logs/user/${userId}/`, { fallbackMessage: 'Impossible de charger les journaux.' });
   },
 
   async getCompanyPaymentLogs(companyId: string) {
-    const response = await fetch(
-      `${API_BASE}/logs/company/${companyId}/`,
-      { headers: getAuthHeaders() }
-    );
-    if (!response.ok) throw new Error('Failed to fetch company logs');
-    return response.json();
+    return request<any>(`/logs/company/${companyId}/`, { fallbackMessage: 'Impossible de charger les journaux.' });
   },
 
   // ============ Public ticket recovery ============
@@ -431,14 +390,19 @@ export const paymentService = {
    * when the server asks us to wait (HTTP 429).
    */
   async recoverTicket(transactionReference: string, fingerprint: string) {
-    const response = await fetch(`${API_BASE}/recover-ticket/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        transaction_reference: transactionReference,
-        fingerprint,
-      }),
-    });
+    let response: Response;
+    try {
+      response = await fetch(`${API_BASE}/recover-ticket/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          transaction_reference: transactionReference,
+          fingerprint,
+        }),
+      });
+    } catch {
+      throw new PaymentApiError(NETWORK_ERROR_MESSAGE, 0, 'network');
+    }
 
     const data = await response.json().catch(() => ({} as any));
 

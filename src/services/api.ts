@@ -4,20 +4,23 @@ export const API_PAYMENTS_BASE_URL = `${API_BASE_URL}/api/payments`;
 export const API_ZONES_BASE_URL = `${API_BASE_URL}/api/zones`;
 
 /**
- * Build absolute URL for media files (logos, documents, etc.)
- * @param relativePath Path returned from backend (e.g., "logos/company-1.jpg")
- * @returns Full URL to access the file (e.g., 
+ * Build an absolute URL for a backend media file (logos, documents, images…).
+ *
+ * The backend exposes `MEDIA_URL = "media/"`, so a serialized field may come as
+ * any of: `media/payment_methods/logos/x.png`, `/media/…`, or a bare
+ * `payment_methods/logos/x.png`, or already an absolute URL. This helper
+ * normalizes all of them without ever doubling `/media/`.
  */
-export const getMediaUrl = (relativePath: string): string => {
+export const getMediaUrl = (relativePath?: string | null): string => {
     if (!relativePath) return '';
-    // If it's already an absolute URL, return as-is
-    if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
-        return relativePath;
-    }
-    // Remove leading /media/ if it already exists
-    const cleanPath = relativePath.startsWith('/media/')
-        ? relativePath.substring(7)
-        : relativePath;
-    // Build the full media URL
-    return `${API_BASE_URL}/media/${cleanPath}`;
+    const raw = String(relativePath).trim();
+    if (!raw) return '';
+    // Already absolute (http/https or protocol-relative)
+    if (/^(https?:)?\/\//i.test(raw) || raw.startsWith('data:')) return raw;
+
+    // Strip every leading slash, then a single leading `media/` segment.
+    let clean = raw.replace(/^\/+/, '');
+    clean = clean.replace(/^media\//i, '');
+
+    return `${API_BASE_URL}/media/${clean}`;
 };

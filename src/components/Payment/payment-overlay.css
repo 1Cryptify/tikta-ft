@@ -1,0 +1,263 @@
+/* ========== Payment Overlay / Spinner ========== */
+
+.payment-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-lg, 16px);
+  animation: paymentOverlayFade 0.25s ease-out;
+}
+
+.payment-overlay__backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.55);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.payment-overlay__card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  background: #ffffff;
+  border-radius: 20px;
+  padding: 32px 24px 24px;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+  animation: paymentOverlayPop 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.2);
+  overflow: hidden;
+}
+
+.payment-overlay__card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--color-primary, #1e3a5f), #3b82f6, var(--color-primary, #1e3a5f));
+  background-size: 200% 100%;
+  animation: paymentBarShift 1.6s linear infinite;
+}
+
+.payment-overlay__card--success::before {
+  background: linear-gradient(90deg, #059669, #34d399, #059669);
+}
+
+.payment-overlay__card--danger::before {
+  background: linear-gradient(90deg, #dc2626, #f87171, #dc2626);
+}
+
+/* ----- Spinner ----- */
+.payment-spinner {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin: 4px auto 20px;
+}
+
+.payment-spinner__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 4px solid rgba(30, 58, 95, 0.12);
+  border-top-color: var(--color-primary, #1e3a5f);
+  animation: paymentSpin 0.9s linear infinite;
+}
+
+.payment-spinner__ring--delayed {
+  inset: 10px;
+  border-width: 3px;
+  border-color: rgba(59, 130, 246, 0.15);
+  border-bottom-color: #3b82f6;
+  animation-duration: 1.4s;
+  animation-direction: reverse;
+}
+
+.payment-spinner__core {
+  position: absolute;
+  inset: 30px;
+  border-radius: 50%;
+  background: var(--color-primary, #1e3a5f);
+  opacity: 0.9;
+  animation: paymentPulse 1.4s ease-in-out infinite;
+}
+
+.payment-overlay__title {
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--color-text-primary, #1a1f2e);
+  margin: 0 0 6px;
+}
+
+.payment-overlay__subtitle {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-text-secondary, #6b7280);
+  margin: 0 0 4px;
+}
+
+.payment-overlay__timer {
+  margin: 10px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #6b7280);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----- Steps ----- */
+.payment-overlay__steps {
+  list-style: none;
+  margin: 20px 0 4px;
+  padding: 0;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.payment-overlay__step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13.5px;
+  transition: color 0.25s ease, opacity 0.25s ease;
+}
+
+.payment-overlay__step-bullet {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  font-size: 12px;
+  font-weight: 700;
+  border: 2px solid var(--color-border, #e0e4e8);
+  color: var(--color-text-secondary, #6b7280);
+  background: #fff;
+  transition: all 0.25s ease;
+}
+
+.payment-overlay__step--pending {
+  color: var(--color-text-secondary, #9aa1ac);
+  opacity: 0.65;
+}
+
+.payment-overlay__step--active {
+  color: var(--color-primary, #1e3a5f);
+  font-weight: 700;
+}
+
+.payment-overlay__step--active .payment-overlay__step-bullet {
+  border-color: var(--color-primary, #1e3a5f);
+  color: #fff;
+  background: var(--color-primary, #1e3a5f);
+  animation: paymentPulse 1.3s ease-in-out infinite;
+}
+
+.payment-overlay__step--done {
+  color: var(--color-success, #059669);
+  font-weight: 600;
+}
+
+.payment-overlay__step--done .payment-overlay__step-bullet {
+  border-color: var(--color-success, #059669);
+  color: #fff;
+  background: var(--color-success, #059669);
+}
+
+.payment-overlay__cancel {
+  margin-top: 22px;
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border, #e0e4e8);
+  background: #fff;
+  color: var(--color-text-secondary, #6b7280);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.payment-overlay__cancel:hover {
+  background: #f3f4f6;
+  color: var(--color-text-primary, #1a1f2e);
+}
+
+/* ----- Inline button spinner ----- */
+.btn-spinner {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  animation: paymentSpin 0.7s linear infinite;
+  vertical-align: middle;
+}
+
+.btn-spinner--dark {
+  border-color: rgba(30, 58, 95, 0.25);
+  border-top-color: var(--color-primary, #1e3a5f);
+}
+
+/* ----- Keyframes ----- */
+@keyframes paymentSpin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes paymentPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.9;
+    box-shadow: 0 0 0 0 rgba(30, 58, 95, 0.35);
+  }
+  50% {
+    transform: scale(1.08);
+    opacity: 1;
+    box-shadow: 0 0 0 10px rgba(30, 58, 95, 0);
+  }
+}
+
+@keyframes paymentOverlayFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes paymentOverlayPop {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes paymentBarShift {
+  from { background-position: 0% 50%; }
+  to { background-position: 200% 50%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .payment-spinner__ring,
+  .payment-spinner__ring--delayed,
+  .payment-spinner__core,
+  .payment-overlay__step--active .payment-overlay__step-bullet,
+  .payment-overlay__card::before {
+    animation: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .payment-overlay__card {
+    padding: 28px 18px 20px;
+    border-radius: 16px;
+  }
+  .payment-overlay__title { font-size: 17px; }
+}

@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 import { zonesApi, MyZoneItem, ZoneWithdrawal, ZoneWithdrawalContact, AssociateStats } from '../services/zoneService';
 import { BarChart } from '../components/Charts/BarChart';
+import { PeriodSelector, StatsPeriod } from '../components/Charts/PeriodSelector';
 import { useAuth } from '../hooks/useAuth';
 import LoadingSpinner from '../components/LoadingSpinner';
 
@@ -258,6 +259,7 @@ export const MyZonesPage: React.FC = () => {
   const [view, setView] = useState<'zones' | 'stats'>('zones');
   const [stats, setStats] = useState<AssociateStats | null>(null);
   const [statsLoading, setStatsLoading] = useState(false);
+  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('monthly');
 
   const load = useCallback(async () => {
     setError('');
@@ -284,13 +286,13 @@ export const MyZonesPage: React.FC = () => {
   const loadStats = useCallback(async () => {
     setStatsLoading(true);
     try {
-      setStats(await zonesApi.associateStats(12));
+      setStats(await zonesApi.associateStats(statsPeriod));
     } catch (e: any) {
       setError(e.message || 'Impossible de charger les statistiques');
     } finally {
       setStatsLoading(false);
     }
-  }, []);
+  }, [statsPeriod]);
 
   useEffect(() => {
     if (view === 'stats') loadStats();
@@ -459,7 +461,10 @@ export const MyZonesPage: React.FC = () => {
           <EmptyState>Aucune statistique disponible</EmptyState>
         ) : (
           <>
-            <SectionTitle>Vue d'ensemble</SectionTitle>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.xl, marginBottom: spacing.md, flexWrap: 'wrap', gap: spacing.sm }}>
+              <h2 style={{ margin: 0, fontSize: '1.1rem', color: colors.textPrimary }}>Vue d'ensemble</h2>
+              <PeriodSelector value={statsPeriod} onChange={setStatsPeriod} />
+            </div>
             <MiniStat>
               <StatBox><div className="lbl">Revenus générés</div><div className="val">{fmt(stats.totals.revenue)} {stats.currency_code}</div></StatBox>
               <StatBox><div className="lbl">Total retiré</div><div className="val">{fmt(stats.totals.withdrawn)} {stats.currency_code}</div></StatBox>
@@ -469,7 +474,7 @@ export const MyZonesPage: React.FC = () => {
             <SectionTitle>Revenus par mois</SectionTitle>
             <Card>
               <BarChart
-                labels={stats.months.map((m) => `${m.month.slice(5)}/${m.month.slice(2, 4)}`)}
+                labels={(stats.labels && stats.labels.length ? stats.labels : stats.months.map((m) => m.month))}
                 series={[
                   { label: 'Revenus', color: colors.primary, values: stats.months.map((m) => parseFloat(m.revenue) || 0) },
                   { label: 'Retraits', color: colors.warning, values: stats.months.map((m) => parseFloat(m.withdrawn) || 0) },

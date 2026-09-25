@@ -27,11 +27,10 @@
   position: relative;
 }
 
-.success-icon::after {
-  content: '✓';
-  font-size: 48px;
+.success-icon svg {
+  font-size: 44px;
   color: white;
-  font-weight: 700;
+  stroke-width: 3;
 }
 
 @keyframes scaleIn {

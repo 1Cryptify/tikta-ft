@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { colors, spacing, borderRadius, shadows } from '../../config/theme';
 import { zonesApi, CompanyStats } from '../../services/zoneService';
 import { BarChart } from '../Charts/BarChart';
+import { PeriodSelector, StatsPeriod } from '../Charts/PeriodSelector';
 
 const Wrap = styled.div`display: flex; flex-direction: column; gap: ${spacing.lg};`;
 
@@ -54,18 +55,19 @@ const CompanyStatsPanel: React.FC = () => {
   const [stats, setStats] = useState<CompanyStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [period, setPeriod] = useState<StatsPeriod>('monthly');
 
   const load = useCallback(async () => {
     setLoading(true);
     setError('');
     try {
-      setStats(await zonesApi.companyStats(12));
+      setStats(await zonesApi.companyStats(period));
     } catch (e: any) {
       setError(e?.message || 'Impossible de charger les statistiques');
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [period]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -78,6 +80,9 @@ const CompanyStatsPanel: React.FC = () => {
 
   return (
     <Wrap>
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <PeriodSelector value={period} onChange={setPeriod} />
+      </div>
       <KpiGrid>
         <Kpi><div className="lbl">Revenus encaissés</div><div className="val">{fmt(stats.kpi.total_revenue)} {cur}</div></Kpi>
         <Kpi><div className="lbl">Total retiré</div><div className="val">{fmt(stats.kpi.total_withdrawn)} {cur}</div></Kpi>
@@ -89,7 +94,7 @@ const CompanyStatsPanel: React.FC = () => {
       <Card>
         <h3>Revenus & retraits par mois</h3>
         <BarChart
-          labels={stats.months.map((m) => `${m.month.slice(5)}/${m.month.slice(2, 4)}`)}
+          labels={(stats.labels && stats.labels.length ? stats.labels : stats.months.map((m) => m.month))}
           series={[
             { label: 'Revenus', color: colors.primary, values: stats.months.map((m) => parseFloat(m.revenue) || 0) },
             { label: 'Retraits', color: colors.warning, values: stats.months.map((m) => parseFloat(m.withdrawn) || 0) },

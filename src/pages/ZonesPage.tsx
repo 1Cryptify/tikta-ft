@@ -3,7 +3,9 @@ import styled from 'styled-components';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
-import { zonesApi, Zone, ZoneDetail, ZoneRouter, ZoneManager, ZoneWithdrawal, ZoneWithdrawalContact, ZoneAutomaticWithdrawal, ZonePayment, ZonePaymentsData } from '../services/zoneService';
+import { zonesApi, Zone, ZoneDetail, ZoneRouter, ZoneManager, ZoneWithdrawal, ZoneWithdrawalContact, ZoneAutomaticWithdrawal, ZonePayment, ZonePaymentsData, ZoneStats } from '../services/zoneService';
+import { BarChart } from '../components/Charts/BarChart';
+import { PeriodSelector, StatsPeriod } from '../components/Charts/PeriodSelector';
 import { useAuth } from '../hooks/useAuth';
 import { ZoneTracer } from './ZoneTracer';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -526,8 +528,11 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
   const { user } = useAuth();
   const [zone, setZone] = useState<ZoneDetail | null>(null);
   const [error, setError] = useState('');
-  const [tab, setTab] = useState<'routers' | 'managers' | 'payments' | 'contacts' | 'auto' | 'withdrawals'>('routers');
+  const [tab, setTab] = useState<'routers' | 'managers' | 'payments' | 'contacts' | 'auto' | 'stats' | 'withdrawals'>('routers');
   const [payments, setPayments] = useState<ZonePaymentsData | null>(null);
+  const [zoneStats, setZoneStats] = useState<ZoneStats | null>(null);
+  const [statsPeriod, setStatsPeriod] = useState<StatsPeriod>('monthly');
+  const [statsLoading, setStatsLoading] = useState(false);
   const [routerForm, setRouterForm] = useState({ name: '', mac_address: '', serial_number: '', model: '', ip_address: '', status: 'active' });
   const [managerForm, setManagerForm] = useState<{ mode: 'email' | 'phone'; email: string; phone: string; percentage: number | string; initial_password: string; create_account: boolean }>({ mode: 'email', email: '', phone: '', percentage: 100, initial_password: '', create_account: true });
   const [wdPercents, setWdPercents] = useState<Record<string, number | string>>({});
@@ -547,6 +552,15 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
       zonesApi.payments(zoneId).then(setPayments).catch(() => {});
     }
   }, [tab, zoneId]);
+
+  useEffect(() => {
+    if (tab !== 'stats') return;
+    setStatsLoading(true);
+    zonesApi.zoneStats(zoneId, statsPeriod)
+      .then(setZoneStats)
+      .catch(() => {})
+      .finally(() => setStatsLoading(false));
+  }, [tab, zoneId, statsPeriod]);
 
   const refresh = () => { load(); if (tab === 'payments') zonesApi.payments(zoneId).then(setPayments).catch(() => {}); };
 
@@ -727,6 +741,7 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
         <MenuButton isActive={tab === 'managers'} onClick={() => setTab('managers')}>Associés ({zone.managers?.length || 0})</MenuButton>
         <MenuButton isActive={tab === 'contacts'} onClick={() => setTab('contacts')}>Contacts de retrait ({zone.withdrawal_contacts?.length || 0})</MenuButton>
         <MenuButton isActive={tab === 'auto'} onClick={() => setTab('auto')}>Retrait auto</MenuButton>
+        <MenuButton isActive={tab === 'stats'} onClick={() => setTab('stats')}>Stats</MenuButton>
         <MenuButton isActive={tab === 'payments'} onClick={() => setTab('payments')}>Paiements</MenuButton>
         <MenuButton isActive={tab === 'withdrawals'} onClick={() => setTab('withdrawals')}>Retraits ({zone.withdrawals?.length || 0})</MenuButton>
       </MenuNav>
@@ -935,6 +950,57 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
                 ))
             )}
           </div>
+        </div>
+      )}
+
+      {/* -------- Statistiques -------- */}
+      {tab === 'stats' && (
+        <div>
+          {statsLoading ? <LoadingSpinner /> : !zoneStats ? (
+            <EmptyState>Aucune statistique disponible pour cette zone</EmptyState>
+          ) : (
+            <>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: spacing.md }}>
+                <PeriodSelector value={statsPeriod} onChange={setStatsPeriod} />
+              </div>
+
+              <MiniStat>
+                <StatBox><div className="lbl">Revenus (période)</div><div className="val">{fmt(zoneStats.totals.revenue)}</div></StatBox>
+                <StatBox><div className="lbl">Retraits (période)</div><div className="val">{fmt(zoneStats.totals.withdrawn)}</div></StatBox>
+                <StatBox><div className="lbl">Paiements</div><div className="val">{zoneStats.totals.payments_count}</div></StatBox>
+                <StatBox><div className="lbl">Solde associés</div><div className="val">{fmt(zoneStats.totals.associate_balance)}</div></StatBox>
+              </MiniStat>
+
+              <h3 style={{ fontSize: '1rem', color: colors.textPrimary, margin: `${spacing.lg} 0 ${spacing.md}` }}>Revenus &amp; retraits</h3>
+              <BarChart
+                labels={(zoneStats.labels && zoneStats.labels.length ? zoneStats.labels : zoneStats.months.map((m) => m.month))}
+                series={[
+                  { label: 'Revenus', color: colors.primary, values: zoneStats.months.map((m) => parseFloat(m.revenue) || 0) },
+                  { label: 'Retraits', color: colors.warning, values: zoneStats.months.map((m) => parseFloat(m.withdrawn) || 0) },
+                ]}
+                formatValue={(n) => `${Math.round(n).toLocaleString('en-US')} ${zoneStats.currency_code}`}
+              />
+
+              <h3 style={{ fontSize: '1rem', color: colors.textPrimary, margin: `${spacing.xl} 0 ${spacing.md}` }}>Associés</h3>
+              {zoneStats.associates.length === 0 ? (
+                <EmptyState>Aucun associé actif sur cette zone</EmptyState>
+              ) : (
+                <Table>
+                  <thead><tr><th>Associé</th><th>%</th><th>Revenus (période)</th><th>Solde réel</th></tr></thead>
+                  <tbody>
+                    {zoneStats.associates.map((a) => (
+                      <tr key={a.manager_id}>
+                        <td>{a.display || '—'}</td>
+                        <td>{a.percentage}%</td>
+                        <td><strong>{fmt(a.revenue)} {zoneStats.currency_code}</strong></td>
+                        <td>{fmt(a.balance)} {zoneStats.currency_code}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              )}
+            </>
+          )}
         </div>
       )}
 

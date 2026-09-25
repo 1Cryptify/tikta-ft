@@ -24,6 +24,7 @@ interface UsePaymentVerificationParams {
   offerId?: string;
   productId?: string;
   groupId?: string;
+  paymentId?: string;
 }
 
 const POLL_INTERVAL_MS = 7000;
@@ -57,23 +58,31 @@ export const usePaymentVerification = (params?: UsePaymentVerificationParams) =>
     offerId?: string,
     productId?: string,
     groupId?: string,
+    paymentId?: string,
   ): Promise<VerificationResult | null> => {
     try {
+      // Prefer the gateway reference (idempotent "already completed" path);
+      // fall back to the internal payment_id when the gateway returned none.
+      const gatewayReferenceParam = gatewayReference || undefined;
+      const paymentIdParam = gatewayReference ? undefined : paymentId;
       let response;
 
       if (paymentType === 'offer') {
         response = await paymentService.verifyOfferPayment({
-          gateway_reference: gatewayReference,
+          gateway_reference: gatewayReferenceParam,
+          payment_id: paymentIdParam,
           offer_id: offerId || '',
         });
       } else if (paymentType === 'product') {
         response = await paymentService.verifyProductPayment({
-          gateway_reference: gatewayReference,
+          gateway_reference: gatewayReferenceParam,
+          payment_id: paymentIdParam,
           product_id: productId || '',
         });
       } else if (paymentType === 'group') {
         response = await paymentService.verifyGroupPayment({
-          gateway_reference: gatewayReference,
+          gateway_reference: gatewayReferenceParam,
+          payment_id: paymentIdParam,
           group_id: groupId || '',
         });
       }
@@ -119,6 +128,7 @@ export const usePaymentVerification = (params?: UsePaymentVerificationParams) =>
     offerId?: string;
     productId?: string;
     groupId?: string;
+    paymentId?: string;
   }) => {
     clearTimer();
     stoppedRef.current = false;
@@ -142,6 +152,7 @@ export const usePaymentVerification = (params?: UsePaymentVerificationParams) =>
         params.offerId,
         params.productId,
         params.groupId,
+        params.paymentId,
       );
 
       if (!result || stoppedRef.current) return;

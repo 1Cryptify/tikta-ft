@@ -13,11 +13,13 @@ import {
     FiChevronRight,
     FiCopy,
     FiImage,
+    FiBarChart2,
 } from 'react-icons/fi';
 import { useOffer, Offer, OfferGroup } from '../hooks/useOffer';
 import { useAuth } from '../hooks/useAuth';
 import { useBusiness } from '../hooks/useBusiness';
 import { OfferModal } from '../components/OfferModal';
+import OfferStatsPanel from '../components/OfferStatsPanel';
 import { colors, spacing, borderRadius, shadows } from '../config/theme';
 import { getMediaUrl } from '../services/api';
 
@@ -636,7 +638,7 @@ const FormGroup = styled.div`
     margin-bottom: ${spacing.sm};
   }
 
-  input,
+  input:not([type='checkbox']):not([type='radio']),
   select,
   textarea {
     width: 100%;
@@ -704,7 +706,8 @@ const ToggleCard = styled.label`
   }
 
   input {
-    width: auto;
+    width: 1.05rem;
+    height: 1.05rem;
     margin-top: 2px;
   }
 
@@ -760,6 +763,7 @@ const OffersSelectorHeader = styled.div`
 
   > label {
     margin: 0;
+    font-size: 0.875rem;
   }
 `;
 
@@ -822,7 +826,8 @@ const OfferCheckbox = styled.label`
   }
 
   input {
-    width: auto;
+    width: 1.05rem;
+    height: 1.05rem;
     margin-top: 2px;
   }
 
@@ -1028,7 +1033,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
     const [copiedId, setCopiedId] = useState<string | null>(null);
 
     // Groups tab state
-    const [activeTab, setActiveTab] = useState<'offers' | 'groups'>('offers');
+    const [activeTab, setActiveTab] = useState<'offers' | 'groups' | 'stats'>('offers');
     const [groupModalOpen, setGroupModalOpen] = useState(false);
     const [editingGroup, setEditingGroup] = useState<OfferGroup | null>(null);
     const [groupFormData, setGroupFormData] = useState({
@@ -1379,6 +1384,9 @@ export const OffersList: React.FC<OffersListProps> = () => {
                 <Tab isActive={activeTab === 'groups'} onClick={() => setActiveTab('groups')}>
                     <FiFolder /> Groups
                 </Tab>
+                <Tab isActive={activeTab === 'stats'} onClick={() => setActiveTab('stats')}>
+                    <FiBarChart2 /> Stats
+                </Tab>
             </TabContainer>
 
             {activeTab === 'offers' ? (
@@ -1403,7 +1411,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                         </AddButton>
                     </HeaderActions>
                 </>
-            ) : (
+            ) : activeTab === 'groups' ? (
                 <>
                     <HeaderActions>
                         <SearchBox>
@@ -1425,7 +1433,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                         </AddButton>
                     </HeaderActions>
                 </>
-            )}
+            ) : null}
 
             {activeTab === 'offers' ? (
                 <>
@@ -1570,7 +1578,7 @@ export const OffersList: React.FC<OffersListProps> = () => {
                         </Grid>
                     )}
                 </>
-            ) : (
+            ) : activeTab === 'groups' ? (
                 <>
                     {isLoading && !offerGroups.length ? (
                         <LoadingSpinner>
@@ -1751,6 +1759,8 @@ export const OffersList: React.FC<OffersListProps> = () => {
                         </div>
                     )}
                 </>
+            ) : (
+                <OfferStatsPanel />
             )}
 
             </Container>
@@ -2159,14 +2169,41 @@ export const OffersList: React.FC<OffersListProps> = () => {
                     </FormRow>
 
                     <OffersSelector>
-                        <label>Select Offers ({selectedOfferIds.length})</label>
+                        <OffersSelectorHeader>
+                            <label>Offers in this group ({selectedOfferIds.length})</label>
+                            {offers.length > 0 && (
+                                <OffersTools>
+                                    <button type="button" onClick={handleSelectAllOffers} disabled={isSaving}>
+                                        Select all
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={handleClearOffers}
+                                        disabled={isSaving || selectedOfferIds.length === 0}
+                                    >
+                                        Clear
+                                    </button>
+                                </OffersTools>
+                            )}
+                        </OffersSelectorHeader>
+
+                        {offers.length > 0 && (
+                            <OffersSearch
+                                type="text"
+                                placeholder="Search offers..."
+                                value={groupOfferSearch}
+                                onChange={(e) => setGroupOfferSearch(e.target.value)}
+                                disabled={isSaving}
+                            />
+                        )}
+
                         <div className="offers-list">
                             {offers.length === 0 ? (
-                                <p style={{ color: colors.textSecondary, margin: 0 }}>
-                                    No offers available. Create an offer first.
-                                </p>
+                                <EmptyOffers>No offers available. Create an offer first.</EmptyOffers>
+                            ) : selectableOffers.length === 0 ? (
+                                <EmptyOffers>No offers match your search.</EmptyOffers>
                             ) : (
-                                offers.map((offer) => (
+                                selectableOffers.map((offer) => (
                                     <OfferCheckbox key={offer.id}>
                                         <input
                                             type="checkbox"
@@ -2175,12 +2212,12 @@ export const OffersList: React.FC<OffersListProps> = () => {
                                             disabled={isSaving}
                                         />
                                         <span>
-                                            {offer.name}
+                                            <span className="offer-name">{offer.name}</span>
                                             {offer.currency && (
-                                                <div style={{ fontSize: '0.75rem', color: colors.textSecondary, marginTop: '0.25rem' }}>
+                                                <span className="offer-price">
                                                     {offer.currency.symbol}
                                                     {parseFloat(String(offer.price || 0)).toFixed(offer.currency.decimal_places || 2)}
-                                                </div>
+                                                </span>
                                             )}
                                         </span>
                                     </OfferCheckbox>
@@ -2191,20 +2228,22 @@ export const OffersList: React.FC<OffersListProps> = () => {
 
                     <FormActions>
                         <button
-                            className="submit"
-                            onClick={handleSubmitGroup}
-                            disabled={isSaving}
-                        >
-                            {editingGroup ? 'Update Group' : 'Create Group'}
-                        </button>
-                        <button
+                            type="button"
                             className="cancel"
                             onClick={handleCloseGroupModal}
                             disabled={isSaving}
                         >
                             Cancel
                         </button>
+                        <button
+                            type="submit"
+                            className="submit"
+                            disabled={isSaving}
+                        >
+                            {isSaving ? 'Saving...' : editingGroup ? 'Update Group' : 'Create Group'}
+                        </button>
                     </FormActions>
+                    </GroupForm>
                 </GroupModalContent>
             </GroupModalOverlay>
         </>

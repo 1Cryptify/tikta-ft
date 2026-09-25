@@ -20,6 +20,13 @@
   --color-info: #3b82f6;
   --color-disabled: #d1d5db;
 
+  /* Aliases used by legacy success/failed stylesheets */
+  --color-danger: var(--color-error);
+  --color-accent: var(--color-primary);
+  --color-text: var(--color-text-primary);
+  --color-secondary: var(--color-text-secondary);
+  --color-light: #f3f4f6;
+
   /* Spacing */
   --space-xs: 4px;
   --space-sm: 8px;

@@ -172,6 +172,9 @@ export interface StatsPoint {
 
 export interface AssociateStats {
   currency_code: string;
+  period?: string;
+  granularity?: string;
+  labels?: string[];
   totals: { revenue: string; withdrawn: string; balance: string };
   months: StatsPoint[];
   zones: { zone_id: string; zone_name: string; revenue: string; withdrawn: string }[];
@@ -180,6 +183,9 @@ export interface AssociateStats {
 
 export interface CompanyStats {
   currency_code: string;
+  period?: string;
+  granularity?: string;
+  labels?: string[];
   kpi: {
     total_revenue: string;
     total_withdrawn: string;
@@ -199,6 +205,44 @@ export interface CompanyStats {
     payments_count: number;
     is_active: boolean;
   }[];
+}
+
+export interface ZoneStats {
+  zone_id: string;
+  currency_code: string;
+  period?: string;
+  granularity?: string;
+  labels?: string[];
+  totals: {
+    revenue: string;
+    withdrawn: string;
+    associate_balance: string;
+    payments_count: number;
+  };
+  months: StatsPoint[];
+  associates: {
+    manager_id: string;
+    display: string;
+    percentage: number;
+    balance: string;
+    revenue: string;
+  }[];
+}
+
+export interface OfferStats {
+  period?: string;
+  granularity?: string;
+  labels?: string[];
+  total_sales: number;
+  offers_count: number;
+  offers: {
+    offer_id: string;
+    name: string;
+    offer_type: string;
+    is_active: boolean;
+    sales: number;
+  }[];
+  months: StatsPoint[];
 }
 
 export interface MyZoneItem extends ZoneManager {
@@ -414,14 +458,24 @@ export const zonesApi = {
     return handle(res, {} as any).withdrawal;
   },
 
-  // Statistiques historiques
-  async associateStats(months = 12): Promise<AssociateStats> {
-    const res = await api.get('/associate-stats/', { params: { months } });
+  // Statistiques historiques (période : daily | monthly | yearly | all)
+  async associateStats(period = 'monthly'): Promise<AssociateStats> {
+    const res = await api.get('/associate-stats/', { params: { period } });
     return handle(res, {} as any);
   },
 
-  async companyStats(months = 12): Promise<CompanyStats> {
-    const res = await api.get('/company-stats/', { params: { months } });
+  async companyStats(period = 'monthly'): Promise<CompanyStats> {
+    const res = await api.get('/company-stats/', { params: { period } });
+    return handle(res, {} as any);
+  },
+
+  async zoneStats(zoneId: string, period = 'monthly'): Promise<ZoneStats> {
+    const res = await api.get(`/zones/${zoneId}/stats/`, { params: { period } });
+    return handle(res, {} as any);
+  },
+
+  async offerStats(period = 'monthly'): Promise<OfferStats> {
+    const res = await api.get('/offer-stats/', { params: { period } });
     return handle(res, {} as any);
   },
 };
