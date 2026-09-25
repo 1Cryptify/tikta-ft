@@ -364,6 +364,163 @@ const CreateZoneModal: React.FC<{ onClose: () => void; onCreated: (z: Zone) => v
   );
 };
 
+// ---------- Carte de retrait automatique par associé ----------
+const AutoWithdrawalManagerCard: React.FC<{
+  zoneId: string;
+  manager: ZoneManager;
+  config?: ZoneAutomaticWithdrawal;
+  contacts: ZoneWithdrawalContact[];
+  currencyCode: string;
+  onChanged: () => void;
+}> = ({ zoneId, manager, config, contacts, currencyCode, onChanged }) => {
+  const validated = contacts.filter((c) => c.manager_id === manager.id && c.is_validated);
+  const [form, setForm] = useState({
+    contact_id: config?.contact_id || '',
+    minimum_amount: config?.minimum_amount || '',
+    withdraw_full_balance: config?.withdraw_full_balance ?? true,
+    fixed_amount: config?.fixed_amount || '',
+    is_enabled: config?.is_enabled || false,
+  });
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setForm({
+      contact_id: config?.contact_id || '',
+      minimum_amount: config?.minimum_amount || '',
+      withdraw_full_balance: config?.withdraw_full_balance ?? true,
+      fixed_amount: config?.fixed_amount || '',
+      is_enabled: config?.is_enabled || false,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config?.id]);
+
+  const save = async (e?: React.FormEvent, overrides: Partial<typeof form> = {}) => {
+    e?.preventDefault();
+    const payload = { ...form, ...overrides };
+    if (payload.is_enabled && !payload.contact_id) {
+      alert('Sélectionnez un contact de retrait validé pour activer le retrait automatique.');
+      return;
+    }
+    setSaving(true);
+    try {
+      await zonesApi.saveAutoWithdrawal(zoneId, {
+        manager_id: manager.id,
+        is_enabled: payload.is_enabled,
+        minimum_amount: parseFloat(payload.minimum_amount) || 0,
+        withdraw_full_balance: payload.withdraw_full_balance,
+        fixed_amount: payload.withdraw_full_balance ? null : (parseFloat(payload.fixed_amount) || null),
+        contact_id: payload.contact_id || null,
+      });
+      onChanged();
+    } catch (err: any) {
+      alert(err.message || 'Erreur lors de l enregistrement');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async () => {
+    if (!config) return;
+    if (!confirm(`Supprimer le retrait automatique de ${manager.email} ?`)) return;
+    try {
+      await zonesApi.deleteAutoWithdrawal(config.id);
+      onChanged();
+    } catch (err: any) {
+      alert(err.message || 'Erreur');
+    }
+  };
+
+  const cfgContact = config ? contacts.find((c) => c.id === config.contact_id) : undefined;
+
+  return (
+    <div style={{
+      border: `1px solid ${config?.is_enabled ? `${colors.success}55` : colors.border}`,
+      borderLeft: `4px solid ${config?.is_enabled ? colors.success : colors.border}`,
+      borderRadius: borderRadius.md,
+      padding: spacing.lg,
+      marginBottom: spacing.lg,
+      background: config?.is_enabled ? `${colors.success}06` : 'white',
+    }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md }}>
+        <div>
+          <div style={{ fontWeight: 700, color: colors.textPrimary }}>{manager.email}</div>
+          <div style={{ fontSize: '0.8rem', color: colors.textSecondary }}>
+            Part {manager.percentage}% · Solde réel : <strong>{fmt(manager.balance)} {currencyCode}</strong>
+          </div>
+        </div>
+        <div style={{ display: 'flex', gap: spacing.xs, flexWrap: 'wrap' }}>
+          <StatusBadge status={config?.is_enabled ? 'active' : 'offline'}>{config?.is_enabled ? 'Activé' : 'Désactivé'}</StatusBadge>
+          {config?.is_enabled && (
+            <StatusBadge status={cfgContact ? 'active' : 'pending'}>
+              {cfgContact ? `→ ${cfgContact.number}` : 'Sans contact'}
+            </StatusBadge>
+          )}
+        </div>
+      </div>
+
+      {validated.length === 0 && (
+        <div style={{ fontSize: '0.8rem', color: colors.warning, marginBottom: spacing.sm }}>
+          Aucun contact validé pour cet associé. Enregistrez et faites valider un numéro dans l'onglet
+          « Contacts de retrait ».
+        </div>
+      )}
+
+      <form onSubmit={save} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: spacing.md, alignItems: 'start' }}>
+        <FormGroup>
+          <label>Contact validé</label>
+          <select value={form.contact_id} onChange={(e) => setForm({ ...form, contact_id: e.target.value })}>
+            <option value="">— Aucun —</option>
+            {validated.map((c) => (
+              <option key={c.id} value={c.id}>{c.number}{c.label ? ` — ${c.label}` : ''} · frais {c.fee_percentage}%</option>
+            ))}
+          </select>
+        </FormGroup>
+        <FormGroup>
+          <label>Seuil de déclenchement</label>
+          <input type="number" min={0} step={50} value={form.minimum_amount}
+            onChange={(e) => setForm({ ...form, minimum_amount: e.target.value })} placeholder="Ex: 5000" />
+        </FormGroup>
+        {!form.withdraw_full_balance && (
+          <FormGroup>
+            <label>Montant fixe</label>
+            <input type="number" min={50} step={50} value={form.fixed_amount}
+              onChange={(e) => setForm({ ...form, fixed_amount: e.target.value })} />
+          </FormGroup>
+        )}
+        <FormGroup>
+          <label>Options</label>
+          <CheckLine>
+            <input type="checkbox" checked={form.withdraw_full_balance}
+              onChange={(e) => setForm({ ...form, withdraw_full_balance: e.target.checked })} />
+            Retirer tout le solde atteint
+          </CheckLine>
+          <CheckLine>
+            <input type="checkbox" checked={form.is_enabled}
+              onChange={(e) => setForm({ ...form, is_enabled: e.target.checked })} />
+            Activer
+          </CheckLine>
+        </FormGroup>
+        <div style={{ display: 'flex', gap: spacing.sm, flexWrap: 'wrap' }}>
+          <PrimaryButton type="submit" disabled={saving}>{saving ? 'Enregistrement...' : 'Enregistrer'}</PrimaryButton>
+          {config?.is_enabled && (
+            <GhostButton type="button" onClick={() => save(undefined, { is_enabled: false })}>Désactiver</GhostButton>
+          )}
+          {config && <GhostButton type="button" className="danger" onClick={remove}>Supprimer</GhostButton>}
+        </div>
+      </form>
+
+      {config?.last_error && (
+        <div style={{ color: colors.error, marginTop: spacing.sm, fontSize: '0.78rem' }}>Dernière erreur : {config.last_error}</div>
+      )}
+      {config?.last_processed_at && (
+        <div style={{ color: colors.textSecondary, marginTop: spacing.xs, fontSize: '0.78rem' }}>
+          Dernier traitement : {fmtDate(config.last_processed_at)}
+        </div>
+      )}
+    </div>
+  );
+};
+
 // ---------- Vue détail d'une zone ----------
 const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: (z: Zone) => void }> = ({ zoneId, onBack, onChanged }) => {
   const { user } = useAuth();
@@ -376,10 +533,6 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
   const [wdPercents, setWdPercents] = useState<Record<string, number>>({});
   const [contactFees, setContactFees] = useState<Record<string, number>>({});
   const [contactForm, setContactForm] = useState({ number: '', provider: 'MTN', label: '', manager_email: '' });
-  const [autoForm, setAutoForm] = useState({
-    is_enabled: false, minimum_amount: '', withdraw_full_balance: true, fixed_amount: '', contact_id: '',
-  });
-  const [autoSaving, setAutoSaving] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -395,17 +548,6 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
     }
   }, [tab, zoneId]);
 
-  useEffect(() => {
-    const cfg = zone?.automatic_withdrawal;
-    setAutoForm({
-      is_enabled: cfg?.is_enabled || false,
-      minimum_amount: cfg?.minimum_amount || '',
-      withdraw_full_balance: cfg?.withdraw_full_balance ?? true,
-      fixed_amount: cfg?.fixed_amount || '',
-      contact_id: cfg?.contact_id || '',
-    });
-  }, [zone?.automatic_withdrawal]);
-
   const refresh = () => { load(); if (tab === 'payments') zonesApi.payments(zoneId).then(setPayments).catch(() => {}); };
 
   if (!zone) {
@@ -413,10 +555,6 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
   }
 
   const isStaff = !!user?.is_superuser || !!user?.is_staff;
-  const autoCfg = zone.automatic_withdrawal;
-  const autoCfgContact = autoCfg
-    ? zone.withdrawal_contacts?.find((c) => c.id === autoCfg.contact_id)
-    : undefined;
 
   const handleToggle = async () => {
     const updated = await zonesApi.toggle(zone.id);
@@ -536,30 +674,6 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
     refresh();
   };
 
-  const saveAuto = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!zone) return;
-    if (autoForm.is_enabled && !autoForm.contact_id) {
-      alert('Sélectionnez un contact de retrait validé pour activer le retrait automatique.');
-      return;
-    }
-    setAutoSaving(true);
-    try {
-      await zonesApi.saveAutoWithdrawal(zone.id, {
-        is_enabled: autoForm.is_enabled,
-        minimum_amount: parseFloat(autoForm.minimum_amount) || 0,
-        withdraw_full_balance: autoForm.withdraw_full_balance,
-        fixed_amount: autoForm.withdraw_full_balance ? null : (parseFloat(autoForm.fixed_amount) || null),
-        contact_id: autoForm.contact_id || null,
-      });
-      refresh();
-    } catch (err: any) {
-      alert(err.message || 'Erreur lors de l enregistrement');
-    } finally {
-      setAutoSaving(false);
-    }
-  };
-
   const runAuto = async () => {
     if (!zone) return;
     try {
@@ -567,27 +681,6 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
       refresh();
     } catch (err: any) {
       alert(err.message || 'Aucun retrait automatique déclenché');
-    }
-  };
-
-  const disableAuto = async () => {
-    if (!zone) return;
-    try {
-      await zonesApi.saveAutoWithdrawal(zone.id, { is_enabled: false });
-      refresh();
-    } catch (err: any) {
-      alert(err.message || 'Erreur');
-    }
-  };
-
-  const deleteAuto = async () => {
-    if (!zone) return;
-    if (!confirm('Supprimer définitivement la configuration de retrait automatique ?')) return;
-    try {
-      await zonesApi.deleteAutoWithdrawal(zone.id);
-      refresh();
-    } catch (err: any) {
-      alert(err.message || 'Erreur');
     }
   };
 
@@ -779,103 +872,36 @@ const ZoneDetailView: React.FC<{ zoneId: string; onBack: () => void; onChanged: 
         </div>
       )}
 
-      {/* -------- Retrait automatique -------- */}
+      {/* -------- Retrait automatique (un par associé) -------- */}
       {tab === 'auto' && (
         <div>
-          <p style={{ fontSize: 13, color: colors.textSecondary, marginTop: 0, lineHeight: 1.5 }}>
-            Lorsque le solde associé de la zone atteint le seuil, un retrait est automatiquement payé
-            vers le contact de retrait validé. Utile pour les associés sans accès à l'application.
-          </p>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm }}>
+            <p style={{ fontSize: 13, color: colors.textSecondary, margin: 0, lineHeight: 1.5, maxWidth: 720 }}>
+              Chaque associé a son <strong>solde réel</strong> et son propre retrait automatique vers son
+              contact validé. Lorsque son solde atteint son seuil, sa part est payée sur son numéro.
+            </p>
+            <SmallBtn className="primary" onClick={runAuto}>Déclencher maintenant</SmallBtn>
+          </div>
 
-          {autoCfg && (
-            <div style={{
-              border: `1px solid ${autoCfg.is_enabled ? `${colors.success}55` : colors.border}`,
-              borderLeft: `4px solid ${autoCfg.is_enabled ? colors.success : colors.border}`,
-              borderRadius: borderRadius.md,
-              padding: spacing.md,
-              marginBottom: spacing.xl,
-              background: autoCfg.is_enabled ? `${colors.success}06` : 'white',
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm }}>
-                <strong style={{ color: colors.textPrimary }}>Configuration actuelle</strong>
-                <StatusBadge status={autoCfg.is_enabled ? 'active' : 'offline'}>
-                  {autoCfg.is_enabled ? 'Activé' : 'Désactivé'}
-                </StatusBadge>
-              </div>
-              <div style={{ marginTop: spacing.sm, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: spacing.md }}>
-                <div>
-                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: colors.textSecondary, fontWeight: 600 }}>Contact payé</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary }}>
-                    {autoCfgContact
-                      ? `${autoCfgContact.number}${autoCfgContact.label ? ` — ${autoCfgContact.label}` : ''}`
-                      : 'Contact introuvable'}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: colors.textSecondary, fontWeight: 600 }}>Seuil</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary }}>{fmt(autoCfg.minimum_amount)}</div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: colors.textSecondary, fontWeight: 600 }}>Montant</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary }}>
-                    {autoCfg.withdraw_full_balance ? 'Tout le solde' : fmt(autoCfg.fixed_amount)}
-                  </div>
-                </div>
-                <div>
-                  <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: colors.textSecondary, fontWeight: 600 }}>Dernier traitement</div>
-                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: colors.textPrimary }}>{fmtDate(autoCfg.last_processed_at)}</div>
-                </div>
-              </div>
-              {autoCfg.last_error && (
-                <div style={{ color: colors.error, marginTop: spacing.sm, fontSize: '0.8rem' }}>Dernière erreur : {autoCfg.last_error}</div>
-              )}
-              <div style={{ marginTop: spacing.md, display: 'flex', gap: spacing.xs, flexWrap: 'wrap' }}>
-                <SmallBtn className="primary" onClick={runAuto}>Déclencher maintenant</SmallBtn>
-                {autoCfg.is_enabled && <SmallBtn onClick={disableAuto}>Désactiver</SmallBtn>}
-                <SmallBtn className="danger" onClick={deleteAuto}>Supprimer</SmallBtn>
-              </div>
-            </div>
-          )}
-
-          <form onSubmit={saveAuto} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: spacing.lg, alignItems: 'start' }}>
-            <FormGroup>
-              <label>Contact de retrait validé</label>
-              <select value={autoForm.contact_id} onChange={(e) => setAutoForm({ ...autoForm, contact_id: e.target.value })}>
-                <option value="">— Aucun —</option>
-                {zone.withdrawal_contacts?.filter((c) => c.is_validated).map((c) => (
-                  <option key={c.id} value={c.id}>{c.number}{c.label ? ` — ${c.label}` : ''} · frais {c.fee_percentage}%</option>
-                ))}
-              </select>
-            </FormGroup>
-            <FormGroup>
-              <label>Seuil de déclenchement</label>
-              <input type="number" min={0} step={50} value={autoForm.minimum_amount}
-                onChange={(e) => setAutoForm({ ...autoForm, minimum_amount: e.target.value })} placeholder="Ex: 5000" />
-            </FormGroup>
-            {!autoForm.withdraw_full_balance && (
-              <FormGroup>
-                <label>Montant fixe à retirer</label>
-                <input type="number" min={50} step={50} value={autoForm.fixed_amount}
-                  onChange={(e) => setAutoForm({ ...autoForm, fixed_amount: e.target.value })} />
-              </FormGroup>
+          <div style={{ marginTop: spacing.lg }}>
+            {(zone.managers || []).filter((m) => m.status === 'active').length === 0 ? (
+              <EmptyState>Aucun associé actif. Ajoutez un associé dans l'onglet « Associés ».</EmptyState>
+            ) : (
+              (zone.managers || [])
+                .filter((m) => m.status === 'active')
+                .map((m) => (
+                  <AutoWithdrawalManagerCard
+                    key={m.id}
+                    zoneId={zone.id}
+                    manager={m}
+                    config={(zone.automatic_withdrawals || []).find((c) => c.manager_id === m.id)}
+                    contacts={zone.withdrawal_contacts || []}
+                    currencyCode="XAF"
+                    onChanged={refresh}
+                  />
+                ))
             )}
-            <FormGroup>
-              <label>Options</label>
-              <CheckLine>
-                <input type="checkbox" checked={autoForm.withdraw_full_balance}
-                  onChange={(e) => setAutoForm({ ...autoForm, withdraw_full_balance: e.target.checked })} />
-                Retirer tout le solde atteint
-              </CheckLine>
-              <CheckLine>
-                <input type="checkbox" checked={autoForm.is_enabled}
-                  onChange={(e) => setAutoForm({ ...autoForm, is_enabled: e.target.checked })} />
-                Activer le retrait automatique
-              </CheckLine>
-            </FormGroup>
-            <div style={{ alignSelf: 'end' }}>
-              <PrimaryButton type="submit" disabled={autoSaving}>{autoSaving ? 'Enregistrement...' : 'Enregistrer'}</PrimaryButton>
-            </div>
-          </form>
+          </div>
         </div>
       )}
 
@@ -1092,7 +1118,7 @@ export const ZonesPage: React.FC = () => {
                 <span>Surface : <strong>{fmt(z.area_sqm, 0)} m²</strong></span>
                 <span>Revenus générés : <strong>{fmt(z.total_generated)}</strong></span>
                 <span>Solde associé : <strong>{fmt(z.associate_balance)}</strong></span>
-                <span>Statut : <StatusBadge status={z.is_active ? 'active' : 'offline'}>{z.is_active ? 'Active' : 'Désactivée'}</StatusBadge> <StatusBadge status={z.is_closed ? 'active' : 'pending'}>{z.is_closed ? 'Tracé validé' : 'Tracé non validé'}</StatusBadge> {z.automatic_withdrawal_enabled && <StatusBadge status="active">Retrait auto → {z.automatic_withdrawal_contact || '—'}</StatusBadge>}</span>
+                <span>Statut : <StatusBadge status={z.is_active ? 'active' : 'offline'}>{z.is_active ? 'Active' : 'Désactivée'}</StatusBadge> <StatusBadge status={z.is_closed ? 'active' : 'pending'}>{z.is_closed ? 'Tracé validé' : 'Tracé non validé'}</StatusBadge> {z.automatic_withdrawal_enabled && <StatusBadge status="active">Retrait auto → {(z.automatic_withdrawal_contacts?.length ? z.automatic_withdrawal_contacts.join(', ') : (z.automatic_withdrawal_contact || '—'))}</StatusBadge>}</span>
               </CardMeta>
               <CardActions>
                 <SmallBtn className="primary" onClick={() => setSelectedId(z.id)}>Détail</SmallBtn>

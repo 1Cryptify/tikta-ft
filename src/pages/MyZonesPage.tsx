@@ -212,6 +212,7 @@ export const MyZonesPage: React.FC = () => {
   const [autoLoading, setAutoLoading] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [autoExists, setAutoExists] = useState(false);
+  const [autoConfigId, setAutoConfigId] = useState<string | null>(null);
   const [autoForm, setAutoForm] = useState({
     is_enabled: false,
     minimum_amount: '',
@@ -293,7 +294,9 @@ export const MyZonesPage: React.FC = () => {
     setAutoFor(m);
     setAutoLoading(true);
     try {
-      const cfg = await zonesApi.getAutoWithdrawal(m.zone_id);
+      const cfgs = await zonesApi.getAutoWithdrawals(m.zone_id);
+      const cfg = cfgs.find((c) => c.manager_id === m.id) || cfgs[0];
+      setAutoConfigId(cfg?.id || null);
       setAutoExists(!!cfg);
       setAutoForm({
         is_enabled: cfg?.is_enabled || false,
@@ -303,6 +306,7 @@ export const MyZonesPage: React.FC = () => {
         contact_id: cfg?.contact_id || '',
       });
     } catch {
+      setAutoConfigId(null);
       setAutoExists(false);
       setAutoForm({ is_enabled: false, minimum_amount: '', withdraw_full_balance: true, fixed_amount: '', contact_id: '' });
     } finally {
@@ -313,7 +317,7 @@ export const MyZonesPage: React.FC = () => {
   const disableAuto = async () => {
     if (!autoFor) return;
     try {
-      await zonesApi.saveAutoWithdrawal(autoFor.zone_id, { is_enabled: false });
+      await zonesApi.saveAutoWithdrawal(autoFor.zone_id, { manager_id: autoFor.id, is_enabled: false });
       setAutoFor(null);
       await load();
     } catch (err: any) {
@@ -322,10 +326,10 @@ export const MyZonesPage: React.FC = () => {
   };
 
   const deleteAuto = async () => {
-    if (!autoFor) return;
+    if (!autoConfigId) return;
     if (!confirm('Supprimer la configuration de retrait automatique de cette zone ?')) return;
     try {
-      await zonesApi.deleteAutoWithdrawal(autoFor.zone_id);
+      await zonesApi.deleteAutoWithdrawal(autoConfigId);
       setAutoFor(null);
       await load();
     } catch (err: any) {
@@ -343,6 +347,7 @@ export const MyZonesPage: React.FC = () => {
     setAutoSaving(true);
     try {
       await zonesApi.saveAutoWithdrawal(autoFor.zone_id, {
+        manager_id: autoFor.id,
         is_enabled: autoForm.is_enabled,
         minimum_amount: parseFloat(autoForm.minimum_amount) || 0,
         withdraw_full_balance: autoForm.withdraw_full_balance,
